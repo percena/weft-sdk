@@ -105,7 +105,7 @@ jobs:
         if: always()
         # v6+ runs on Node 24; v4/v5 still target Node 20, which is deprecated
         # on GitHub-hosted runners (forced to Node 24 with a warning annotation).
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: gitleaks-report
           path: /tmp/gitleaks-report.json

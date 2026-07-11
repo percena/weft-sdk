@@ -31,7 +31,7 @@ jobs:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       NPM_TRUSTED_PUBLISHING: ${{ vars.NPM_TRUSTED_PUBLISHING }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 

@@ -1,0 +1,20 @@
+/* Tailwind here styles ONLY the demo's own storefront UI — a host-app choice.
+   The chat panel's CSS ships precompiled via `import '@percena/weft/styles'`
+   in main.tsx, so no @source needs to scan the SDK. Automated-live-cursor styles come
+   from @percena/weft/action-bridge (injected at runtime). */
+@import "tailwindcss";
+
+@source "./**/*.{ts,tsx}";
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  /* Theme variables defined by @percena/weft/styles. */
+  background: var(--background);
+  color: var(--foreground);
+}

@@ -1,0 +1,32 @@
+version: 2
+updates:
+  # npm dependencies — keep the monorepo + published packages current.
+  # Grouped to reduce PR noise; pnpm workspace is at the repo root.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Dev-only tooling (biome, tsup, tsx, vitest, typescript, changesets)
+      # can move together without per-PR review burden.
+      dev-tooling:
+        dependency-type: development
+      # Runtime deps of the published @percena/weft / @percena/weft-node
+      # packages — review these carefully (bundle size + browser-purity).
+      runtime-deps:
+        dependency-type: production
+    ignore:
+      # React peers: do not auto-bump React across majors (peer range is
+      # ^18.2.0 || ^19.0.0). Minor/patch only.
+      - dependency-name: react
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react-dom
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions — keep workflow versions current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3

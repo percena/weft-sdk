@@ -1,0 +1,23 @@
+{
+  "name": "@weft/e2e-tests",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@weft/core": "workspace:*",
+    "@weft/adapter": "workspace:*",
+    "@weft/ui": "workspace:*",
+    "@weft/cli-runtime": "workspace:*",
+    "@weft/chat": "workspace:*",
+    "@weft/runtime-core": "workspace:*",
+    "@weft/providers": "workspace:*",
+    "@weft/policy": "workspace:*",
+    "@weft/timeline": "workspace:*",
+    "@weft/host-services": "workspace:*",
+    "@weft/sources": "workspace:*",
+    "@weft/skills": "workspace:*",
+    "@weft/automations": "workspace:*"
+  },
+  "devDependencies": {}
+}

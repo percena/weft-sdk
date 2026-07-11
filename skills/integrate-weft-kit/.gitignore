@@ -1,0 +1,10 @@
+# Python build artifacts (must NOT ship with the skill — they're per-install
+# cache files + leak the host's absolute paths / pytest internals into the
+# installed skill, bloating the skillFolderHash the `skills` CLI uses for
+# update detection on every unrelated change). The root .gitignore covers
+# __pycache__ but NOT .pytest_cache; this catches both at the skill level.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/

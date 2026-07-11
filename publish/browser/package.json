@@ -1,0 +1,126 @@
+{
+  "name": "@percena/weft",
+  "version": "1.0.1",
+  "license": "MIT",
+  "author": "Percena <info@percena.co>",
+  "description": "Weft — embeddable agent chat runtime SDK (browser, production-ready). Streaming chat panel + timeline + action-bridge: an agent drives your REST API through named tools, respects your state machine, and visually replays each call.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./chat": {
+      "types": "./dist/chat.d.ts",
+      "default": "./dist/chat.js"
+    },
+    "./providers/flitro": {
+      "types": "./dist/providers-flitro.d.ts",
+      "default": "./dist/providers-flitro.js"
+    },
+    "./action-bridge": {
+      "types": "./dist/action-bridge.d.ts",
+      "default": "./dist/action-bridge.js"
+    },
+    "./api-graph": {
+      "types": "./dist/api-graph.d.ts",
+      "default": "./dist/api-graph.js"
+    },
+    "./styles": {
+      "types": "./dist/styles/index.d.ts",
+      "default": "./dist/styles/index.css"
+    },
+    "./styles/core": {
+      "types": "./dist/styles/core.d.ts",
+      "default": "./dist/styles/core.css"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_LICENSES.md"
+  ],
+  "scripts": {
+    "build": "tsup && node scripts/build-css.mjs && node scripts/copy-api-graph.mjs && node scripts/bundle-dts.mjs && node scripts/assert-exports.mjs",
+    "dev": "tsup --watch",
+    "prepublishOnly": "pnpm run build"
+  },
+  "bin": {
+    "weft-api-graph": "./dist/api-graph-cli.js"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0 || ^19.0.0",
+    "react-dom": "^18.2.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@shikijs/core": "^3.0.0",
+    "@shikijs/engine-javascript": "^3.0.0",
+    "@shikijs/langs": "^3.0.0",
+    "@shikijs/themes": "^3.0.0",
+    "i18next": "^23.0.0",
+    "lucide-react": "^0.400.0",
+    "motion": "^12.0.0",
+    "react-i18next": "^14.0.0",
+    "react-markdown": "^9.0.0",
+    "rehype-katex": "^7.0.0",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.0",
+    "remark-math": "^6.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.1",
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.14",
+    "@weft/chat": "workspace:*",
+    "@weft/core": "workspace:*",
+    "@weft/providers": "workspace:*",
+    "@weft/runtime-core": "workspace:*",
+    "@weft/timeline": "workspace:*",
+    "@weft/ui": "workspace:*",
+    "dts-bundle-generator": "^9.5.1",
+    "katex": "^0.16.47",
+    "tsup": "^8.5.1"
+  },
+  "keywords": [
+    "agent",
+    "chat",
+    "ai",
+    "streaming",
+    "react",
+    "sdk",
+    "weft"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "homepage": "https://github.com/percena/weft-sdk",
+  "bugs": {
+    "url": "https://github.com/percena/weft-sdk/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/percena/weft-sdk.git",
+    "directory": "publish/browser"
+  }
+}

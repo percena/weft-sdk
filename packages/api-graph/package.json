@@ -1,0 +1,23 @@
+{
+  "name": "@weft/api-graph",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "API dependency graph analyzer — generates a data-flow DAG from an OpenAPI spec for LLM API sequencing",
+  "type": "module",
+  "private": true,
+  "main": "./dist/analyzer.cjs",
+  "module": "./dist/analyzer.js",
+  "types": "./dist/analyzer.d.ts",
+  "exports": {
+    ".": {
+      "import": { "types": "./dist/analyzer.d.ts", "default": "./dist/analyzer.js" },
+      "require": { "types": "./dist/analyzer.d.cts", "default": "./dist/analyzer.cjs" }
+    }
+  },
+  "bin": { "weft-api-graph": "./dist/cli.js" },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run"
+  }
+}

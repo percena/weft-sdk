@@ -1,0 +1,10 @@
+# Binary demo media → Git LFS.
+# Keeps the .git history light on every re-encode (a ~16 MB pair of mp4
+# walkthroughs was previously committed as plain blobs). New media matching
+# these patterns is automatically stored in LFS; clones fetch on demand.
+# NOTE: this converts FUTURE + newly-staged additions. The two demo mp4s are
+# re-staged as LFS pointers; shrinking already-pushed history requires a
+# separate BFG / git-filter-repo pass (not done here).
+*.mp4  filter=lfs diff=lfs merge=lfs -text
+*.webm filter=lfs diff=lfs merge=lfs -text
+*.mov  filter=lfs diff=lfs merge=lfs -text

@@ -1,0 +1,43 @@
+{
+  "name": "@weft/chat",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Weft Chat — embeddable React chat panel glue",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "@weft/core": "workspace:*",
+    "@weft/runtime-core": "workspace:*",
+    "@weft/ui": "workspace:*",
+    "@weft/timeline": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14"
+  },
+  "private": true
+}

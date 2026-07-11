@@ -1,0 +1,34 @@
+{
+  "name": "@weft/runtime-core",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Weft Runtime Core — shared agent runtime contracts and capability selection",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "@weft/core": "workspace:*",
+    "@weft/timeline": "workspace:*"
+  },
+  "private": true
+}

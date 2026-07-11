@@ -1,0 +1,6237 @@
+{
+  "schema_version": 1,
+  "toolset": "itsm",
+  "nodes": [
+    {
+      "id": "listIncidents",
+      "tool_name": "itsm_listincidents",
+      "method": "get",
+      "path_template": "/api/incidents",
+      "produces": [],
+      "consumes": [
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "required": false
+        },
+        {
+          "field": "assignee",
+          "json_path": "$.assignee",
+          "required": false
+        }
+      ],
+      "effect": "read"
+    },
+    {
+      "id": "createIncident",
+      "tool_name": "itsm_createincident",
+      "method": "post",
+      "path_template": "/api/incidents",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "priority",
+          "json_path": "$.priority",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "category",
+          "json_path": "$.category",
+          "type": "string"
+        },
+        {
+          "field": "assignee",
+          "json_path": "$.assignee"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "affected_ci",
+          "json_path": "$.affected_ci"
+        },
+        {
+          "field": "linked_cis",
+          "json_path": "$.linked_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_changes",
+          "json_path": "$.linked_changes",
+          "type": "array"
+        },
+        {
+          "field": "author",
+          "json_path": "$.comments[].author",
+          "type": "string"
+        },
+        {
+          "field": "body",
+          "json_path": "$.comments[].body",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.comments[].at",
+          "type": "string"
+        },
+        {
+          "field": "resolution_note",
+          "json_path": "$.resolution_note"
+        },
+        {
+          "field": "sla_id",
+          "json_path": "$.sla_id"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "required": true
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "required": true
+        },
+        {
+          "field": "priority",
+          "json_path": "$.priority",
+          "required": true
+        },
+        {
+          "field": "category",
+          "json_path": "$.category",
+          "required": true
+        },
+        {
+          "field": "affected_ci",
+          "json_path": "$.affected_ci",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "getIncident",
+      "tool_name": "itsm_getincident",
+      "method": "get",
+      "path_template": "/api/incidents/{iid}",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "priority",
+          "json_path": "$.priority",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "category",
+          "json_path": "$.category",
+          "type": "string"
+        },
+        {
+          "field": "assignee",
+          "json_path": "$.assignee"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "affected_ci",
+          "json_path": "$.affected_ci"
+        },
+        {
+          "field": "linked_cis",
+          "json_path": "$.linked_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_changes",
+          "json_path": "$.linked_changes",
+          "type": "array"
+        },
+        {
+          "field": "author",
+          "json_path": "$.comments[].author",
+          "type": "string"
+        },
+        {
+          "field": "body",
+          "json_path": "$.comments[].body",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.comments[].at",
+          "type": "string"
+        },
+        {
+          "field": "resolution_note",
+          "json_path": "$.resolution_note"
+        },
+        {
+          "field": "sla_id",
+          "json_path": "$.sla_id"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "iid",
+          "json_path": "$.iid",
+          "required": true
+        }
+      ],
+      "effect": "read"
+    },
+    {
+      "id": "assignIncident",
+      "tool_name": "itsm_assignincident",
+      "method": "post",
+      "path_template": "/api/incidents/{iid}/assign",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "priority",
+          "json_path": "$.priority",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "category",
+          "json_path": "$.category",
+          "type": "string"
+        },
+        {
+          "field": "assignee",
+          "json_path": "$.assignee"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "affected_ci",
+          "json_path": "$.affected_ci"
+        },
+        {
+          "field": "linked_cis",
+          "json_path": "$.linked_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_changes",
+          "json_path": "$.linked_changes",
+          "type": "array"
+        },
+        {
+          "field": "author",
+          "json_path": "$.comments[].author",
+          "type": "string"
+        },
+        {
+          "field": "body",
+          "json_path": "$.comments[].body",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.comments[].at",
+          "type": "string"
+        },
+        {
+          "field": "resolution_note",
+          "json_path": "$.resolution_note"
+        },
+        {
+          "field": "sla_id",
+          "json_path": "$.sla_id"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "iid",
+          "json_path": "$.iid",
+          "required": true
+        },
+        {
+          "field": "assignee",
+          "json_path": "$.assignee",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "requestInfo",
+      "tool_name": "itsm_requestinfo",
+      "method": "post",
+      "path_template": "/api/incidents/{iid}/request-info",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "priority",
+          "json_path": "$.priority",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "category",
+          "json_path": "$.category",
+          "type": "string"
+        },
+        {
+          "field": "assignee",
+          "json_path": "$.assignee"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "affected_ci",
+          "json_path": "$.affected_ci"
+        },
+        {
+          "field": "linked_cis",
+          "json_path": "$.linked_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_changes",
+          "json_path": "$.linked_changes",
+          "type": "array"
+        },
+        {
+          "field": "author",
+          "json_path": "$.comments[].author",
+          "type": "string"
+        },
+        {
+          "field": "body",
+          "json_path": "$.comments[].body",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.comments[].at",
+          "type": "string"
+        },
+        {
+          "field": "resolution_note",
+          "json_path": "$.resolution_note"
+        },
+        {
+          "field": "sla_id",
+          "json_path": "$.sla_id"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "iid",
+          "json_path": "$.iid",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "provideInfo",
+      "tool_name": "itsm_provideinfo",
+      "method": "post",
+      "path_template": "/api/incidents/{iid}/provide-info",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "priority",
+          "json_path": "$.priority",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "category",
+          "json_path": "$.category",
+          "type": "string"
+        },
+        {
+          "field": "assignee",
+          "json_path": "$.assignee"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "affected_ci",
+          "json_path": "$.affected_ci"
+        },
+        {
+          "field": "linked_cis",
+          "json_path": "$.linked_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_changes",
+          "json_path": "$.linked_changes",
+          "type": "array"
+        },
+        {
+          "field": "author",
+          "json_path": "$.comments[].author",
+          "type": "string"
+        },
+        {
+          "field": "body",
+          "json_path": "$.comments[].body",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.comments[].at",
+          "type": "string"
+        },
+        {
+          "field": "resolution_note",
+          "json_path": "$.resolution_note"
+        },
+        {
+          "field": "sla_id",
+          "json_path": "$.sla_id"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "iid",
+          "json_path": "$.iid",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "escalateIncident",
+      "tool_name": "itsm_escalateincident",
+      "method": "post",
+      "path_template": "/api/incidents/{iid}/escalate",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "priority",
+          "json_path": "$.priority",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "category",
+          "json_path": "$.category",
+          "type": "string"
+        },
+        {
+          "field": "assignee",
+          "json_path": "$.assignee"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "affected_ci",
+          "json_path": "$.affected_ci"
+        },
+        {
+          "field": "linked_cis",
+          "json_path": "$.linked_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_changes",
+          "json_path": "$.linked_changes",
+          "type": "array"
+        },
+        {
+          "field": "author",
+          "json_path": "$.comments[].author",
+          "type": "string"
+        },
+        {
+          "field": "body",
+          "json_path": "$.comments[].body",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.comments[].at",
+          "type": "string"
+        },
+        {
+          "field": "resolution_note",
+          "json_path": "$.resolution_note"
+        },
+        {
+          "field": "sla_id",
+          "json_path": "$.sla_id"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "iid",
+          "json_path": "$.iid",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "resolveIncident",
+      "tool_name": "itsm_resolveincident",
+      "method": "post",
+      "path_template": "/api/incidents/{iid}/resolve",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "priority",
+          "json_path": "$.priority",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "category",
+          "json_path": "$.category",
+          "type": "string"
+        },
+        {
+          "field": "assignee",
+          "json_path": "$.assignee"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "affected_ci",
+          "json_path": "$.affected_ci"
+        },
+        {
+          "field": "linked_cis",
+          "json_path": "$.linked_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_changes",
+          "json_path": "$.linked_changes",
+          "type": "array"
+        },
+        {
+          "field": "author",
+          "json_path": "$.comments[].author",
+          "type": "string"
+        },
+        {
+          "field": "body",
+          "json_path": "$.comments[].body",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.comments[].at",
+          "type": "string"
+        },
+        {
+          "field": "resolution_note",
+          "json_path": "$.resolution_note"
+        },
+        {
+          "field": "sla_id",
+          "json_path": "$.sla_id"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "iid",
+          "json_path": "$.iid",
+          "required": true
+        },
+        {
+          "field": "resolution_note",
+          "json_path": "$.resolution_note",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "closeIncident",
+      "tool_name": "itsm_closeincident",
+      "method": "post",
+      "path_template": "/api/incidents/{iid}/close",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "priority",
+          "json_path": "$.priority",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "category",
+          "json_path": "$.category",
+          "type": "string"
+        },
+        {
+          "field": "assignee",
+          "json_path": "$.assignee"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "affected_ci",
+          "json_path": "$.affected_ci"
+        },
+        {
+          "field": "linked_cis",
+          "json_path": "$.linked_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_changes",
+          "json_path": "$.linked_changes",
+          "type": "array"
+        },
+        {
+          "field": "author",
+          "json_path": "$.comments[].author",
+          "type": "string"
+        },
+        {
+          "field": "body",
+          "json_path": "$.comments[].body",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.comments[].at",
+          "type": "string"
+        },
+        {
+          "field": "resolution_note",
+          "json_path": "$.resolution_note"
+        },
+        {
+          "field": "sla_id",
+          "json_path": "$.sla_id"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "iid",
+          "json_path": "$.iid",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "reopenIncident",
+      "tool_name": "itsm_reopenincident",
+      "method": "post",
+      "path_template": "/api/incidents/{iid}/reopen",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "priority",
+          "json_path": "$.priority",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "category",
+          "json_path": "$.category",
+          "type": "string"
+        },
+        {
+          "field": "assignee",
+          "json_path": "$.assignee"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "affected_ci",
+          "json_path": "$.affected_ci"
+        },
+        {
+          "field": "linked_cis",
+          "json_path": "$.linked_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_changes",
+          "json_path": "$.linked_changes",
+          "type": "array"
+        },
+        {
+          "field": "author",
+          "json_path": "$.comments[].author",
+          "type": "string"
+        },
+        {
+          "field": "body",
+          "json_path": "$.comments[].body",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.comments[].at",
+          "type": "string"
+        },
+        {
+          "field": "resolution_note",
+          "json_path": "$.resolution_note"
+        },
+        {
+          "field": "sla_id",
+          "json_path": "$.sla_id"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "iid",
+          "json_path": "$.iid",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "addIncidentComment",
+      "tool_name": "itsm_addincidentcomment",
+      "method": "post",
+      "path_template": "/api/incidents/{iid}/comments",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "priority",
+          "json_path": "$.priority",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "category",
+          "json_path": "$.category",
+          "type": "string"
+        },
+        {
+          "field": "assignee",
+          "json_path": "$.assignee"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "affected_ci",
+          "json_path": "$.affected_ci"
+        },
+        {
+          "field": "linked_cis",
+          "json_path": "$.linked_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_changes",
+          "json_path": "$.linked_changes",
+          "type": "array"
+        },
+        {
+          "field": "author",
+          "json_path": "$.comments[].author",
+          "type": "string"
+        },
+        {
+          "field": "body",
+          "json_path": "$.comments[].body",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.comments[].at",
+          "type": "string"
+        },
+        {
+          "field": "resolution_note",
+          "json_path": "$.resolution_note"
+        },
+        {
+          "field": "sla_id",
+          "json_path": "$.sla_id"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "iid",
+          "json_path": "$.iid",
+          "required": true
+        },
+        {
+          "field": "body",
+          "json_path": "$.body",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "updateIncidentPriority",
+      "tool_name": "itsm_updateincidentpriority",
+      "method": "post",
+      "path_template": "/api/incidents/{iid}/priority",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "priority",
+          "json_path": "$.priority",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "category",
+          "json_path": "$.category",
+          "type": "string"
+        },
+        {
+          "field": "assignee",
+          "json_path": "$.assignee"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "affected_ci",
+          "json_path": "$.affected_ci"
+        },
+        {
+          "field": "linked_cis",
+          "json_path": "$.linked_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_changes",
+          "json_path": "$.linked_changes",
+          "type": "array"
+        },
+        {
+          "field": "author",
+          "json_path": "$.comments[].author",
+          "type": "string"
+        },
+        {
+          "field": "body",
+          "json_path": "$.comments[].body",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.comments[].at",
+          "type": "string"
+        },
+        {
+          "field": "resolution_note",
+          "json_path": "$.resolution_note"
+        },
+        {
+          "field": "sla_id",
+          "json_path": "$.sla_id"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "iid",
+          "json_path": "$.iid",
+          "required": true
+        },
+        {
+          "field": "priority",
+          "json_path": "$.priority",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "linkIncidentCi",
+      "tool_name": "itsm_linkincidentci",
+      "method": "post",
+      "path_template": "/api/incidents/{iid}/link/ci",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "priority",
+          "json_path": "$.priority",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "category",
+          "json_path": "$.category",
+          "type": "string"
+        },
+        {
+          "field": "assignee",
+          "json_path": "$.assignee"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "affected_ci",
+          "json_path": "$.affected_ci"
+        },
+        {
+          "field": "linked_cis",
+          "json_path": "$.linked_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_changes",
+          "json_path": "$.linked_changes",
+          "type": "array"
+        },
+        {
+          "field": "author",
+          "json_path": "$.comments[].author",
+          "type": "string"
+        },
+        {
+          "field": "body",
+          "json_path": "$.comments[].body",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.comments[].at",
+          "type": "string"
+        },
+        {
+          "field": "resolution_note",
+          "json_path": "$.resolution_note"
+        },
+        {
+          "field": "sla_id",
+          "json_path": "$.sla_id"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "iid",
+          "json_path": "$.iid",
+          "required": true
+        },
+        {
+          "field": "ci_id",
+          "json_path": "$.ci_id",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "linkIncidentChange",
+      "tool_name": "itsm_linkincidentchange",
+      "method": "post",
+      "path_template": "/api/incidents/{iid}/link/change",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "priority",
+          "json_path": "$.priority",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "category",
+          "json_path": "$.category",
+          "type": "string"
+        },
+        {
+          "field": "assignee",
+          "json_path": "$.assignee"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "affected_ci",
+          "json_path": "$.affected_ci"
+        },
+        {
+          "field": "linked_cis",
+          "json_path": "$.linked_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_changes",
+          "json_path": "$.linked_changes",
+          "type": "array"
+        },
+        {
+          "field": "author",
+          "json_path": "$.comments[].author",
+          "type": "string"
+        },
+        {
+          "field": "body",
+          "json_path": "$.comments[].body",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.comments[].at",
+          "type": "string"
+        },
+        {
+          "field": "resolution_note",
+          "json_path": "$.resolution_note"
+        },
+        {
+          "field": "sla_id",
+          "json_path": "$.sla_id"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "iid",
+          "json_path": "$.iid",
+          "required": true
+        },
+        {
+          "field": "change_id",
+          "json_path": "$.change_id",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "listChanges",
+      "tool_name": "itsm_listchanges",
+      "method": "get",
+      "path_template": "/api/changes",
+      "produces": [],
+      "consumes": [
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "required": false
+        }
+      ],
+      "effect": "read"
+    },
+    {
+      "id": "createChange",
+      "tool_name": "itsm_createchange",
+      "method": "post",
+      "path_template": "/api/changes",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "type",
+          "json_path": "$.type",
+          "type": "string"
+        },
+        {
+          "field": "risk",
+          "json_path": "$.risk",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "implementer",
+          "json_path": "$.implementer"
+        },
+        {
+          "field": "affected_cis",
+          "json_path": "$.affected_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_incidents",
+          "json_path": "$.linked_incidents",
+          "type": "array"
+        },
+        {
+          "field": "change_window",
+          "json_path": "$.change_window"
+        },
+        {
+          "field": "rollback_plan",
+          "json_path": "$.rollback_plan"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.history[].at",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "required": true
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "required": true
+        },
+        {
+          "field": "type",
+          "json_path": "$.type",
+          "required": true
+        },
+        {
+          "field": "risk",
+          "json_path": "$.risk",
+          "required": true
+        },
+        {
+          "field": "affected_cis",
+          "json_path": "$.affected_cis",
+          "required": true
+        },
+        {
+          "field": "rollback_plan",
+          "json_path": "$.rollback_plan",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "getChange",
+      "tool_name": "itsm_getchange",
+      "method": "get",
+      "path_template": "/api/changes/{cid}",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "type",
+          "json_path": "$.type",
+          "type": "string"
+        },
+        {
+          "field": "risk",
+          "json_path": "$.risk",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "implementer",
+          "json_path": "$.implementer"
+        },
+        {
+          "field": "affected_cis",
+          "json_path": "$.affected_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_incidents",
+          "json_path": "$.linked_incidents",
+          "type": "array"
+        },
+        {
+          "field": "change_window",
+          "json_path": "$.change_window"
+        },
+        {
+          "field": "rollback_plan",
+          "json_path": "$.rollback_plan"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.history[].at",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "cid",
+          "json_path": "$.cid",
+          "required": true
+        }
+      ],
+      "effect": "read"
+    },
+    {
+      "id": "submitChange",
+      "tool_name": "itsm_submitchange",
+      "method": "post",
+      "path_template": "/api/changes/{cid}/submit",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "type",
+          "json_path": "$.type",
+          "type": "string"
+        },
+        {
+          "field": "risk",
+          "json_path": "$.risk",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "implementer",
+          "json_path": "$.implementer"
+        },
+        {
+          "field": "affected_cis",
+          "json_path": "$.affected_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_incidents",
+          "json_path": "$.linked_incidents",
+          "type": "array"
+        },
+        {
+          "field": "change_window",
+          "json_path": "$.change_window"
+        },
+        {
+          "field": "rollback_plan",
+          "json_path": "$.rollback_plan"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.history[].at",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "cid",
+          "json_path": "$.cid",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "approveChange",
+      "tool_name": "itsm_approvechange",
+      "method": "post",
+      "path_template": "/api/changes/{cid}/approve",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "type",
+          "json_path": "$.type",
+          "type": "string"
+        },
+        {
+          "field": "risk",
+          "json_path": "$.risk",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "implementer",
+          "json_path": "$.implementer"
+        },
+        {
+          "field": "affected_cis",
+          "json_path": "$.affected_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_incidents",
+          "json_path": "$.linked_incidents",
+          "type": "array"
+        },
+        {
+          "field": "change_window",
+          "json_path": "$.change_window"
+        },
+        {
+          "field": "rollback_plan",
+          "json_path": "$.rollback_plan"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.history[].at",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "cid",
+          "json_path": "$.cid",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "rejectChange",
+      "tool_name": "itsm_rejectchange",
+      "method": "post",
+      "path_template": "/api/changes/{cid}/reject",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "type",
+          "json_path": "$.type",
+          "type": "string"
+        },
+        {
+          "field": "risk",
+          "json_path": "$.risk",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "implementer",
+          "json_path": "$.implementer"
+        },
+        {
+          "field": "affected_cis",
+          "json_path": "$.affected_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_incidents",
+          "json_path": "$.linked_incidents",
+          "type": "array"
+        },
+        {
+          "field": "change_window",
+          "json_path": "$.change_window"
+        },
+        {
+          "field": "rollback_plan",
+          "json_path": "$.rollback_plan"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.history[].at",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "cid",
+          "json_path": "$.cid",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "scheduleChange",
+      "tool_name": "itsm_schedulechange",
+      "method": "post",
+      "path_template": "/api/changes/{cid}/schedule",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "type",
+          "json_path": "$.type",
+          "type": "string"
+        },
+        {
+          "field": "risk",
+          "json_path": "$.risk",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "implementer",
+          "json_path": "$.implementer"
+        },
+        {
+          "field": "affected_cis",
+          "json_path": "$.affected_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_incidents",
+          "json_path": "$.linked_incidents",
+          "type": "array"
+        },
+        {
+          "field": "change_window",
+          "json_path": "$.change_window"
+        },
+        {
+          "field": "rollback_plan",
+          "json_path": "$.rollback_plan"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.history[].at",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "cid",
+          "json_path": "$.cid",
+          "required": true
+        },
+        {
+          "field": "change_window",
+          "json_path": "$.change_window",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "implementChange",
+      "tool_name": "itsm_implementchange",
+      "method": "post",
+      "path_template": "/api/changes/{cid}/implement",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "type",
+          "json_path": "$.type",
+          "type": "string"
+        },
+        {
+          "field": "risk",
+          "json_path": "$.risk",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "implementer",
+          "json_path": "$.implementer"
+        },
+        {
+          "field": "affected_cis",
+          "json_path": "$.affected_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_incidents",
+          "json_path": "$.linked_incidents",
+          "type": "array"
+        },
+        {
+          "field": "change_window",
+          "json_path": "$.change_window"
+        },
+        {
+          "field": "rollback_plan",
+          "json_path": "$.rollback_plan"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.history[].at",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "cid",
+          "json_path": "$.cid",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "completeChange",
+      "tool_name": "itsm_completechange",
+      "method": "post",
+      "path_template": "/api/changes/{cid}/complete",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "type",
+          "json_path": "$.type",
+          "type": "string"
+        },
+        {
+          "field": "risk",
+          "json_path": "$.risk",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "implementer",
+          "json_path": "$.implementer"
+        },
+        {
+          "field": "affected_cis",
+          "json_path": "$.affected_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_incidents",
+          "json_path": "$.linked_incidents",
+          "type": "array"
+        },
+        {
+          "field": "change_window",
+          "json_path": "$.change_window"
+        },
+        {
+          "field": "rollback_plan",
+          "json_path": "$.rollback_plan"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.history[].at",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "cid",
+          "json_path": "$.cid",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "rollbackChange",
+      "tool_name": "itsm_rollbackchange",
+      "method": "post",
+      "path_template": "/api/changes/{cid}/rollback",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "type",
+          "json_path": "$.type",
+          "type": "string"
+        },
+        {
+          "field": "risk",
+          "json_path": "$.risk",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "implementer",
+          "json_path": "$.implementer"
+        },
+        {
+          "field": "affected_cis",
+          "json_path": "$.affected_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_incidents",
+          "json_path": "$.linked_incidents",
+          "type": "array"
+        },
+        {
+          "field": "change_window",
+          "json_path": "$.change_window"
+        },
+        {
+          "field": "rollback_plan",
+          "json_path": "$.rollback_plan"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.history[].at",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "cid",
+          "json_path": "$.cid",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "closeChange",
+      "tool_name": "itsm_closechange",
+      "method": "post",
+      "path_template": "/api/changes/{cid}/close",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "type",
+          "json_path": "$.type",
+          "type": "string"
+        },
+        {
+          "field": "risk",
+          "json_path": "$.risk",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "implementer",
+          "json_path": "$.implementer"
+        },
+        {
+          "field": "affected_cis",
+          "json_path": "$.affected_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_incidents",
+          "json_path": "$.linked_incidents",
+          "type": "array"
+        },
+        {
+          "field": "change_window",
+          "json_path": "$.change_window"
+        },
+        {
+          "field": "rollback_plan",
+          "json_path": "$.rollback_plan"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.history[].at",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "cid",
+          "json_path": "$.cid",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "linkChangeCi",
+      "tool_name": "itsm_linkchangeci",
+      "method": "post",
+      "path_template": "/api/changes/{cid}/link/ci",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "type",
+          "json_path": "$.type",
+          "type": "string"
+        },
+        {
+          "field": "risk",
+          "json_path": "$.risk",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "implementer",
+          "json_path": "$.implementer"
+        },
+        {
+          "field": "affected_cis",
+          "json_path": "$.affected_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_incidents",
+          "json_path": "$.linked_incidents",
+          "type": "array"
+        },
+        {
+          "field": "change_window",
+          "json_path": "$.change_window"
+        },
+        {
+          "field": "rollback_plan",
+          "json_path": "$.rollback_plan"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.history[].at",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "cid",
+          "json_path": "$.cid",
+          "required": true
+        },
+        {
+          "field": "ci_id",
+          "json_path": "$.ci_id",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "linkChangeIncident",
+      "tool_name": "itsm_linkchangeincident",
+      "method": "post",
+      "path_template": "/api/changes/{cid}/link/incident",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "title",
+          "json_path": "$.title",
+          "type": "string"
+        },
+        {
+          "field": "description",
+          "json_path": "$.description",
+          "type": "string"
+        },
+        {
+          "field": "type",
+          "json_path": "$.type",
+          "type": "string"
+        },
+        {
+          "field": "risk",
+          "json_path": "$.risk",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "requester",
+          "json_path": "$.requester",
+          "type": "string"
+        },
+        {
+          "field": "implementer",
+          "json_path": "$.implementer"
+        },
+        {
+          "field": "affected_cis",
+          "json_path": "$.affected_cis",
+          "type": "array"
+        },
+        {
+          "field": "linked_incidents",
+          "json_path": "$.linked_incidents",
+          "type": "array"
+        },
+        {
+          "field": "change_window",
+          "json_path": "$.change_window"
+        },
+        {
+          "field": "rollback_plan",
+          "json_path": "$.rollback_plan"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        },
+        {
+          "field": "updated_at",
+          "json_path": "$.updated_at",
+          "type": "string"
+        },
+        {
+          "field": "action",
+          "json_path": "$.history[].action",
+          "type": "string"
+        },
+        {
+          "field": "from_status",
+          "json_path": "$.history[].from_status"
+        },
+        {
+          "field": "to_status",
+          "json_path": "$.history[].to_status",
+          "type": "string"
+        },
+        {
+          "field": "at",
+          "json_path": "$.history[].at",
+          "type": "string"
+        },
+        {
+          "field": "actor",
+          "json_path": "$.history[].actor",
+          "type": "string"
+        },
+        {
+          "field": "allowed_actions",
+          "json_path": "$.allowed_actions",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "cid",
+          "json_path": "$.cid",
+          "required": true
+        },
+        {
+          "field": "incident_id",
+          "json_path": "$.incident_id",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "listCis",
+      "tool_name": "itsm_listcis",
+      "method": "get",
+      "path_template": "/api/cis",
+      "produces": [],
+      "consumes": [],
+      "effect": "read"
+    },
+    {
+      "id": "getCi",
+      "tool_name": "itsm_getci",
+      "method": "get",
+      "path_template": "/api/cis/{cid}",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "name",
+          "json_path": "$.name",
+          "type": "string"
+        },
+        {
+          "field": "type",
+          "json_path": "$.type",
+          "type": "string"
+        },
+        {
+          "field": "owner",
+          "json_path": "$.owner",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "depends_on",
+          "json_path": "$.depends_on",
+          "type": "array"
+        },
+        {
+          "field": "runs_on",
+          "json_path": "$.runs_on",
+          "type": "array"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "cid",
+          "json_path": "$.cid",
+          "required": true
+        }
+      ],
+      "effect": "read"
+    },
+    {
+      "id": "getCiDependents",
+      "tool_name": "itsm_getcidependents",
+      "method": "get",
+      "path_template": "/api/cis/{cid}/dependents",
+      "produces": [],
+      "consumes": [
+        {
+          "field": "cid",
+          "json_path": "$.cid",
+          "required": true
+        }
+      ],
+      "effect": "read"
+    },
+    {
+      "id": "updateCiStatus",
+      "tool_name": "itsm_updatecistatus",
+      "method": "patch",
+      "path_template": "/api/cis/{cid}/status",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "name",
+          "json_path": "$.name",
+          "type": "string"
+        },
+        {
+          "field": "type",
+          "json_path": "$.type",
+          "type": "string"
+        },
+        {
+          "field": "owner",
+          "json_path": "$.owner",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "type": "string"
+        },
+        {
+          "field": "depends_on",
+          "json_path": "$.depends_on",
+          "type": "array"
+        },
+        {
+          "field": "runs_on",
+          "json_path": "$.runs_on",
+          "type": "array"
+        },
+        {
+          "field": "created_at",
+          "json_path": "$.created_at",
+          "type": "string"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "cid",
+          "json_path": "$.cid",
+          "required": true
+        },
+        {
+          "field": "status",
+          "json_path": "$.status",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "listSlas",
+      "tool_name": "itsm_listslas",
+      "method": "get",
+      "path_template": "/api/slas",
+      "produces": [],
+      "consumes": [],
+      "effect": "read"
+    },
+    {
+      "id": "getSla",
+      "tool_name": "itsm_getsla",
+      "method": "get",
+      "path_template": "/api/slas/{sid}",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "priority",
+          "json_path": "$.priority",
+          "type": "string"
+        },
+        {
+          "field": "response_mins",
+          "json_path": "$.response_mins",
+          "type": "integer"
+        },
+        {
+          "field": "resolution_mins",
+          "json_path": "$.resolution_mins",
+          "type": "integer"
+        },
+        {
+          "field": "breach_action",
+          "json_path": "$.breach_action",
+          "type": "string"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "sid",
+          "json_path": "$.sid",
+          "required": true
+        }
+      ],
+      "effect": "read"
+    },
+    {
+      "id": "listUsers",
+      "tool_name": "itsm_listusers",
+      "method": "get",
+      "path_template": "/api/users",
+      "produces": [],
+      "consumes": [],
+      "effect": "read"
+    },
+    {
+      "id": "getUser",
+      "tool_name": "itsm_getuser",
+      "method": "get",
+      "path_template": "/api/users/{uid}",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "type": "string"
+        },
+        {
+          "field": "username",
+          "json_path": "$.username",
+          "type": "string"
+        },
+        {
+          "field": "role",
+          "json_path": "$.role",
+          "type": "string"
+        },
+        {
+          "field": "on_call_for",
+          "json_path": "$.on_call_for",
+          "type": "array"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "uid",
+          "json_path": "$.uid",
+          "required": true
+        }
+      ],
+      "effect": "read"
+    }
+  ],
+  "edges": [
+    {
+      "from": "createIncident",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getIncident",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "assignIncident",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "requestInfo",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "provideInfo",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "escalateIncident",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "resolveIncident",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeIncident",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "reopenIncident",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "addIncidentComment",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "updateIncidentPriority",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentCi",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentChange",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "createIncident",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getIncident",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "requestInfo",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "provideInfo",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "escalateIncident",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "resolveIncident",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeIncident",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "reopenIncident",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "addIncidentComment",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "updateIncidentPriority",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentCi",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentChange",
+      "to": "listIncidents",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "assignIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "requestInfo",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "provideInfo",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "escalateIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "resolveIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "reopenIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "addIncidentComment",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "updateIncidentPriority",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentCi",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentChange",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "assignIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "requestInfo",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "provideInfo",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "escalateIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "resolveIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "reopenIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "addIncidentComment",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "updateIncidentPriority",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentCi",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentChange",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "assignIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "requestInfo",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "provideInfo",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "escalateIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "resolveIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "reopenIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "addIncidentComment",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentCi",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentChange",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "category",
+        "to_field": "category"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "assignIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "category",
+        "to_field": "category"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "requestInfo",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "category",
+        "to_field": "category"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "provideInfo",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "category",
+        "to_field": "category"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "escalateIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "category",
+        "to_field": "category"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "resolveIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "category",
+        "to_field": "category"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "category",
+        "to_field": "category"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "reopenIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "category",
+        "to_field": "category"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "addIncidentComment",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "category",
+        "to_field": "category"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "updateIncidentPriority",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "category",
+        "to_field": "category"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentCi",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "category",
+        "to_field": "category"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentChange",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "category",
+        "to_field": "category"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "affected_ci",
+        "to_field": "affected_ci"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "assignIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "affected_ci",
+        "to_field": "affected_ci"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "requestInfo",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "affected_ci",
+        "to_field": "affected_ci"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "provideInfo",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "affected_ci",
+        "to_field": "affected_ci"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "escalateIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "affected_ci",
+        "to_field": "affected_ci"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "resolveIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "affected_ci",
+        "to_field": "affected_ci"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "affected_ci",
+        "to_field": "affected_ci"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "reopenIncident",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "affected_ci",
+        "to_field": "affected_ci"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "addIncidentComment",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "affected_ci",
+        "to_field": "affected_ci"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "updateIncidentPriority",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "affected_ci",
+        "to_field": "affected_ci"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentCi",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "affected_ci",
+        "to_field": "affected_ci"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentChange",
+      "to": "createIncident",
+      "binding": {
+        "from_field": "affected_ci",
+        "to_field": "affected_ci"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "createIncident",
+      "to": "assignIncident",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getIncident",
+      "to": "assignIncident",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "requestInfo",
+      "to": "assignIncident",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "provideInfo",
+      "to": "assignIncident",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "escalateIncident",
+      "to": "assignIncident",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "resolveIncident",
+      "to": "assignIncident",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeIncident",
+      "to": "assignIncident",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "reopenIncident",
+      "to": "assignIncident",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "addIncidentComment",
+      "to": "assignIncident",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "updateIncidentPriority",
+      "to": "assignIncident",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentCi",
+      "to": "assignIncident",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentChange",
+      "to": "assignIncident",
+      "binding": {
+        "from_field": "assignee",
+        "to_field": "assignee"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "createIncident",
+      "to": "resolveIncident",
+      "binding": {
+        "from_field": "resolution_note",
+        "to_field": "resolution_note"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getIncident",
+      "to": "resolveIncident",
+      "binding": {
+        "from_field": "resolution_note",
+        "to_field": "resolution_note"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "assignIncident",
+      "to": "resolveIncident",
+      "binding": {
+        "from_field": "resolution_note",
+        "to_field": "resolution_note"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "requestInfo",
+      "to": "resolveIncident",
+      "binding": {
+        "from_field": "resolution_note",
+        "to_field": "resolution_note"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "provideInfo",
+      "to": "resolveIncident",
+      "binding": {
+        "from_field": "resolution_note",
+        "to_field": "resolution_note"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "escalateIncident",
+      "to": "resolveIncident",
+      "binding": {
+        "from_field": "resolution_note",
+        "to_field": "resolution_note"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeIncident",
+      "to": "resolveIncident",
+      "binding": {
+        "from_field": "resolution_note",
+        "to_field": "resolution_note"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "reopenIncident",
+      "to": "resolveIncident",
+      "binding": {
+        "from_field": "resolution_note",
+        "to_field": "resolution_note"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "addIncidentComment",
+      "to": "resolveIncident",
+      "binding": {
+        "from_field": "resolution_note",
+        "to_field": "resolution_note"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "updateIncidentPriority",
+      "to": "resolveIncident",
+      "binding": {
+        "from_field": "resolution_note",
+        "to_field": "resolution_note"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentCi",
+      "to": "resolveIncident",
+      "binding": {
+        "from_field": "resolution_note",
+        "to_field": "resolution_note"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentChange",
+      "to": "resolveIncident",
+      "binding": {
+        "from_field": "resolution_note",
+        "to_field": "resolution_note"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "createIncident",
+      "to": "addIncidentComment",
+      "binding": {
+        "from_field": "body",
+        "to_field": "body"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getIncident",
+      "to": "addIncidentComment",
+      "binding": {
+        "from_field": "body",
+        "to_field": "body"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "assignIncident",
+      "to": "addIncidentComment",
+      "binding": {
+        "from_field": "body",
+        "to_field": "body"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "requestInfo",
+      "to": "addIncidentComment",
+      "binding": {
+        "from_field": "body",
+        "to_field": "body"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "provideInfo",
+      "to": "addIncidentComment",
+      "binding": {
+        "from_field": "body",
+        "to_field": "body"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "escalateIncident",
+      "to": "addIncidentComment",
+      "binding": {
+        "from_field": "body",
+        "to_field": "body"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "resolveIncident",
+      "to": "addIncidentComment",
+      "binding": {
+        "from_field": "body",
+        "to_field": "body"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeIncident",
+      "to": "addIncidentComment",
+      "binding": {
+        "from_field": "body",
+        "to_field": "body"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "reopenIncident",
+      "to": "addIncidentComment",
+      "binding": {
+        "from_field": "body",
+        "to_field": "body"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "updateIncidentPriority",
+      "to": "addIncidentComment",
+      "binding": {
+        "from_field": "body",
+        "to_field": "body"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentCi",
+      "to": "addIncidentComment",
+      "binding": {
+        "from_field": "body",
+        "to_field": "body"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentChange",
+      "to": "addIncidentComment",
+      "binding": {
+        "from_field": "body",
+        "to_field": "body"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getIncident",
+      "to": "updateIncidentPriority",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "assignIncident",
+      "to": "updateIncidentPriority",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "requestInfo",
+      "to": "updateIncidentPriority",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "provideInfo",
+      "to": "updateIncidentPriority",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "escalateIncident",
+      "to": "updateIncidentPriority",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "resolveIncident",
+      "to": "updateIncidentPriority",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeIncident",
+      "to": "updateIncidentPriority",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "reopenIncident",
+      "to": "updateIncidentPriority",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "addIncidentComment",
+      "to": "updateIncidentPriority",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentCi",
+      "to": "updateIncidentPriority",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkIncidentChange",
+      "to": "updateIncidentPriority",
+      "binding": {
+        "from_field": "priority",
+        "to_field": "priority"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "createChange",
+      "to": "listChanges",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getChange",
+      "to": "listChanges",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "submitChange",
+      "to": "listChanges",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "approveChange",
+      "to": "listChanges",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "rejectChange",
+      "to": "listChanges",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "scheduleChange",
+      "to": "listChanges",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "implementChange",
+      "to": "listChanges",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "completeChange",
+      "to": "listChanges",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "rollbackChange",
+      "to": "listChanges",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeChange",
+      "to": "listChanges",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkChangeCi",
+      "to": "listChanges",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkChangeIncident",
+      "to": "listChanges",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "submitChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "approveChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "rejectChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "scheduleChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "implementChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "completeChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "rollbackChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkChangeCi",
+      "to": "createChange",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkChangeIncident",
+      "to": "createChange",
+      "binding": {
+        "from_field": "title",
+        "to_field": "title"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "submitChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "approveChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "rejectChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "scheduleChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "implementChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "completeChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "rollbackChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkChangeCi",
+      "to": "createChange",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkChangeIncident",
+      "to": "createChange",
+      "binding": {
+        "from_field": "description",
+        "to_field": "description"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "type",
+        "to_field": "type"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "submitChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "type",
+        "to_field": "type"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "approveChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "type",
+        "to_field": "type"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "rejectChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "type",
+        "to_field": "type"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "scheduleChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "type",
+        "to_field": "type"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "implementChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "type",
+        "to_field": "type"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "completeChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "type",
+        "to_field": "type"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "rollbackChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "type",
+        "to_field": "type"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "type",
+        "to_field": "type"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkChangeCi",
+      "to": "createChange",
+      "binding": {
+        "from_field": "type",
+        "to_field": "type"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkChangeIncident",
+      "to": "createChange",
+      "binding": {
+        "from_field": "type",
+        "to_field": "type"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "risk",
+        "to_field": "risk"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "submitChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "risk",
+        "to_field": "risk"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "approveChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "risk",
+        "to_field": "risk"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "rejectChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "risk",
+        "to_field": "risk"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "scheduleChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "risk",
+        "to_field": "risk"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "implementChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "risk",
+        "to_field": "risk"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "completeChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "risk",
+        "to_field": "risk"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "rollbackChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "risk",
+        "to_field": "risk"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "risk",
+        "to_field": "risk"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkChangeCi",
+      "to": "createChange",
+      "binding": {
+        "from_field": "risk",
+        "to_field": "risk"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkChangeIncident",
+      "to": "createChange",
+      "binding": {
+        "from_field": "risk",
+        "to_field": "risk"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "affected_cis",
+        "to_field": "affected_cis"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "submitChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "affected_cis",
+        "to_field": "affected_cis"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "approveChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "affected_cis",
+        "to_field": "affected_cis"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "rejectChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "affected_cis",
+        "to_field": "affected_cis"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "scheduleChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "affected_cis",
+        "to_field": "affected_cis"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "implementChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "affected_cis",
+        "to_field": "affected_cis"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "completeChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "affected_cis",
+        "to_field": "affected_cis"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "rollbackChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "affected_cis",
+        "to_field": "affected_cis"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "affected_cis",
+        "to_field": "affected_cis"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkChangeCi",
+      "to": "createChange",
+      "binding": {
+        "from_field": "affected_cis",
+        "to_field": "affected_cis"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkChangeIncident",
+      "to": "createChange",
+      "binding": {
+        "from_field": "affected_cis",
+        "to_field": "affected_cis"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "rollback_plan",
+        "to_field": "rollback_plan"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "submitChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "rollback_plan",
+        "to_field": "rollback_plan"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "approveChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "rollback_plan",
+        "to_field": "rollback_plan"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "rejectChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "rollback_plan",
+        "to_field": "rollback_plan"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "scheduleChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "rollback_plan",
+        "to_field": "rollback_plan"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "implementChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "rollback_plan",
+        "to_field": "rollback_plan"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "completeChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "rollback_plan",
+        "to_field": "rollback_plan"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "rollbackChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "rollback_plan",
+        "to_field": "rollback_plan"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeChange",
+      "to": "createChange",
+      "binding": {
+        "from_field": "rollback_plan",
+        "to_field": "rollback_plan"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkChangeCi",
+      "to": "createChange",
+      "binding": {
+        "from_field": "rollback_plan",
+        "to_field": "rollback_plan"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkChangeIncident",
+      "to": "createChange",
+      "binding": {
+        "from_field": "rollback_plan",
+        "to_field": "rollback_plan"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "createChange",
+      "to": "scheduleChange",
+      "binding": {
+        "from_field": "change_window",
+        "to_field": "change_window"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getChange",
+      "to": "scheduleChange",
+      "binding": {
+        "from_field": "change_window",
+        "to_field": "change_window"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "submitChange",
+      "to": "scheduleChange",
+      "binding": {
+        "from_field": "change_window",
+        "to_field": "change_window"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "approveChange",
+      "to": "scheduleChange",
+      "binding": {
+        "from_field": "change_window",
+        "to_field": "change_window"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "rejectChange",
+      "to": "scheduleChange",
+      "binding": {
+        "from_field": "change_window",
+        "to_field": "change_window"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "implementChange",
+      "to": "scheduleChange",
+      "binding": {
+        "from_field": "change_window",
+        "to_field": "change_window"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "completeChange",
+      "to": "scheduleChange",
+      "binding": {
+        "from_field": "change_window",
+        "to_field": "change_window"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "rollbackChange",
+      "to": "scheduleChange",
+      "binding": {
+        "from_field": "change_window",
+        "to_field": "change_window"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "closeChange",
+      "to": "scheduleChange",
+      "binding": {
+        "from_field": "change_window",
+        "to_field": "change_window"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkChangeCi",
+      "to": "scheduleChange",
+      "binding": {
+        "from_field": "change_window",
+        "to_field": "change_window"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "linkChangeIncident",
+      "to": "scheduleChange",
+      "binding": {
+        "from_field": "change_window",
+        "to_field": "change_window"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "getCi",
+      "to": "updateCiStatus",
+      "binding": {
+        "from_field": "status",
+        "to_field": "status"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    }
+  ],
+  "entrypoints": [
+    "listIncidents",
+    "listChanges",
+    "listCis",
+    "listSlas",
+    "listUsers"
+  ],
+  "verified": true,
+  "generated_by": {
+    "analyzer": "weft-api-graph-v1",
+    "spec_hash": "sha256:cfd378b7d104d13b4c52b7d7efc6cd022ce0bf142f4c1381121e671648bfe5b9",
+    "generated_at": "2026-07-11T03:15:33.152Z"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@weft/itsm-classic",
+  "license": "MIT",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:web": "vite build",
+    "start": "vite build && uv run uvicorn app.main:app --host 127.0.0.1 --port ${ITSM_PORT:-19753}",
+    "serve": "uv run uvicorn app.main:app --host 127.0.0.1 --port ${ITSM_PORT:-19753}",
+    "test": "uv run pytest",
+    "openapi": "uv run python -c \"import json; from app.main import app; print(json.dumps(app.openapi(), indent=2))\" > openapi.json"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.6.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^6.0.3",
+    "vite": "^6.4.3"
+  }
+}

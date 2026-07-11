@@ -1,0 +1,23 @@
+# CODEOWNERS — review routing for the weft-sdk repo.
+# See https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# NOTE: replace @percena/maintainers with a real GitHub team or user handles
+# before relying on required reviews. A missing team is ignored by GitHub.
+
+# Default owner for everything not matched below.
+*                           @percena/maintainers
+
+# The published npm facades + their build/assert scripts are security- and
+# bundle-size-sensitive — extra review on every change.
+/publish/                   @percena/maintainers
+
+# The integration skill ships templates integrators copy verbatim (CORS,
+# proxy headers, session mint) — security-relevant, route for review.
+/skills/                     @percena/maintainers
+
+# CI/release plumbing + dependency manifest.
+/.github/                    @percena/maintainers
+/package.json                @percena/maintainers
+/pnpm-lock.yaml              @percena/maintainers
+/.npmrc                      @percena/maintainers
+/.gitattributes              @percena/maintainers

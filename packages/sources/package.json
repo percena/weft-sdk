@@ -1,0 +1,39 @@
+{
+  "name": "@weft/sources",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "MCP Source management — credential manager, API tools, server builder",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "@weft/core": "workspace:*",
+    "@weft/timeline": "workspace:*",
+    "@weft/runtime-core": "workspace:*",
+    "zod": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.8.0"
+  },
+  "private": true
+}

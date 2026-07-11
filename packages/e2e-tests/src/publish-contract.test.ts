@@ -1,0 +1,156 @@
+import { existsSync, readFileSync, statSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { describe, expect, test } from 'vitest'
+
+const repoRoot = fileURLToPath(new URL('../../../', import.meta.url))
+
+function publishDistPath(fileName: string): string {
+  return resolve(repoRoot, 'publish/browser/dist', fileName)
+}
+
+function publishPackageJson(): {
+  exports?: Record<string, unknown>
+} {
+  return JSON.parse(readFileSync(resolve(repoRoot, 'publish/browser/package.json'), 'utf8'))
+}
+
+describe('@percena/weft publish contract', () => {
+  test('exports map contains only Tenant-facing subpaths', () => {
+    const packageJson = publishPackageJson()
+    // Node-only and platform-internal subpaths must NOT be in the exports map.
+    expect(packageJson.exports?.['./server']).toBeUndefined()
+    expect(packageJson.exports?.['./skills']).toBeUndefined()
+    expect(packageJson.exports?.['./skills/browser']).toBeUndefined()
+    expect(packageJson.exports?.['./sources']).toBeUndefined()
+    expect(packageJson.exports?.['./automations']).toBeUndefined()
+    expect(packageJson.exports?.['./factory']).toBeUndefined()
+    expect(packageJson.exports?.['./providers']).toBeUndefined()
+    expect(packageJson.exports?.['./auth']).toBeUndefined()
+    expect(packageJson.exports?.['./local-runtime']).toBeUndefined()
+    // Tenant-facing surface.
+    expect(packageJson.exports?.['.']).toBeDefined()
+    expect(packageJson.exports?.['./chat']).toBeDefined()
+    expect(packageJson.exports?.['./providers/flitro']).toBeDefined()
+    expect(packageJson.exports?.['./action-bridge']).toBeDefined()
+    expect(packageJson.exports?.['./styles']).toBeDefined()
+  })
+
+  test('root entry exports only Tenant-facing runtime types and React integration', async () => {
+    const root = await import(pathToFileURL(publishDistPath('index.js')).href)
+    // Tenant-facing: hosted-mode React hooks and components.
+    expect(typeof root.useAgentSession).toBe('function')
+    expect(typeof root.TimelineAgentChatPanel).toBe('function')
+    expect(typeof root.createFlitroEmbedRuntime).toBe('function')
+    expect(typeof root.EN_FALLBACK).toBe('object')
+    // Must NOT leak backend / platform-internal surface.
+    expect(root.createPermissionPolicy).toBeUndefined()
+    expect(root.evaluateToolPolicy).toBeUndefined()
+    expect(root.resolvePathMentions).toBeUndefined()
+    expect(root.parseMentions).toBeUndefined()
+    expect(root.selectRuntimeCandidate).toBeUndefined()
+    expect(root.invokeSessionTool).toBeUndefined()
+  })
+
+  test('root entry is browser-safe — no node: imports', () => {
+    const output = readFileSync(publishDistPath('index.js'), 'utf8')
+    expect(output).not.toMatch(/from ["']node:/)
+    expect(output).not.toMatch(/require\(["']node:/)
+  })
+
+  test('publish outputs do not bundle gray-matter javascript eval parser', () => {
+    for (const fileName of ['skills.js', 'server.js']) {
+      const filePath = publishDistPath(fileName)
+      try {
+        const output = readFileSync(filePath, 'utf8')
+        expect(output).not.toMatch(/return eval\(/)
+      } catch (err: unknown) {
+        const code = (err as NodeJS.ErrnoException)?.code
+        if (code !== 'ENOENT') throw err
+      }
+    }
+  })
+
+  test('action-bridge subpath re-exports React glue', async () => {
+    const ab = await import(pathToFileURL(publishDistPath('action-bridge.js')).href)
+    expect(typeof ab.weftAction).toBe('function')
+    expect(typeof ab.createActionBridge).toBe('function')
+    expect(typeof ab.ActionReplayLayer).toBe('function')
+    expect(typeof ab.useActionBridge).toBe('function')
+  })
+
+  test('chat output does not pull in full shiki language bundles through diff rendering', () => {
+    const output = readFileSync(publishDistPath('chat.js'), 'utf8')
+    expect(output).not.toContain('@pierre/diffs')
+    expect(output).not.toContain('bundledLanguagesInfo')
+    expect(output).not.toContain('emacs-lisp')
+  })
+
+  test('no @percena transitive dependencies in published package', () => {
+    const packageJson = publishPackageJson()
+    const deps = Object.keys((packageJson as Record<string, Record<string, string>>).dependencies ?? {})
+    const percenaDeps = deps.filter(d => d.startsWith('@percena/'))
+    expect(percenaDeps).toEqual([])
+  })
+})
+
+function desktopDistPath(fileName: string): string {
+  return resolve(repoRoot, 'publish/desktop/dist', fileName)
+}
+
+function desktopPackageJson(): {
+  exports?: Record<string, unknown>
+  dependencies?: Record<string, string>
+} {
+  return JSON.parse(readFileSync(resolve(repoRoot, 'publish/desktop/package.json'), 'utf8'))
+}
+
+// Subpaths the desktop (@percena/weft-node) package must expose. Mirrors
+// publish/desktop/package.json#exports.
+const desktopSubpaths = [
+  '.', './chat',
+  './providers/claude', './providers/codex', './providers/flitro',
+  './runtime', './cli-runtime',
+  './skills', './sources', './automations', './policy',
+  './styles',
+]
+
+// Entry dist files the desktop build must emit (one per non-styles subpath).
+const desktopDistFiles = [
+  'index.js', 'chat.js',
+  'providers-claude.js', 'providers-codex.js', 'providers-flitro.js',
+  'runtime.js', 'cli-runtime.js',
+  'skills.js', 'sources.js', 'automations.js', 'policy.js',
+]
+
+describe('@percena/weft-node publish contract', () => {
+  test('exports map exposes the full Node/desktop surface', () => {
+    const exports = desktopPackageJson().exports ?? {}
+    for (const subpath of desktopSubpaths) {
+      expect(exports[subpath]).toBeDefined()
+    }
+  })
+
+  test('every desktop entry dist file is emitted and non-empty', () => {
+    for (const file of desktopDistFiles) {
+      const filePath = desktopDistPath(file)
+      expect(existsSync(filePath)).toBe(true)
+      const size = statSync(filePath).size
+      expect(size).toBeGreaterThan(0)
+    }
+  })
+
+  test('no @percena transitive dependencies in desktop package', () => {
+    const deps = Object.keys(desktopPackageJson().dependencies ?? {})
+    const percenaDeps = deps.filter(d => d.startsWith('@percena/'))
+    expect(percenaDeps).toEqual([])
+  })
+
+  test('desktop root entry loads and exports the shared chat surface', async () => {
+    const root = await import(pathToFileURL(desktopDistPath('index.js')).href)
+    expect(typeof root.useAgentSession).toBe('function')
+    expect(typeof root.TimelineAgentChatPanel).toBe('function')
+    expect(typeof root.createFlitroEmbedRuntime).toBe('function')
+    expect(typeof root.EN_FALLBACK).toBe('object')
+  })
+})

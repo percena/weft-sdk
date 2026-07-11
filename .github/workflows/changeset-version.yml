@@ -1,0 +1,54 @@
+name: Changeset version PR
+
+# Opens (or updates) a "chore: version packages" PR whenever there are
+# pending changesets on main, so versions never drift silently between manual
+# releases. Pairs with release.yml (workflow_dispatch), which actually
+# publishes once the version PR lands.
+#
+# PREREQUISITE: opening a PR with GITHUB_TOKEN requires the repo setting
+# "Allow GitHub Actions to create and approve pull requests" enabled in
+# Settings → Actions → General → Workflow permissions (the same setting
+# release.yml needs). If that is OFF, the job checks out + installs + builds +
+# pushes the version branch (contents:write works) but SILENTLY FAILS to open
+# the PR — and since this runs on a schedule, the failure is easy to miss.
+# This workflow only versions (no npm publish), so NPM_TOKEN/trusted-publishing
+# is NOT required here (only release.yml needs it).
+
+on:
+  schedule:
+    # Daily at 09:00 UTC.
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency: changeset-version-${{ github.ref }}
+
+jobs:
+  version:
+    name: Open version PR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - run: pnpm run check
+
+      - name: Create / update version PR
+        uses: changesets/action@v1
+        with:
+          version: pnpm run version-packages
+          commit: 'chore: version packages'
+          title: 'chore: version packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

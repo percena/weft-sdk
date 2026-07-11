@@ -1,0 +1,212 @@
+/**
+ * @weft/ui shared Tailwind theme.
+ *
+ * Import this from demo or host apps, then add @source entries for the app and
+ * for packages/ui so Tailwind can generate classes used by TurnCard.
+ */
+
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+@plugin "@tailwindcss/typography";
+
+:root {
+  --background: oklch(0.98 0.003 265);
+  --foreground: oklch(0.185 0.01 270);
+  --foreground-rgb: 38, 36, 42;
+  --accent: oklch(0.58 0.22 293);
+  --accent-rgb: 104, 78, 133;
+  --info: oklch(0.75 0.16 70);
+  --success: oklch(0.55 0.17 145);
+  --destructive: oklch(0.58 0.24 28);
+  --destructive-rgb: 180, 60, 50;
+  --info-rgb: 180, 120, 40;
+  --success-rgb: 34, 120, 60;
+  --success-text: color-mix(in oklab, var(--success) 50%, var(--foreground));
+  --destructive-text: color-mix(in oklab, var(--destructive) 50%, var(--foreground));
+  --info-text: color-mix(in oklab, var(--info) 50%, var(--foreground));
+  --shadow-border-opacity: 0.08;
+  --shadow-blur-opacity: 0.06;
+  --shadow-minimal:
+    rgba(0, 0, 0, 0) 0 0 0 0,
+    rgba(var(--foreground-rgb), 0.06) 0 0 0 1px,
+    rgba(0, 0, 0, var(--shadow-blur-opacity)) 0 1px 1px -0.5px,
+    rgba(0, 0, 0, var(--shadow-blur-opacity)) 0 3px 3px -1.5px;
+  --shadow-minimal-flat:
+    rgba(var(--foreground-rgb), 0.06) 0 0 0 1px;
+  --shadow-strong:
+    rgba(var(--foreground-rgb), 0.08) 0 0 0 1px,
+    rgba(0, 0, 0, calc(var(--shadow-blur-opacity) * 1.2)) 0 8px 24px -8px;
+  --shadow-tinted:
+    rgba(var(--accent-rgb), 0.12) 0 0 0 1px,
+    rgba(var(--accent-rgb), 0.10) 0 8px 20px -12px;
+  --shadow-modal-small: var(--shadow-strong);
+  --z-tooltip: 150;
+  --foreground-2: color-mix(in oklch, var(--foreground) 2%, var(--background));
+  --foreground-3: color-mix(in oklch, var(--foreground) 3%, var(--background));
+  --foreground-5: color-mix(in oklch, var(--foreground) 5%, var(--background));
+  --foreground-10: color-mix(in oklch, var(--foreground) 10%, var(--background));
+  --foreground-20: color-mix(in oklch, var(--foreground) 20%, var(--background));
+  --foreground-30: color-mix(in oklch, var(--foreground) 30%, var(--background));
+  --foreground-40: color-mix(in oklch, var(--foreground) 40%, var(--background));
+  --foreground-50: color-mix(in oklch, var(--foreground) 50%, var(--background));
+  --foreground-60: color-mix(in oklch, var(--foreground) 60%, var(--background));
+  --foreground-70: color-mix(in oklch, var(--foreground) 70%, var(--background));
+  --foreground-80: color-mix(in oklch, var(--foreground) 80%, var(--background));
+  --foreground-90: color-mix(in oklch, var(--foreground) 90%, var(--background));
+  --foreground-95: color-mix(in oklch, var(--foreground) 95%, var(--background));
+  --secondary: oklch(from var(--foreground) l c h / 0.05);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(from var(--foreground) l c h / 0.05);
+  --muted-foreground: var(--foreground-50);
+  --card: var(--background);
+  --card-foreground: var(--foreground);
+  --popover: var(--background);
+  --popover-foreground: var(--foreground);
+  --border: oklch(from var(--foreground) l c h / 0.08);
+  --input: oklch(from var(--foreground) l c h / 0.1);
+  --ring: oklch(from var(--foreground) l c h / 0.25);
+  --user-message-bubble: oklch(from var(--foreground) l c h / 0.05);
+  --md-bullets: var(--foreground-50);
+  --md-counters: var(--foreground-50);
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --font-default: var(--font-sans);
+  --font-size-base: 15px;
+  --radius: 0;
+  --spacing: 0.25rem;
+}
+
+.dark {
+  --background: oklch(0.2 0.005 270);
+  --foreground: oklch(0.92 0.005 270);
+  --foreground-rgb: 227, 226, 229;
+  --accent: oklch(0.65 0.20 293);
+  --accent-rgb: 118, 92, 147;
+  --info: oklch(0.70 0.16 70);
+  --success: oklch(0.60 0.17 145);
+  --destructive: oklch(0.70 0.19 22);
+  --destructive-rgb: 200, 80, 70;
+  --info-rgb: 200, 140, 60;
+  --success-rgb: 50, 140, 80;
+  --shadow-border-opacity: 0.15;
+  --shadow-blur-opacity: 0.12;
+  --foreground-2: color-mix(in oklch, var(--foreground) 2%, var(--background));
+  --foreground-3: color-mix(in oklch, var(--foreground) 3%, var(--background));
+  --foreground-5: color-mix(in oklch, var(--foreground) 5%, var(--background));
+  --foreground-10: color-mix(in oklch, var(--foreground) 10%, var(--background));
+  --foreground-20: color-mix(in oklch, var(--foreground) 20%, var(--background));
+  --foreground-30: color-mix(in oklch, var(--foreground) 30%, var(--background));
+  --foreground-40: color-mix(in oklch, var(--foreground) 40%, var(--background));
+  --foreground-50: color-mix(in oklch, var(--foreground) 50%, var(--background));
+  --foreground-60: color-mix(in oklch, var(--foreground) 60%, var(--background));
+  --foreground-70: color-mix(in oklch, var(--foreground) 70%, var(--background));
+  --foreground-80: color-mix(in oklch, var(--foreground) 80%, var(--background));
+  --foreground-90: color-mix(in oklch, var(--foreground) 90%, var(--background));
+  --foreground-95: color-mix(in oklch, var(--foreground) 95%, var(--background));
+  --muted: oklch(from var(--foreground) l c h / 0.05);
+  --muted-foreground: var(--foreground-50);
+  --border: oklch(from var(--foreground) l c h / 0.08);
+  --user-message-bubble: oklch(from var(--foreground) l c h / 0.05);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-info: var(--info);
+  --color-success: var(--success);
+  --color-destructive: var(--destructive);
+  --color-foreground-2: var(--foreground-2);
+  --color-foreground-3: var(--foreground-3);
+  --color-foreground-5: var(--foreground-5);
+  --color-foreground-10: var(--foreground-10);
+  --color-foreground-20: var(--foreground-20);
+  --color-foreground-30: var(--foreground-30);
+  --color-foreground-40: var(--foreground-40);
+  --color-foreground-50: var(--foreground-50);
+  --color-foreground-60: var(--foreground-60);
+  --color-foreground-70: var(--foreground-70);
+  --color-foreground-80: var(--foreground-80);
+  --color-foreground-90: var(--foreground-90);
+  --color-foreground-95: var(--foreground-95);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-md-bullets: var(--md-bullets);
+  --color-md-counters: var(--md-counters);
+  --color-user-message-bubble: var(--user-message-bubble);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --shadow-minimal: var(--shadow-minimal);
+  --shadow-minimal-flat: var(--shadow-minimal-flat);
+  --shadow-strong: var(--shadow-strong);
+  --shadow-tinted: var(--shadow-tinted);
+  --shadow-modal-small: var(--shadow-modal-small);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    border-color: var(--border);
+  }
+
+  html {
+    font-size: var(--font-size-base);
+  }
+
+  body {
+    font-family: var(--font-default);
+    background: var(--background);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  button {
+    font: inherit;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+  }
+}
+
+@keyframes weft-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.animate-shimmer::after {
+  animation: weft-shimmer 1.2s infinite;
+  background: linear-gradient(90deg, transparent, color-mix(in oklch, var(--foreground) 12%, transparent), transparent);
+  content: "";
+  inset: 0;
+  position: absolute;
+}

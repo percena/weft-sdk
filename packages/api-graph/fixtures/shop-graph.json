@@ -1,0 +1,793 @@
+{
+  "schema_version": 1,
+  "toolset": "shop",
+  "nodes": [
+    {
+      "id": "listProducts",
+      "tool_name": "shop_listproducts",
+      "method": "get",
+      "path_template": "/api/products",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.products[].id",
+          "type": "string"
+        },
+        {
+          "field": "name",
+          "json_path": "$.products[].name",
+          "type": "string"
+        },
+        {
+          "field": "price",
+          "json_path": "$.products[].price",
+          "type": "number"
+        },
+        {
+          "field": "stock",
+          "json_path": "$.products[].stock",
+          "type": "integer"
+        }
+      ],
+      "consumes": [],
+      "effect": "read"
+    },
+    {
+      "id": "getCart",
+      "tool_name": "shop_getcart",
+      "method": "get",
+      "path_template": "/api/cart",
+      "produces": [
+        {
+          "field": "customer_id",
+          "json_path": "$.customer_id",
+          "type": "string"
+        },
+        {
+          "field": "product_id",
+          "json_path": "$.items[].product_id",
+          "type": "string"
+        },
+        {
+          "field": "name",
+          "json_path": "$.items[].name",
+          "type": "string"
+        },
+        {
+          "field": "price",
+          "json_path": "$.items[].price",
+          "type": "number"
+        },
+        {
+          "field": "qty",
+          "json_path": "$.items[].qty",
+          "type": "integer"
+        },
+        {
+          "field": "total",
+          "json_path": "$.total",
+          "type": "number"
+        }
+      ],
+      "consumes": [],
+      "effect": "read"
+    },
+    {
+      "id": "clearCart",
+      "tool_name": "shop_clearcart",
+      "method": "delete",
+      "path_template": "/api/cart",
+      "produces": [
+        {
+          "field": "customer_id",
+          "json_path": "$.customer_id",
+          "type": "string"
+        },
+        {
+          "field": "product_id",
+          "json_path": "$.items[].product_id",
+          "type": "string"
+        },
+        {
+          "field": "name",
+          "json_path": "$.items[].name",
+          "type": "string"
+        },
+        {
+          "field": "price",
+          "json_path": "$.items[].price",
+          "type": "number"
+        },
+        {
+          "field": "qty",
+          "json_path": "$.items[].qty",
+          "type": "integer"
+        },
+        {
+          "field": "total",
+          "json_path": "$.total",
+          "type": "number"
+        }
+      ],
+      "consumes": [],
+      "effect": "destructive"
+    },
+    {
+      "id": "addCartItem",
+      "tool_name": "shop_addcartitem",
+      "method": "post",
+      "path_template": "/api/cart/items",
+      "produces": [
+        {
+          "field": "customer_id",
+          "json_path": "$.customer_id",
+          "type": "string"
+        },
+        {
+          "field": "product_id",
+          "json_path": "$.items[].product_id",
+          "type": "string"
+        },
+        {
+          "field": "name",
+          "json_path": "$.items[].name",
+          "type": "string"
+        },
+        {
+          "field": "price",
+          "json_path": "$.items[].price",
+          "type": "number"
+        },
+        {
+          "field": "qty",
+          "json_path": "$.items[].qty",
+          "type": "integer"
+        },
+        {
+          "field": "total",
+          "json_path": "$.total",
+          "type": "number"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "product_id",
+          "json_path": "$.product_id",
+          "required": true
+        },
+        {
+          "field": "qty",
+          "json_path": "$.qty",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "listOrders",
+      "tool_name": "shop_listorders",
+      "method": "get",
+      "path_template": "/api/orders",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.orders[].id",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.orders[].status",
+          "type": "string"
+        },
+        {
+          "field": "total",
+          "json_path": "$.orders[].total",
+          "type": "number"
+        }
+      ],
+      "consumes": [],
+      "effect": "read"
+    },
+    {
+      "id": "createOrder",
+      "tool_name": "shop_createorder",
+      "method": "post",
+      "path_template": "/api/orders",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.order.id",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.order.status",
+          "type": "string"
+        },
+        {
+          "field": "items",
+          "json_path": "$.order.items",
+          "type": "array"
+        },
+        {
+          "field": "total",
+          "json_path": "$.order.total",
+          "type": "number"
+        }
+      ],
+      "consumes": [],
+      "effect": "write"
+    },
+    {
+      "id": "getOrder",
+      "tool_name": "shop_getorder",
+      "method": "get",
+      "path_template": "/api/orders/{id}",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.order.id",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.order.status",
+          "type": "string"
+        },
+        {
+          "field": "items",
+          "json_path": "$.order.items",
+          "type": "array"
+        },
+        {
+          "field": "total",
+          "json_path": "$.order.total",
+          "type": "number"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "required": true
+        }
+      ],
+      "effect": "read"
+    },
+    {
+      "id": "payOrder",
+      "tool_name": "shop_payorder",
+      "method": "post",
+      "path_template": "/api/orders/{id}/pay",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.order.id",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.order.status",
+          "type": "string"
+        },
+        {
+          "field": "items",
+          "json_path": "$.order.items",
+          "type": "array"
+        },
+        {
+          "field": "total",
+          "json_path": "$.order.total",
+          "type": "number"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "cancelOrder",
+      "tool_name": "shop_cancelorder",
+      "method": "post",
+      "path_template": "/api/orders/{id}/cancel",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.order.id",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.order.status",
+          "type": "string"
+        },
+        {
+          "field": "items",
+          "json_path": "$.order.items",
+          "type": "array"
+        },
+        {
+          "field": "total",
+          "json_path": "$.order.total",
+          "type": "number"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "shipOrder",
+      "tool_name": "shop_shiporder",
+      "method": "post",
+      "path_template": "/api/orders/{id}/ship",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.order.id",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.order.status",
+          "type": "string"
+        },
+        {
+          "field": "items",
+          "json_path": "$.order.items",
+          "type": "array"
+        },
+        {
+          "field": "total",
+          "json_path": "$.order.total",
+          "type": "number"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "deliverOrder",
+      "tool_name": "shop_deliverorder",
+      "method": "post",
+      "path_template": "/api/orders/{id}/deliver",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.order.id",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.order.status",
+          "type": "string"
+        },
+        {
+          "field": "items",
+          "json_path": "$.order.items",
+          "type": "array"
+        },
+        {
+          "field": "total",
+          "json_path": "$.order.total",
+          "type": "number"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "confirmOrder",
+      "tool_name": "shop_confirmorder",
+      "method": "post",
+      "path_template": "/api/orders/{id}/confirm",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.order.id",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.order.status",
+          "type": "string"
+        },
+        {
+          "field": "items",
+          "json_path": "$.order.items",
+          "type": "array"
+        },
+        {
+          "field": "total",
+          "json_path": "$.order.total",
+          "type": "number"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "requestRefund",
+      "tool_name": "shop_requestrefund",
+      "method": "post",
+      "path_template": "/api/orders/{id}/refund/request",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.order.id",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.order.status",
+          "type": "string"
+        },
+        {
+          "field": "items",
+          "json_path": "$.order.items",
+          "type": "array"
+        },
+        {
+          "field": "total",
+          "json_path": "$.order.total",
+          "type": "number"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "approveRefund",
+      "tool_name": "shop_approverefund",
+      "method": "post",
+      "path_template": "/api/orders/{id}/refund/approve",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.order.id",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.order.status",
+          "type": "string"
+        },
+        {
+          "field": "items",
+          "json_path": "$.order.items",
+          "type": "array"
+        },
+        {
+          "field": "total",
+          "json_path": "$.order.total",
+          "type": "number"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    },
+    {
+      "id": "denyRefund",
+      "tool_name": "shop_denyrefund",
+      "method": "post",
+      "path_template": "/api/orders/{id}/refund/deny",
+      "produces": [
+        {
+          "field": "id",
+          "json_path": "$.order.id",
+          "type": "string"
+        },
+        {
+          "field": "status",
+          "json_path": "$.order.status",
+          "type": "string"
+        },
+        {
+          "field": "items",
+          "json_path": "$.order.items",
+          "type": "array"
+        },
+        {
+          "field": "total",
+          "json_path": "$.order.total",
+          "type": "number"
+        }
+      ],
+      "consumes": [
+        {
+          "field": "id",
+          "json_path": "$.id",
+          "required": true
+        }
+      ],
+      "effect": "write"
+    }
+  ],
+  "edges": [
+    {
+      "from": "listOrders",
+      "to": "getOrder",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "createOrder",
+      "to": "getOrder",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "listOrders",
+      "to": "payOrder",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "createOrder",
+      "to": "payOrder",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "listOrders",
+      "to": "cancelOrder",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "createOrder",
+      "to": "cancelOrder",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "listOrders",
+      "to": "shipOrder",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "createOrder",
+      "to": "shipOrder",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "listOrders",
+      "to": "deliverOrder",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "createOrder",
+      "to": "deliverOrder",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "listOrders",
+      "to": "confirmOrder",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "createOrder",
+      "to": "confirmOrder",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "listOrders",
+      "to": "requestRefund",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "createOrder",
+      "to": "requestRefund",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "listOrders",
+      "to": "approveRefund",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "createOrder",
+      "to": "approveRefund",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "listOrders",
+      "to": "denyRefund",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    },
+    {
+      "from": "createOrder",
+      "to": "denyRefund",
+      "binding": {
+        "from_field": "id",
+        "to_field": "id"
+      },
+      "kind": "data",
+      "required": false,
+      "confidence": 0.5,
+      "verified": true,
+      "notes": "heuristic name-match (pure-producer, same-resource) — required:false by default (fail-open); set required:true+verified:true only with evidence for a true generative prerequisite"
+    }
+  ],
+  "entrypoints": [
+    "listProducts",
+    "getCart",
+    "listOrders"
+  ],
+  "verified": true,
+  "generated_by": {
+    "analyzer": "weft-api-graph-v1",
+    "spec_hash": "sha256:6c91b0d5674adc667c62cc4a6cbc0a4466b1ae102203ffafd1d94b03c3011fde",
+    "generated_at": "2026-06-30T01:17:31.142Z"
+  }
+}

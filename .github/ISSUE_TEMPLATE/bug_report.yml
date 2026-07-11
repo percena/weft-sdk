@@ -1,0 +1,46 @@
+name: Bug report
+about: Report something that's broken in a published Weft package
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug! `@percena/weft` (browser) and
+        `@percena/weft-node` (desktop) are the published packages.
+  - type: input
+    id: package
+    attributes:
+      label: Package + version
+      placeholder: "@percena/weft@1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: "Node 22, pnpm 10, macOS / Chrome 130"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: A minimal repro (code + steps). A failing test or a repo link is ideal.
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+    validations:
+      required: true

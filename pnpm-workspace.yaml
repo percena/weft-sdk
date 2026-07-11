@@ -1,0 +1,8 @@
+packages:
+  - "packages/*"
+  - "apps/online-store/*"
+  - "apps/itsm/*"
+  - "apps/chat-playground"
+  - "tools/*"
+  - "publish/browser"
+  - "publish/desktop"

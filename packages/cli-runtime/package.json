@@ -1,0 +1,47 @@
+{
+  "name": "@weft/cli-runtime",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Weft CLI Runtime — provider-owned Claude/Codex streaming session contract",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./browser": {
+      "import": {
+        "types": "./dist/browser.d.ts",
+        "default": "./dist/browser.js"
+      },
+      "require": {
+        "types": "./dist/browser.d.cts",
+        "default": "./dist/browser.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "@weft/core": "workspace:*",
+    "@weft/adapter": "workspace:*",
+    "@weft/runtime-core": "workspace:*",
+    "@weft/timeline": "workspace:*"
+  },
+  "devDependencies": {},
+  "private": true
+}

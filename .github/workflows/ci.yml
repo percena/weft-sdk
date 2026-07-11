@@ -1,0 +1,131 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    name: Type Check + Build + Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - run: pnpm run check
+      - run: pnpm run validate
+
+  test:
+    name: Test Suite (${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # The monorepo dev baseline is Node 22 (.nvmrc). Matrix the TEST job across
+      # 22 + 24 so runtime/Node-version regressions surface before merge — note
+      # this job rebuilds dist on each matrix node, so the build IS exercised on
+      # 24 too. The separate `check` job (type-check + build + validate) stays
+      # on 22 only: it's Node-version-insensitive, so matrixing it adds cost
+      # without signal.
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - run: pnpm run test
+      # App-level node:test suites (REST + state machine + CORS + the /api/reset
+      # auth gate). Zero-dep .mjs — no build needed; not covered by the vitest
+      # config (packages/ only). Run on both matrix nodes.
+      - run: pnpm --filter @weft/online-store-classic test
+      - run: pnpm --filter @weft/online-store-agentic test
+
+  lint:
+    name: Lint (Biome)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      # SD-7: Biome lint. Configured so existing code passes (the a11y / hooks /
+      # suspicious rules that fire on existing code are downgraded to warn) —
+      # CI fails on errors only (regressions of the still-error rules). The
+      # downgraded rules are tracked debt to tighten over time; see biome.json.
+      - run: pnpm run lint
+
+  secret-scan:
+    name: Secret Scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Full history so gitleaks scans every commit, not just the checkout.
+          fetch-depth: 0
+      # OSS gate: scan all refs for secrets. Verified clean 2026-07-09
+      # (1 commit, 4.12 MB, no leaks) with gitleaks 8.30.1.
+      # NOTE: gitleaks/gitleaks-action@v2 requires a paid GITLEAKS_LICENSE for
+      # orgs (even public repos under an org). Run the OSS gitleaks binary
+      # directly via `gh release download` instead — same scanner, no license.
+      - name: Install + run gitleaks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download v8.30.1 -R gitleaks/gitleaks \
+            -p 'gitleaks_*_linux_x64.tar.gz' -D /tmp/gitleaks
+          tar -xzf /tmp/gitleaks/gitleaks_*_linux_x64.tar.gz -C /usr/local/bin gitleaks
+          gitleaks detect --source . --redact --no-banner \
+            --log-opts="--all" \
+            --report-format json --report-path /tmp/gitleaks-report.json
+      - name: Upload gitleaks report
+        if: always()
+        # v6+ runs on Node 24; v4/v5 still target Node 20, which is deprecated
+        # on GitHub-hosted runners (forced to Node 24 with a warning annotation).
+        uses: actions/upload-artifact@v6
+        with:
+          name: gitleaks-report
+          path: /tmp/gitleaks-report.json
+          if-no-files-found: ignore
+
+  publish-check:
+    name: Publish Package Dry Run
+    runs-on: ubuntu-latest
+    needs: [check, test, lint, secret-scan]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - run: cd publish/browser && npm pack --dry-run
+      - run: cd publish/desktop && npm pack --dry-run

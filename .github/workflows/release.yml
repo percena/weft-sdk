@@ -1,0 +1,64 @@
+name: Release
+
+# Manual trigger only. The publish path itself IS configured (NPM_TOKEN secret
+# OR NPM_TRUSTED_PUBLISHING repo var for OIDC trusted publishing; permissions
+# below grant contents:write, pull-requests:write, id-token:write). Releases
+# stay manual so a human gates every `npm publish` of @percena/weft (provenance
+# is on — provenance:true in publishConfig — and a bad publish can't be
+# undone). Version-bump PRs are automated separately by
+# .github/workflows/changeset-version.yml (opens/updates a "chore: version
+# packages" PR on schedule + dispatch); this workflow publishes once that PR
+# lands. To switch to automatic releases on push to main:
+#   1. Confirm NPM_TOKEN (or NPM_TRUSTED_PUBLISHING=true) is set.
+#   2. Enable "Allow GitHub Actions to create and approve pull requests" in
+#      repo Settings → Actions → General → Workflow permissions.
+#   3. Change `on:` to:  on: { push: { branches: [main] } }
+on:
+  workflow_dispatch:
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      NPM_TRUSTED_PUBLISHING: ${{ vars.NPM_TRUSTED_PUBLISHING }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Ensure npm supports trusted publishing
+        run: npm install -g npm@latest
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - run: pnpm run validate
+      - run: pnpm run test
+
+      - name: Create Release Pull Request or Publish
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          publish: pnpm run release
+          version: pnpm run version-packages
+          commit: 'chore: version packages'
+          title: 'chore: version packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,0 +1,60 @@
+{
+  "name": "weft-sdk",
+  "private": true,
+  "version": "1.0.0",
+  "license": "MIT",
+  "description": "Weft — Agentic Chat SDK (browser + Node.js). Dual-publishes @percena/weft and @percena/weft-node.",
+  "homepage": "https://github.com/percena/weft-sdk",
+  "bugs": {
+    "url": "https://github.com/percena/weft-sdk/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/percena/weft-sdk.git"
+  },
+  "author": "Percena <info@percena.co>",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm run build:L0 && pnpm run build:L1 && pnpm run build:L2 && pnpm run build:L3 && pnpm run build:L4 && pnpm run build:publish && pnpm run build:canary",
+    "build:L0": "pnpm run --filter '@weft/timeline' --filter '@weft/core' --filter '@weft/host-services' --filter '@weft/api-graph' build",
+    "build:L1": "pnpm run --filter '@weft/policy' --filter '@weft/runtime-core' --filter '@weft/skills' build",
+    "build:L2": "pnpm run --filter '@weft/automations' --filter '@weft/adapter' --filter '@weft/sources' --filter '@weft/ui' build",
+    "build:L3": "pnpm run --filter '@weft/cli-runtime' --filter '@weft/chat' build",
+    "build:L4": "pnpm run --filter '@weft/providers' build",
+    "build:publish": "pnpm run --filter '@percena/weft' --filter '@percena/weft-node' build",
+    "check": "tsc --noEmit",
+    "validate": "tsx tools/validate-build.ts",
+    "test": "vitest run",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint . --write",
+    "playground": "pnpm --filter @weft/chat-playground dev",
+    "clean": "find packages publish apps tools -type d -name dist -not -path '*/node_modules/*' -prune -exec rm -rf {} + && rm -rf publish/browser/.css-build",
+    "release": "changeset publish",
+    "version-packages": "changeset version",
+    "build:canary": "pnpm run --filter '@weft/browser-canary' build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.2",
+    "@changesets/cli": "^2.31.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "tsup": "^8.5.1",
+    "tsx": "^4.19.0",
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.6"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.18.2",
+  "pnpm": {
+    "overrides": {
+      "@types/react": "19.2.15",
+      "@types/react-dom": "19.2.3",
+      "esbuild": "0.27.2",
+      "js-yaml@3": "3.15.0",
+      "hono": "4.12.27"
+    }
+  }
+}

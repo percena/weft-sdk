@@ -1,0 +1,154 @@
+{
+  "name": "@percena/weft-node",
+  "version": "0.4.0",
+  "license": "MIT",
+  "author": "Percena <info@percena.co>",
+  "description": "Weft — agent chat runtime SDK for Node.js/desktop (upcoming). The browser package plus Claude Agent SDK + Codex app-server providers, skills, sources, automations, and policy.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./chat": {
+      "types": "./dist/chat.d.ts",
+      "default": "./dist/chat.js"
+    },
+    "./providers/claude": {
+      "types": "./dist/providers-claude.d.ts",
+      "default": "./dist/providers-claude.js"
+    },
+    "./providers/codex": {
+      "types": "./dist/providers-codex.d.ts",
+      "default": "./dist/providers-codex.js"
+    },
+    "./providers/flitro": {
+      "types": "./dist/providers-flitro.d.ts",
+      "default": "./dist/providers-flitro.js"
+    },
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "default": "./dist/runtime.js"
+    },
+    "./cli-runtime": {
+      "types": "./dist/cli-runtime.d.ts",
+      "default": "./dist/cli-runtime.js"
+    },
+    "./skills": {
+      "types": "./dist/skills.d.ts",
+      "default": "./dist/skills.js"
+    },
+    "./sources": {
+      "types": "./dist/sources.d.ts",
+      "default": "./dist/sources.js"
+    },
+    "./automations": {
+      "types": "./dist/automations.d.ts",
+      "default": "./dist/automations.js"
+    },
+    "./policy": {
+      "types": "./dist/policy.d.ts",
+      "default": "./dist/policy.js"
+    },
+    "./styles": {
+      "types": "./dist/styles/index.d.ts",
+      "default": "./dist/styles/index.css"
+    },
+    "./styles/core": {
+      "types": "./dist/styles/core.d.ts",
+      "default": "./dist/styles/core.css"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup && node scripts/copy-css.js && node scripts/bundle-dts.mjs",
+    "dev": "tsup --watch",
+    "prepublishOnly": "pnpm run build"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0 || ^19.0.0",
+    "react-dom": "^18.2.0 || ^19.0.0",
+    "@anthropic-ai/claude-agent-sdk": ">=0.2.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    },
+    "@anthropic-ai/claude-agent-sdk": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@shikijs/core": "^3.0.0",
+    "@shikijs/engine-javascript": "^3.0.0",
+    "@shikijs/langs": "^3.0.0",
+    "@shikijs/themes": "^3.0.0",
+    "i18next": "^23.0.0",
+    "lucide-react": "^0.400.0",
+    "motion": "^12.0.0",
+    "react-i18next": "^14.0.0",
+    "react-markdown": "^9.0.0",
+    "rehype-katex": "^7.0.0",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.0",
+    "remark-math": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.14",
+    "@weft/adapter": "workspace:*",
+    "@weft/core": "workspace:*",
+    "@weft/chat": "workspace:*",
+    "@weft/providers": "workspace:*",
+    "@weft/runtime-core": "workspace:*",
+    "@weft/timeline": "workspace:*",
+    "@weft/ui": "workspace:*",
+    "@weft/cli-runtime": "workspace:*",
+    "@weft/skills": "workspace:*",
+    "@weft/sources": "workspace:*",
+    "@weft/automations": "workspace:*",
+    "@weft/policy": "workspace:*",
+    "tsup": "^8.5.1"
+  },
+  "keywords": [
+    "agent",
+    "chat",
+    "ai",
+    "claude",
+    "codex",
+    "desktop",
+    "node",
+    "sdk",
+    "weft"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "homepage": "https://github.com/percena/weft-sdk",
+  "bugs": {
+    "url": "https://github.com/percena/weft-sdk/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/percena/weft-sdk.git",
+    "directory": "publish/desktop"
+  }
+}

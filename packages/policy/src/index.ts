@@ -250,6 +250,18 @@ const DANGEROUS_BASH_COMMANDS = new Set([
   'chrt',
   'taskset',
   'numactl',
+  // Bash control-structure reserved words: `if`, `while`, `for`, `case`,
+  // `select`, `until`, `function` start a compound command whose REAL command
+  // is in the condition or body (`if rm -rf /; then :; fi`, `while rm; do break;
+  // done`, `for x; do rm; done`, `case x in a) rm;; esac`, `function f { rm; }`)
+  // — NOT the head, so the danger-set missed it. The mid/end words (`then`/`do`/
+  // `else`/`elif`/`fi`/`done`/`esac`) surface as heads only via `;`-splitting
+  // inside a structure, so flagging them too is defense-in-depth. Reserved words
+  // can never be a real command name, so this adds no FP beyond prompting on the
+  // structure itself (conservative — same tradeoff as the prefixes above).
+  'if', 'then', 'elif', 'else', 'fi',
+  'while', 'until', 'do', 'done',
+  'for', 'case', 'esac', 'select', 'function',
   'cpulimit',
   '!',
 ])

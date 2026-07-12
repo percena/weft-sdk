@@ -89,6 +89,18 @@ describe('bash danger detection (ask mode)', () => {
     expect(decide('ask', 'Bash', { command: '! rm -rf /' })).toBe('ask')
   })
 
+  it('asks for a dangerous command inside a control structure', () => {
+    // The condition or body runs the command, not the head keyword — bash runs
+    // rm in each. The reserved word (which can never be a real command name) is
+    // flagged so the structure cannot be certified approval-free.
+    expect(decide('ask', 'Bash', { command: 'if rm -rf /; then :; fi' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'while rm -rf /; do break; done' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'until rm -rf /; do break; done' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'for x in 1; do rm -rf /; done' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'case x in a) rm -rf /;; esac' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'function f { rm -rf /; }' })).toBe('ask')
+  })
+
   it('asks for a Bash coprocess (Bash 4+, runs the command that follows)', () => {
     expect(decide('ask', 'Bash', { command: 'coproc rm -rf /' })).toBe('ask')
   })
@@ -147,6 +159,18 @@ describe('accepted conservative FP — execution prefixes on safe commands', () 
     expect(decide('ask', 'Bash', { command: 'nice make' })).toBe('ask')
     expect(decide('ask', 'Bash', { command: 'timeout 5 make' })).toBe('ask')
     expect(decide('ask', 'Bash', { command: 'command -v ls' })).toBe('ask')
+  })
+})
+
+// Bash control-structure reserved words (`if`/`while`/`for`/`case`/`select`/
+// `until`/`function` and the mid/end words `then`/`do`/`else`/`elif`/`fi`/`done`/
+// `esac`) are in the danger set because a destructive command can sit in the
+// condition or body, not the head. Reserved words can never be a real command
+// name, so the only cost is prompting on a benign structure itself.
+describe('accepted conservative FP — control structures on safe commands', () => {
+  it('prompts even when the structure body is benign', () => {
+    expect(decide('ask', 'Bash', { command: 'if [ -f x ]; then make; fi' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'while true; do sleep 1; done' })).toBe('ask')
   })
 })
 

@@ -26,6 +26,36 @@ function normalizeUsage(raw: Record<string, unknown>): Extract<AgentEvent, { typ
   return { inputTokens, outputTokens }
 }
 
+/**
+ * A7: extract the provider session id from a raw CLI JSON line, so the CLI
+ * fallback can resume the conversation on the next turn (`claude -p --resume
+ * <id>` / `codex exec resume <id>`). Claude surfaces `session_id` on
+ * `system:init` and `result`; codex exec surfaces the thread/session id on
+ * `thread.started` / `session.started`.
+ */
+export function extractCliProviderSessionId(
+  provider: 'claude' | 'codex',
+  line: string,
+): string | undefined {
+  const payload = asRecord(parseJsonLine(line))
+  const type = getText(payload.type)
+  if (!type) return undefined
+
+  if (provider === 'claude') {
+    if (type === 'system' && payload.subtype === 'init') return getText(payload.session_id)
+    if (type === 'result') return getText(payload.session_id)
+    return undefined
+  }
+
+  if (type === 'thread.started' || type === 'thread_started') {
+    return getText(payload.thread_id) ?? getText(payload.threadId)
+  }
+  if (type === 'session.started' || type === 'session_started') {
+    return getText(payload.session_id) ?? getText(asRecord(payload.session).id)
+  }
+  return undefined
+}
+
 export function mapClaudeStreamJsonLine(line: string): AgentEvent[] {
   const payload = asRecord(parseJsonLine(line))
   const type = getText(payload.type)

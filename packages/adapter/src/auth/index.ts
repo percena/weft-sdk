@@ -11,7 +11,7 @@
 
 // Provider-owned auth types
 export type { ProviderAuthMode, ProviderAuthDetection } from "@weft/runtime-core";
-export type { BackendInitResult, ProviderRuntimeDefinition } from "./provider-auth.ts";
+export type { BackendInitResult, PostInitResult, ProviderRuntimeDefinition } from "./provider-auth.ts";
 
 // Claude Code auth detection
 export {

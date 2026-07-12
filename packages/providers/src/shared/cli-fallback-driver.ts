@@ -41,9 +41,20 @@ export function createCliFallbackDriver(options: {
     })
   }
 
+  let userMessageCounter = 0
+
   return {
     async sendMessage(input, sequencer) {
       connect(sequencer)
+      // A4: neither `claude -p` nor `codex exec --json` echoes the prompt back,
+      // so record the user's message on the canonical timeline here — without
+      // it a replayed CLI-fallback timeline has no user prompts.
+      const messageId = `${options.sessionId}-user-${++userMessageCounter}`
+      sequencer.append({
+        type: 'user_message',
+        text: input.message,
+        messageId,
+      })
       await options.session.commands.sendMessage(input.message, input.options)
     },
     abort(reason) {

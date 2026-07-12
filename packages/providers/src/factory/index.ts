@@ -26,6 +26,12 @@ import {
   type WeftHttpClientOptions,
 } from '../flitro/index.ts'
 
+export {
+  detectRuntimeCandidates,
+  type DetectRuntimeCandidatesOptions,
+  type DetectedRuntimeCandidates,
+} from './detect.ts'
+
 export type HostRuntimeProvider = 'claude' | 'codex' | 'flitro'
 
 export interface HostRuntimeClaudeOptions {
@@ -47,6 +53,10 @@ export interface HostRuntimeCodexOptions {
   approvalPolicy?: string
   approvalsReviewer?: string
   sandbox?: string
+  /** A5: resume a persisted codex thread (`thread/resume` on first turn).
+   * Capture it from the timeline's
+   * `host_state_changed { kind: 'provider_session' }` item. */
+  threadId?: string
   appServerClient?: CodexAppServerClient
   createAppServerClient?: () => Promise<CodexAppServerClient & { close?: () => void }>
   appServerSubprocess?: CreateCodexAppServerSubprocessClientOptions
@@ -116,7 +126,13 @@ export function createHostAgentRuntime(
         model: options.claude?.model ?? options.model,
         reasoningEffort: options.claude?.reasoningEffort ?? options.reasoningEffort,
         env: options.claude?.env,
-        permissionMode: options.claude?.permissionMode,
+        // B7: the permission mode was dual-tracked — `policy.mode` fed only
+        // the capability report while the driver's native mode came solely
+        // from `claude.permissionMode`. Setting `policy: { mode: 'explore' }`
+        // alone left the SDK in default mode (enforcement resting on the hook)
+        // while the report claimed the mode was active. Fall back to
+        // `policy.mode` so one channel configures both.
+        permissionMode: options.claude?.permissionMode ?? options.policy?.mode,
         query: options.claude?.query,
         loadSdk: options.claude?.loadSdk,
         sdkOptions: options.claude?.sdkOptions,
@@ -172,10 +188,12 @@ export function createHostAgentRuntime(
       createAppServerClient: options.codex?.createAppServerClient,
       model: options.codex?.model ?? options.model,
       reasoningEffort: options.codex?.reasoningEffort ?? options.reasoningEffort,
-      permissionMode: options.codex?.permissionMode,
+      // B7: fall back to policy.mode (see the claude branch note).
+      permissionMode: options.codex?.permissionMode ?? options.policy?.mode,
       approvalPolicy: options.codex?.approvalPolicy,
       approvalsReviewer: options.codex?.approvalsReviewer,
       sandbox: options.codex?.sandbox,
+      threadId: options.codex?.threadId,
       appServerSubprocess: options.codex?.appServerSubprocess,
     }),
     sourceRuntime,

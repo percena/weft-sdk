@@ -40,8 +40,14 @@ type ClaudeSdkCanUseToolContext = Parameters<CanUseTool>[2]
  * Optional so test fakes only implement what they exercise — the real SDK
  * `Query` (`sdk.d.ts:2162`) satisfies this in full.
  *
- * All control methods are only honored by the SDK in streaming input/output
- * mode, which weft always uses.
+ * B6 note: several SDK docstrings say these are "only available in streaming
+ * input mode". weft sends string prompts (single-prompt mode); on the pinned
+ * SDK (v0.3.159) the CLI is nevertheless always spawned with
+ * `--input-format stream-json` (string prompts are converted internally), so
+ * control methods DO work while a turn's query loop is live — but this relies
+ * on SDK implementation detail, not documented contract. Between turns there
+ * is no active query and every control call is a silent no-op (see
+ * {@link ClaudeNativeSdkControl}).
  */
 type ClaudeSdkQueryControl = Partial<
   Pick<
@@ -82,8 +88,14 @@ export type ClaudeSdkQuery = AsyncIterable<SDKMessage> & ClaudeSdkQueryControl
 /**
  * Mid-conversation dynamic control surface that `createClaudeNativeSdkDriver`
  * exposes alongside the base driver contract. Each method delegates to the
- * active SDK `Query` handle (a no-op when no turn is in flight). These are
- * only effective while streaming input/output is active (SDK requirement).
+ * active SDK `Query` handle.
+ *
+ * B6 CAVEAT: weft runs one query per turn, so these methods are only live
+ * while a turn is in flight. Between turns `activeQuery` is null and every
+ * call is a SILENT NO-OP (resolved `undefined` — indistinguishable from
+ * success). Callers that need reliable control must invoke these during an
+ * active turn, or hold a long-lived streaming-input session (deferred; see
+ * the 2026-07-12 architecture review, finding B6).
  *
  * Not surfaced through `AgentRuntime.commands` — advanced hosts hold the driver
  * returned by `createClaudeNativeSdkDriver`.
@@ -114,6 +126,14 @@ export interface ClaudeNativeSdkControl {
   supportedCommands(): Promise<unknown> | undefined
   supportedModels(): Promise<unknown> | undefined
   supportedAgents(): Promise<unknown> | undefined
+  /**
+   * A5: the provider (Claude) session id captured from the SDK's init/result
+   * messages — the id to persist for cross-process resume
+   * (`sdkOptions.resume`). Undefined before the first turn produces one.
+   * Also surfaced on the timeline as
+   * `host_state_changed { kind: 'provider_session' }`.
+   */
+  getProviderSessionId(): string | undefined
 }
 
 interface ClaudeSdkQueryParams {
@@ -192,6 +212,15 @@ class ClaudeNativeSdkDriver implements ClaudeProviderRuntimeDriver {
   private turnCounter = 0
   private warmQueryHandle: ClaudeSdkWarmQuery | null = null
   /**
+   * A1: provider session id captured from the SDK's `system:init` / `result`
+   * messages. From the second turn on it is passed as `Options.resume` so the
+   * conversation continues on the same Claude session — previously every
+   * `sendMessage` started a brand-new session and the model forgot the
+   * conversation. Host-provided `sdkOptions.resume`/`continue`/`forkSession`
+   * take precedence (the host owns explicit session management).
+   */
+  private providerSessionId: string | undefined
+  /**
    * Policy decisions cached by the PreToolUse hook so `canUseTool` (which the
    * SDK calls after a hook returns `ask`/`defer`) reuses the same decision
    * instead of re-evaluating the policy. Keyed by `tool_use_id`; consumed and
@@ -207,6 +236,16 @@ class ClaudeNativeSdkDriver implements ClaudeProviderRuntimeDriver {
     const turnId = input.options?.turnId ?? `claude-turn-${++this.turnCounter}`
     this.activeSequencer = sequencer
     sequencer.append({ type: 'turn_started', turnId }, { providerEventType: 'claude-sdk:send_message' })
+    // A4: record the user's message on the canonical timeline. The SDK never
+    // echoes the prompt back, so without this a claude session's replayed
+    // timeline (fetchTimeline) contains assistant/tool items but no user
+    // prompts — asymmetric with codex, which emits `userMessage` items.
+    sequencer.append({
+      type: 'user_message',
+      text: input.message,
+      messageId: `${turnId}-user`,
+      turnId,
+    }, { providerEventType: 'claude-sdk:send_message' })
 
     try {
       let query: ClaudeSdkQuery
@@ -256,6 +295,23 @@ class ClaudeNativeSdkDriver implements ClaudeProviderRuntimeDriver {
     const perTurn = input.options
     const permissionMapping = mapPermissionMode(perTurn?.permissionMode ?? this.options.permissionMode)
 
+    // A1: continue the provider session across turns. Unless the host manages
+    // sessions explicitly (sdkOptions.resume / continue / forkSession), resume
+    // the session id captured from the previous turn's init/result messages so
+    // multi-turn conversations keep their context.
+    const sdkSession = this.options.sdkOptions
+    const hostManagesSession = Boolean(
+      sdkSession?.resume || sdkSession?.continue || sdkSession?.forkSession,
+    )
+    const resumeOptions = this.providerSessionId && !hostManagesSession
+      ? { resume: this.providerSessionId }
+      : {}
+
+    // B2: provider-namespaced per-turn passthrough. Takes precedence over the
+    // deprecated flat provider fields; driver-owned callbacks (hooks/canUseTool)
+    // are spread after it and always win.
+    const perTurnClaude = (perTurn?.providerOptions?.claude ?? {}) as Partial<Options>
+
     // Merge sdkOptions.mcpServers (e.g. in-process 'sdk' type) with source-tool-
     // derived mcpServers. Source tools take precedence (managed path); sdkOptions
     // entries are preserved rather than overwritten.
@@ -279,6 +335,8 @@ class ClaudeNativeSdkDriver implements ClaudeProviderRuntimeDriver {
       ...(perTurn?.thinking !== undefined ? { thinking: perTurn.thinking as Options['thinking'] } : {}),
       ...(perTurn?.maxTurns !== undefined ? { maxTurns: perTurn.maxTurns } : {}),
       ...(perTurn?.maxBudgetUsd !== undefined ? { maxBudgetUsd: perTurn.maxBudgetUsd } : {}),
+      ...resumeOptions,
+      ...perTurnClaude,
       ...this.buildHooks(sequencer),
       canUseTool: (toolName, toolInput, context) =>
         this.handleCanUseTool(toolName, toolInput, context, sequencer),
@@ -561,6 +619,10 @@ class ClaudeNativeSdkDriver implements ClaudeProviderRuntimeDriver {
     this.activeQuery?.close?.()
   }
 
+  getProviderSessionId(): string | undefined {
+    return this.providerSessionId
+  }
+
   private async getQueryRunner(): Promise<ClaudeSdkQueryRunner> {
     if (this.options.query) return this.options.query
     const sdk = this.options.loadSdk
@@ -649,6 +711,22 @@ class ClaudeNativeSdkDriver implements ClaudeProviderRuntimeDriver {
     const record = asRecord(message)
     const type = stringValue(record.type)
     if (!type) return
+
+    // A1/A5: capture the provider session id (present on `system:init` and
+    // `result`). Used for auto-resume on the next turn, and surfaced on the
+    // timeline so hosts can persist it for cross-process resume.
+    const sessionId = stringValue(record.session_id)
+    if (sessionId && sessionId !== this.providerSessionId) {
+      this.providerSessionId = sessionId
+      sequencer.append({
+        type: 'host_state_changed',
+        state: {
+          kind: 'provider_session',
+          provider: 'claude',
+          providerSessionId: sessionId,
+        },
+      }, { providerEventType: 'claude-sdk:session_id' })
+    }
 
     if (type === 'stream_event') {
       for (const item of projectStreamEvent(record, turnId)) {

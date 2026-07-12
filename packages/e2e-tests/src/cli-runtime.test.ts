@@ -196,8 +196,10 @@ describe('CLI Runtime — provider stream adapters', () => {
       cwd: '/tmp/project',
       permissionMode: 'ask',
       reasoningEffort: 'high',
-    }, 'hello')
+    })
 
+    // A7: the prompt is piped via stdin — codex reads it from the `-`
+    // positional; the message is no longer part of the argv.
     expect(args).toEqual([
       'exec',
       '--json',
@@ -209,7 +211,7 @@ describe('CLI Runtime — provider stream adapters', () => {
       'approval_policy="on-request"',
       '--sandbox',
       'workspace-write',
-      'hello',
+      '-',
     ])
     expect(args).not.toContain('--ask-for-approval')
   })
@@ -223,12 +225,37 @@ describe('CLI Runtime — provider stream adapters', () => {
       provider: 'codex',
       cwd: '/tmp/project',
       permissionMode,
-    }, 'hello')
+    })
 
     expect(args).toContain(approvalPolicy)
     expect(args).toContain('--sandbox')
     expect(args).toContain(sandbox)
     expect(args).not.toContain('--ask-for-approval')
+  })
+
+  test('A7: resume args — claude uses --resume, codex uses exec resume without --cd/--sandbox', () => {
+    const claudeArgs = buildCliArgs({
+      provider: 'claude',
+      cwd: '/tmp/project',
+      permissionMode: 'ask',
+    }, 'claude-sess-9')
+    expect(claudeArgs).toContain('--resume')
+    expect(claudeArgs[claudeArgs.indexOf('--resume') + 1]).toBe('claude-sess-9')
+    // Prompt is piped via stdin — no positional prompt in argv.
+    expect(claudeArgs[claudeArgs.length - 1]).not.toBe('hello')
+
+    const codexArgs = buildCliArgs({
+      provider: 'codex',
+      cwd: '/tmp/project',
+      permissionMode: 'ask',
+      reasoningEffort: 'high',
+    }, 'thread-42')
+    expect(codexArgs.slice(0, 3)).toEqual(['exec', 'resume', 'thread-42'])
+    expect(codexArgs).toContain('--json')
+    // `exec resume` does not accept --cd/--sandbox (session keeps originals).
+    expect(codexArgs).not.toContain('--cd')
+    expect(codexArgs).not.toContain('--sandbox')
+    expect(codexArgs[codexArgs.length - 1]).toBe('-')
   })
 
   test('createCliAgentSession applies sendMessage permissionMode to Codex CLI args', async () => {

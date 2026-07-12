@@ -356,3 +356,36 @@ async function waitFor(predicate: () => boolean): Promise<void> {
   }
 }
 
+
+describe('B5 — detectRuntimeCandidates', () => {
+  test('assembles claude candidates from SDK probe + auth probe (missing binary path)', async () => {
+    const { detectRuntimeCandidates } = await import('@weft/providers/factory')
+    const detected = await detectRuntimeCandidates({
+      provider: 'claude',
+      executable: '/definitely/missing/claude-binary',
+      probeClaudeSdk: async () => true,
+    })
+
+    const native = detected.candidates.find(c => c.kind === 'native-sdk')
+    const cli = detected.candidates.find(c => c.kind === 'cli-fallback')
+    expect(native?.available).toBe(true)
+    expect(cli?.available).toBe(false)
+    expect(detected.auth.mode).toBe('provider-owned')
+    expect(detected.auth.configured).toBe(false)
+  })
+
+  test('assembles codex candidates from the app-server probe (missing binary path)', async () => {
+    const { detectRuntimeCandidates } = await import('@weft/providers/factory')
+    const detected = await detectRuntimeCandidates({
+      provider: 'codex',
+      executable: '/definitely/missing/codex-binary',
+      requestTimeoutMs: 2000,
+    })
+
+    const appServer = detected.candidates.find(c => c.kind === 'app-server')
+    const native = detected.candidates.find(c => c.kind === 'native-sdk')
+    expect(appServer?.available).toBe(false)
+    expect(native?.available).toBe(false)
+    expect(detected.auth.configured).toBe(false)
+  })
+})

@@ -32,7 +32,9 @@ The default and preferred runtime for each provider, realized as `native-sdk` (C
 
 ### Tier 2: Provider-Compatible SDK Runtime (extension)
 
-Extensibility path for third-party or bridged providers.
+Extensibility path for third-party or bridged providers. *Status: contract
+only — the `compatible-sdk` runtime kind is reserved in the selection order,
+but no driver implements it yet.*
 
 - Must implement the same `AgentRuntime` contract
 - May only depend on `@weft/runtime-core`; no reverse dependency on UI
@@ -58,7 +60,7 @@ Every timeline event is wrapped in an envelope: `sessionId`, `provider`, `seq` (
 
 This supports live streaming, reconnect with gap detection, full detail display, unified status across providers, and future persistence and replay.
 
-### TimelineItem Types (26)
+### TimelineItem Types (29)
 
 | Category | Types |
 |----------|-------|
@@ -68,9 +70,17 @@ This supports live streaming, reconnect with gap detection, full detail display,
 | **Extension state** (3) | `source_state_changed`, `skill_activated`, `host_state_changed` |
 | **Automation** (2) | `automation_triggered`, `automation_action_result` |
 | **Runtime** (2) | `runtime_capability_report`, `runtime_fallback` |
-| **Turn lifecycle** (3) | `turn_started`, `turn_completed`, `turn_failed` |
+| **Turn lifecycle** (4) | `turn_started`, `turn_completed`, `turn_failed`, `turn_interrupted` |
 | **Session** (1) | `session_status` |
 | **Compaction** (2) | `compaction_started`, `compaction_boundary` |
+| **Background tasks** (1) | `task_event` (Task-tool subagent lifecycle) |
+| **Rate limiting** (1) | `rate_limit` |
+
+Every provider records the user's prompt as a `user_message` item, so a
+replayed timeline (`fetchTimeline`) reconstructs the full conversation. Both
+native drivers also emit `host_state_changed { kind: 'provider_session' }`
+carrying the provider-native session/thread id, which hosts persist for
+cross-process resume (`sdkOptions.resume` / `codex.threadId`).
 
 ---
 
@@ -104,7 +114,19 @@ Key states:
 
 The `commands` sink provides the write side: `sendMessage`, `abort`, `respondToPermission`, optional `resumeTool`, and `dispose`.
 
-`preflight()` returns SDK/app-server/CLI availability, auth configuration status, the actual `runtimeKind` selected, and whether fallback occurred and why.
+`sendMessage` resolves when the message is **accepted** (deferred/replica
+runtimes) or when the turn completes (eager local-producer runtimes); hosts
+must watch the timeline's `turn_completed` / `turn_failed` items for
+turn-completion signals, not the promise. Sends issued while a turn is running
+are queued and drained in order after the current turn completes.
+
+Capability/auth **detection** is performed by
+`detectRuntimeCandidates(provider, opts)` in `@weft/providers/factory` (SDK
+import probe, `claude auth status --json`, `codex app-server account/read`);
+its result feeds `createHostAgentRuntime`. `preflight()` then publishes the
+resulting `RuntimeCapabilityReport` — SDK/app-server/CLI availability, auth
+status, the actual `runtimeKind` selected, and whether fallback occurred and
+why — onto the timeline.
 
 ---
 
@@ -134,7 +156,11 @@ Policy, Sources, Skills, and Automations are decoupled from provider runtimes. A
 
 ### Permission Policy
 
-`@weft/policy` evaluates a tool invocation against layered rules and scoped approvals, producing a three-way `ToolPolicyDecision`: `allow`, `ask` (with reason), or `deny` (with reason). Modes range from `safe` to `ask` to `allow-all`. The engine inspects the tool name, input, and a derived `toolIntent` (e.g. a bash command's base command) — never raw credentials.
+`@weft/policy` evaluates a tool invocation against layered rules and scoped approvals. The runtime contract's `ToolPolicyDecision` is four-way: `allow` (optionally with `updatedInput`), `ask` (with reason), `deny` (with reason), or `defer` (let the provider's own flow decide); the policy engine itself produces the `allow`/`ask`/`deny` subset. The engine inspects the tool name, input, and a derived `toolIntent` (e.g. a bash command's base command) — never raw credentials.
+
+Wire the engine into a runtime with `createPolicyRuntimeHook(policy)` — it returns a `RuntimePolicyHook` that `createHostAgentRuntime` passes to every provider driver (Claude `canUseTool`/PreToolUse, Codex approval requests, host session tools). The factory derives each provider's native permission mode from `policy.mode` when a per-provider mode is not set.
+
+> **Security note**: permission mode `auto` maps to Claude `bypassPermissions` and Codex `danger-full-access` + `approvalPolicy: never` — the agent runs without approval prompts. Select it only as an explicit, informed host decision.
 
 ### Source Activation
 
@@ -162,7 +188,7 @@ Sources register MCP (stdio/HTTP), API, or local tools into the runtime via `cre
 | `@weft/providers/flitro` | Flitro HTTP+SSE provider (browser-safe), `WeftClient`, `createFlitroEmbedRuntime` |
 | `@weft/providers/factory` | Desktop host runtime selector (`createHostAgentRuntime`) |
 | `@weft/providers/shared` | `PushTimelineStream`, `createProviderRuntimeScaffold`, capability helpers |
-| `@weft/adapter` | Claude/Codex backend abstraction: auth detection, event adapters, tool matching, error parsing |
+| `@weft/adapter` | Provider-owned auth detection (`claude auth status --json`, `codex app-server account/read`) |
 
 ### Extension Plane
 

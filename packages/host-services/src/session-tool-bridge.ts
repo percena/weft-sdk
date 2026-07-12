@@ -1,98 +1,53 @@
-export type InMemoryCommandOrigin =
-  | { type: 'user'; id?: string }
-  | { type: 'automation'; id: string }
-  | { type: 'scheduler'; id?: string }
-  | { type: 'host'; id?: string }
-  | { type: 'replay'; id?: string }
-  | { type: 'system'; id?: string }
+import type {
+  BrowserActionRequest,
+  CommandOrigin,
+  InterSessionMessageRequest,
+  LlmToolRequest,
+  LlmToolResult,
+  ScheduleSummary,
+  SessionListRequest,
+  SessionMetadataPatch,
+  SessionMetadataSnapshot,
+  SessionToolBridge,
+  SkillSummary,
+  SourceSummary,
+  SpawnSessionRequest,
+  SubmitPlanRequest,
+} from '@weft/runtime-core'
 
-export interface InMemorySubmitPlanRequest {
-  sessionId?: string
-  planRef: string
-  origin?: InMemoryCommandOrigin
-}
-
-export interface InMemoryBrowserActionRequest {
-  sessionId?: string
-  action: string
-  input?: unknown
-}
-
-export interface InMemorySpawnSessionRequest {
-  parentSessionId?: string
-  prompt: string
-  model?: string
-  commandOrigin?: InMemoryCommandOrigin
-}
-
-export interface InMemoryInterSessionMessageRequest {
-  sessionId: string
-  message: string
-  attachments?: Array<{ path: string; name?: string }>
-  commandOrigin?: InMemoryCommandOrigin
-}
-
-export interface InMemorySessionMetadataPatch {
-  sessionId?: string
-  labels?: string[]
-  status?: string
-  flagged?: boolean
-  topic?: string
-}
-
-export interface InMemorySessionMetadataSnapshot {
-  sessionId?: string
-  labels?: string[]
-  status?: string
-  flagged?: boolean
-  topic?: string
-}
-
-export interface InMemorySessionListRequest {
-  status?: string
-  labels?: string[]
-  limit?: number
-}
-
-export interface InMemoryLlmToolRequest {
-  prompt: string
-  model?: string
-  commandOrigin?: InMemoryCommandOrigin
-}
-
-export interface InMemoryLlmToolResult {
-  text: string
-  model?: string
-  usage?: unknown
-}
-
-export interface InMemorySourceSummary {
-  slug: string
-  name: string
-  provider: string
-  type: string
-  enabled: boolean
-  isAuthenticated?: boolean
-  connectionStatus?: string
-  tagline?: string
-}
-
-export interface InMemorySkillSummary {
-  slug: string
-  name: string
-  description: string
-  source: string
-  icon?: string
-  globs?: string[]
-  requiredSources?: string[]
-}
-
-export interface InMemoryScheduleSummary {
-  schedulerId: string
-  workspaceId: string
-  cron: string
-  timezone: string
-}
+/**
+ * B3 de-dup: the host-tool DTOs are defined ONCE in `@weft/runtime-core`
+ * (host-tools module). This file previously mirrored them wholesale as
+ * `InMemory*` interfaces, maintained by hand in parallel; the names below are
+ * retained as deprecated aliases so existing imports keep compiling.
+ *
+ * @deprecated Import the un-prefixed types from `@weft/runtime-core` instead.
+ */
+export type InMemoryCommandOrigin = CommandOrigin
+/** @deprecated Use `SubmitPlanRequest` from `@weft/runtime-core`. */
+export type InMemorySubmitPlanRequest = SubmitPlanRequest
+/** @deprecated Use `BrowserActionRequest` from `@weft/runtime-core`. */
+export type InMemoryBrowserActionRequest = BrowserActionRequest
+/** @deprecated Use `SpawnSessionRequest` from `@weft/runtime-core`. */
+export type InMemorySpawnSessionRequest = SpawnSessionRequest
+/** @deprecated Use `InterSessionMessageRequest` from `@weft/runtime-core`. */
+export type InMemoryInterSessionMessageRequest = InterSessionMessageRequest
+/** @deprecated Use `SessionMetadataPatch` from `@weft/runtime-core`. */
+export type InMemorySessionMetadataPatch = SessionMetadataPatch
+/** @deprecated Use `SessionMetadataSnapshot` from `@weft/runtime-core`. */
+export type InMemorySessionMetadataSnapshot = SessionMetadataSnapshot
+/** @deprecated Use `SessionListRequest` from `@weft/runtime-core`. */
+export type InMemorySessionListRequest = SessionListRequest
+/** @deprecated Use `LlmToolRequest` from `@weft/runtime-core`. */
+export type InMemoryLlmToolRequest = LlmToolRequest
+/** @deprecated Use `LlmToolResult` from `@weft/runtime-core`. */
+export type InMemoryLlmToolResult = LlmToolResult
+/** @deprecated Use `SourceSummary` from `@weft/runtime-core`. */
+export type InMemorySourceSummary = SourceSummary
+/** @deprecated Use `SkillSummary` from `@weft/runtime-core`. */
+export type InMemorySkillSummary = SkillSummary
+/** @deprecated Use `ScheduleSummary` from `@weft/runtime-core`. */
+export type InMemoryScheduleSummary = ScheduleSummary
 
 export interface InMemorySessionToolBridge {
   submitPlan(request: InMemorySubmitPlanRequest): Promise<{
@@ -138,6 +93,12 @@ export interface InMemorySessionToolBridge {
   startSchedule(request: { sessionId?: string; schedulerId: string; workspaceId: string; cron: string; timezone: string }): Promise<{ schedulerId: string; state: 'started' | 'stopped'; timestamp: number }>
   stopSchedule(request: { sessionId?: string; schedulerId: string }): Promise<{ ok: boolean; schedulerId: string; state?: 'stopped'; reason?: string }>
 }
+
+/** B3: compile-time guarantee that the reference bridge stays assignable to
+ * the runtime-core `SessionToolBridge` contract (the wiring seam a host passes
+ * as `RuntimeExtensionContext.hostServices.sessionTools`). */
+type AssertBridgeSatisfiesContract<T extends SessionToolBridge> = T
+export type _InMemoryBridgeContractCheck = AssertBridgeSatisfiesContract<InMemorySessionToolBridge>
 
 export interface InMemoryPlanSubmissionRecord {
   sessionId?: string

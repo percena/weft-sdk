@@ -383,6 +383,32 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
     if (next) void sendDrained(next)
   }
 
+  /** A2: eager-mode queue drain. The caller has already dispatched `complete`
+   *  (which promoted the queued message to accepted + running in the reducer);
+   *  this sends the parked input and chains the next drain on resolve.
+   *  Fire-and-forget relative to the original `sendMessage` promise — each
+   *  send's promise semantics stay "resolves when its own turn completes".
+   *  Stops draining on failure (state is `failed`; the user must retry). */
+  function drainEagerQueue(): void {
+    const next = pendingQueue.shift()
+    if (!next) return
+    void (async () => {
+      try {
+        const driver = await ensureDriver()
+        if (!driver) return
+        await driver.sendMessage(next, sequencer)
+        dispatch({ type: 'complete' })
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err)
+        const alreadyFailed = state.status === 'failed'
+        dispatch({ type: 'error', error })
+        if (!alreadyFailed) appendFailure(error)
+        return
+      }
+      drainEagerQueue()
+    })()
+  }
+
   const sequencer: TimelineSequencer = {
     append(item: TimelineItem, rawRef?: TimelineRawRef) {
       // C5: in replica/deferred mode (Flitro), the SERVER owns the positive seq
@@ -561,10 +587,24 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
         // `send_message`, so dispatch `abort` (→ `ready`, clears lastError)
         // first to preserve the retry-after-error UX.
         if (state.status === 'failed') dispatch({ type: 'abort' })
+        // A2 fix: a send while a turn is in flight must QUEUE, not race. The
+        // reducer already files it into `queuedMessages`; previously the code
+        // still called `driver.sendMessage` immediately, running two
+        // concurrent query loops on one driver (activeQuery/activeSequencer
+        // overwrite, abort targeting the wrong turn, interleaved timeline)
+        // while the queued copy was later double-drained by `complete`. Now
+        // the input parks in `pendingQueue` and `drainEagerQueue` sends it
+        // after the current turn resolves — matching deferred-mode semantics.
+        const shouldQueue = state.status === 'running' || state.status === 'waiting_for_permission'
         dispatch({ type: 'send_message', message })
+        if (shouldQueue) {
+          pendingQueue.push(input)
+          return
+        }
         try {
           await driver.sendMessage(input, sequencer)
           dispatch({ type: 'complete' })
+          drainEagerQueue()
         } catch (err) {
           const error = err instanceof Error ? err.message : String(err)
           // If the driver already reported a structured turn_failed, state is
@@ -580,7 +620,9 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
 
       async abort(reason?: string) {
         dispatch({ type: 'abort', reason })
-        if (isDeferred) pendingQueue.length = 0
+        // Both modes use pendingQueue now (A2): clear it so an abort cancels
+        // queued sends in eager mode too.
+        pendingQueue.length = 0
         await (await ensureDriver())?.abort?.(reason)
       },
 
@@ -591,7 +633,18 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
         detail?: PermissionResponseDetail,
       ) {
         await (await ensureDriver())?.respondToPermission?.(requestId, allowed, remember, detail)
-        dispatch({ type: 'permission_response' })
+        // A6: only transition waiting_for_permission → running when this
+        // response matches the outstanding request. Drivers append a
+        // `permission_resolved` item on a real resolution (which also syncs
+        // state), so an unmatched requestId (driver no-op) must not force the
+        // state machine out of waiting.
+        if (
+          state.status === 'waiting_for_permission'
+          && (state.waitingPermissionRequestId === undefined
+            || state.waitingPermissionRequestId === requestId)
+        ) {
+          dispatch({ type: 'permission_response' })
+        }
       },
 
       async resumeTool(runId: string, resumeData: Record<string, unknown>) {
@@ -606,7 +659,7 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
           pendingArmReplayTimer = undefined
         }
         dispatch({ type: 'dispose' })
-        if (isDeferred) pendingQueue.length = 0
+        pendingQueue.length = 0
         stream.disconnect()
         await driverRef?.dispose?.()
         await config.onDispose?.()

@@ -1,58 +1,13 @@
 /**
- * Agent Backend Abstraction Layer
+ * @weft/adapter — provider auth detection.
  *
- * Shared infrastructure for AI agent providers (Claude, Codex, Flitro).
- * Provider-specific runtime implementations live in @weft/providers.
+ * B8 (2026-07-12 architecture review): this package previously carried a
+ * ~8k-line legacy "Agent Backend Abstraction Layer" (AgentBackend, EventQueue,
+ * ToolIndex, bash/powershell validators, interceptors, stubs) left over from a
+ * pre-`@weft/providers` migration. None of it was imported anywhere in the
+ * workspace; it has been deleted. The live surface is the auth module:
+ * provider-owned Claude/Codex auth probes consumed by `@weft/cli-runtime`,
+ * `@weft/providers/factory` (detectRuntimeCandidates), and the
+ * `@percena/weft-node` facade.
  */
-
-// Core types
-export type {
-  AgentBackend,
-  CoreBackendConfig,
-  BackendConfig,
-  BackendHostRuntimeContext,
-  PermissionCallback,
-  PlanCallback,
-  AuthCallback,
-  SourceChangeCallback,
-  SourceActivationCallback,
-  ChatOptions,
-  RecoveryMessage,
-  SdkMcpServerConfig,
-  LlmAuthType,
-  LlmProviderType,
-  PostInitResult,
-} from './types.ts';
-
-// Enums need to be exported as values, not just types
-export { AbortReason } from './types.ts';
-
-// Auth module — provider-owned detection (Claude/Codex)
-export type { ProviderAuthMode, ProviderAuthDetection } from '@weft/runtime-core';
-export type { BackendInitResult, ProviderRuntimeDefinition } from './auth/provider-auth.ts';
-export {
-  readClaudeAuth,
-  createSanitizedClaudeEnvironment,
-  claudeAuthMissingMessage,
-} from './auth/claude-auth.ts';
-export {
-  readCodexAuth,
-  codexAuthFromResult,
-  codexAuthMissingMessage,
-  assertCodexAuthConfigured,
-} from './auth/codex-auth.ts';
-
-// Shared infrastructure — base classes and utilities consumed by provider packages
-export { EventQueue } from './event-queue.ts';
-export type { AgentError } from './errors.ts';
-export { parseError, isBillingError, canAutoRetry } from './errors.ts';
-export {
-  ToolIndex,
-  extractToolStarts,
-  extractToolResults,
-  isParentTaskTool,
-  serializeResult,
-  isToolResultError,
-  type ContentBlock,
-} from './tool-matching.ts';
-export { createLogger } from './utils/debug.ts';
+export * from './auth/index.ts'

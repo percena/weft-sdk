@@ -1,5 +1,6 @@
 import {
   createRuntimeCapabilityReport,
+  mapPermissionModeToCodexParams,
   type AgentRuntime,
   type RuntimeAuthDetection,
   type RuntimeCandidate,
@@ -52,6 +53,14 @@ export type CodexProviderRuntimeDriver = ProviderRuntimeDriver
 export interface CreateCodexProviderRuntimeOptions extends CreateCodexRuntimeCapabilityReportOptions {
   cwd: string
   sessionId?: string
+  /**
+   * A5: resume a pre-existing codex thread across processes. Pass the thread
+   * id captured from a previous run (surfaced on the timeline as
+   * `host_state_changed { kind: 'provider_session' }`, or via the driver's
+   * `getProviderThreadId()`); the first turn then issues `thread/resume`
+   * instead of `thread/start`.
+   */
+  threadId?: string
   epoch?: string
   now?: () => number
   model?: string
@@ -182,14 +191,22 @@ export function createCodexProviderRuntime(
       if (!options.appServerClient) {
         ownedAppServerClient = client
       }
+      // B7: `permissionMode` previously configured only the CLI fallback; the
+      // app-server thread-level params came solely from the explicit
+      // approvalPolicy/sandbox options. Derive them from the canonical mode
+      // when not explicitly provided, so one channel drives both runtimes.
+      const modeParams = options.permissionMode
+        ? mapPermissionModeToCodexParams(options.permissionMode)
+        : undefined
       return createCodexAppServerDriver({
         cwd: options.cwd,
         client,
+        threadId: options.threadId,
         model: options.model,
         reasoningEffort: options.reasoningEffort,
-        approvalPolicy: options.approvalPolicy,
-        approvalsReviewer: options.approvalsReviewer,
-        sandbox: options.sandbox,
+        approvalPolicy: options.approvalPolicy ?? modeParams?.approvalPolicy,
+        approvalsReviewer: options.approvalsReviewer ?? modeParams?.approvalsReviewer,
+        sandbox: options.sandbox ?? modeParams?.sandbox,
         policy: options.policy,
         sourceTools: options.sourceTools,
         modelProvider: options.modelProvider,

@@ -2,7 +2,7 @@
   "name": "@weft/adapter",
   "version": "0.1.0",
   "license": "MIT",
-  "description": "Weft Adapter — Claude / Codex backend abstraction",
+  "description": "Weft Adapter \u2014 Claude / Codex backend abstraction",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -37,17 +37,7 @@
     "dev": "tsup --watch"
   },
   "dependencies": {
-    "@weft/core": "workspace:*",
-    "@weft/runtime-core": "workspace:*",
-    "bash-parser": "^0.5.0"
-  },
-  "peerDependencies": {
-    "@anthropic-ai/claude-agent-sdk": ">=0.3.0"
-  },
-  "peerDependenciesMeta": {
-    "@anthropic-ai/claude-agent-sdk": {
-      "optional": true
-    }
+    "@weft/runtime-core": "workspace:*"
   },
   "devDependencies": {},
   "private": true

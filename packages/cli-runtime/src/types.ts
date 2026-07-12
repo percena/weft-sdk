@@ -22,6 +22,13 @@ export interface CliAgentSessionOptions {
   executable?: string
   env?: Record<string, string>
   requestTimeoutMs?: number
+  /**
+   * A7: resume a persisted provider conversation across processes
+   * (`claude -p --resume <id>` / `codex exec resume <id>`). Within a session
+   * the id is captured automatically from the first turn's JSON stream and
+   * surfaced as a `status` event (`provider_session:<id>`).
+   */
+  resumeSessionId?: string
 }
 
 export interface AgentSessionRuntime {

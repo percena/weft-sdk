@@ -1078,3 +1078,73 @@ describe('Claude native SDK driver — warmQuery support', () => {
     expect(closeCount).toBe(0)
   })
 })
+
+describe('Claude native SDK driver — session continuity (A1/A5) + user_message (A4)', () => {
+  test('captures session_id from init and auto-resumes it on the next turn', async () => {
+    const capturedOptions: Options[] = []
+    const runtime = createClaudeProviderRuntime({
+      ...baseRuntimeOptions,
+      query: fakeQuery([
+        msg({ type: 'system', subtype: 'init', session_id: 'claude-sess-1' }),
+        msg({ type: 'result', subtype: 'success', session_id: 'claude-sess-1' }),
+      ], (o) => capturedOptions.push(o)),
+    })
+    await runtime.preflight()
+
+    await runtime.commands.sendMessage('turn one')
+    expect(capturedOptions[0]?.resume).toBeUndefined()
+
+    await runtime.commands.sendMessage('turn two')
+    expect(capturedOptions[1]?.resume).toBe('claude-sess-1')
+  })
+
+  test('host-managed sessions (sdkOptions.resume/continue/forkSession) suppress auto-resume', async () => {
+    const capturedOptions: Options[] = []
+    const runtime = createClaudeProviderRuntime({
+      ...baseRuntimeOptions,
+      query: fakeQuery([
+        msg({ type: 'system', subtype: 'init', session_id: 'auto-captured' }),
+        msg({ type: 'result', subtype: 'success' }),
+      ], (o) => capturedOptions.push(o)),
+      sdkOptions: { continue: true } as Options,
+    })
+    await runtime.preflight()
+
+    await runtime.commands.sendMessage('turn one')
+    await runtime.commands.sendMessage('turn two')
+    // The host's `continue: true` wins; the captured id must not override it.
+    expect(capturedOptions[1]?.resume).toBeUndefined()
+    expect(capturedOptions[1]?.continue).toBe(true)
+  })
+
+  test('emits provider_session host_state_changed and user_message timeline items', async () => {
+    const driver = createClaudeNativeSdkDriver({
+      cwd: '/tmp/x',
+      query: fakeQuery([
+        msg({ type: 'system', subtype: 'init', session_id: 'sess-42' }),
+        msg({ type: 'result', subtype: 'success', session_id: 'sess-42' }),
+      ]),
+    })
+    const items: TimelineItem[] = []
+    const seq = createTimelineSequencer({ sessionId: 's', provider: 'claude', epoch: 'e', now: () => 0 })
+    const recording: TimelineSequencer = {
+      append(item, rawRef) {
+        items.push(item)
+        return seq.append(item, rawRef)
+      },
+    }
+
+    await driver.sendMessage({ message: 'hello there' }, recording)
+
+    const userMessage = items.find(item => item.type === 'user_message')
+    expect(userMessage).toBeDefined()
+    expect(userMessage && 'text' in userMessage ? userMessage.text : undefined).toBe('hello there')
+
+    const providerSession = items.find(item =>
+      item.type === 'host_state_changed'
+      && (item.state as { kind?: string }).kind === 'provider_session')
+    expect(providerSession).toBeDefined()
+    expect((providerSession as { state: { providerSessionId?: string } }).state.providerSessionId).toBe('sess-42')
+    expect(driver.getProviderSessionId()).toBe('sess-42')
+  })
+})

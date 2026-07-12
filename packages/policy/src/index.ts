@@ -557,6 +557,31 @@ export function evaluateToolPolicy(policy: PermissionPolicy, request: ToolPolicy
   }
 }
 
+/**
+ * B3: bridge a `PermissionPolicy` to the `RuntimePolicyHook` contract that
+ * every provider driver consumes (claude `canUseTool` / PreToolUse hook,
+ * codex approval server-requests, host session tools):
+ *
+ * ```ts
+ * import { createPermissionPolicy, createPolicyRuntimeHook } from '@weft/policy'
+ * const policy = createPermissionPolicy({ mode: 'ask' })
+ * createHostAgentRuntime({ ..., policy: { mode: policy.mode, hook: createPolicyRuntimeHook(policy) } })
+ * ```
+ *
+ * The returned function is structurally assignable to
+ * `@weft/runtime-core`'s `RuntimePolicyHook` (this package's
+ * `ToolPolicyRequest`/`ToolIntent`/`PermissionScope` are structural twins of
+ * the runtime-core types — parity is asserted by a compile-time test in
+ * e2e-tests). The engine's 3-way decision is a strict subset of runtime-core's
+ * 4-way `ToolPolicyDecision` (it never produces `defer` or
+ * `allow.updatedInput`), so no narrowing is lost in the bridge.
+ */
+export function createPolicyRuntimeHook(
+  policy: PermissionPolicy,
+): (request: ToolPolicyRequest) => ToolPolicyDecision {
+  return (request: ToolPolicyRequest) => evaluateToolPolicy(policy, request)
+}
+
 export function createPolicyDecisionReceipt(
   options: CreatePolicyDecisionReceiptOptions,
 ): PolicyDecisionReceipt {

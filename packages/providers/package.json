@@ -6,24 +6,54 @@
   "type": "module",
   "exports": {
     "./flitro": {
-      "import": { "types": "./dist/flitro.d.ts", "default": "./dist/flitro.js" },
-      "require": { "types": "./dist/flitro.d.cts", "default": "./dist/flitro.cjs" }
+      "import": {
+        "types": "./dist/flitro.d.ts",
+        "default": "./dist/flitro.js"
+      },
+      "require": {
+        "types": "./dist/flitro.d.cts",
+        "default": "./dist/flitro.cjs"
+      }
     },
     "./claude": {
-      "import": { "types": "./dist/claude.d.ts", "default": "./dist/claude.js" },
-      "require": { "types": "./dist/claude.d.cts", "default": "./dist/claude.cjs" }
+      "import": {
+        "types": "./dist/claude.d.ts",
+        "default": "./dist/claude.js"
+      },
+      "require": {
+        "types": "./dist/claude.d.cts",
+        "default": "./dist/claude.cjs"
+      }
     },
     "./codex": {
-      "import": { "types": "./dist/codex.d.ts", "default": "./dist/codex.js" },
-      "require": { "types": "./dist/codex.d.cts", "default": "./dist/codex.cjs" }
+      "import": {
+        "types": "./dist/codex.d.ts",
+        "default": "./dist/codex.js"
+      },
+      "require": {
+        "types": "./dist/codex.d.cts",
+        "default": "./dist/codex.cjs"
+      }
     },
     "./factory": {
-      "import": { "types": "./dist/factory.d.ts", "default": "./dist/factory.js" },
-      "require": { "types": "./dist/factory.d.cts", "default": "./dist/factory.cjs" }
+      "import": {
+        "types": "./dist/factory.d.ts",
+        "default": "./dist/factory.js"
+      },
+      "require": {
+        "types": "./dist/factory.d.cts",
+        "default": "./dist/factory.cjs"
+      }
     },
     "./shared": {
-      "import": { "types": "./dist/shared.d.ts", "default": "./dist/shared.js" },
-      "require": { "types": "./dist/shared.d.cts", "default": "./dist/shared.cjs" }
+      "import": {
+        "types": "./dist/shared.d.ts",
+        "default": "./dist/shared.js"
+      },
+      "require": {
+        "types": "./dist/shared.d.cts",
+        "default": "./dist/shared.cjs"
+      }
     }
   },
   "scripts": {
@@ -35,12 +65,15 @@
     "@weft/runtime-core": "workspace:*",
     "@weft/timeline": "workspace:*",
     "@weft/cli-runtime": "workspace:*",
-    "@weft/sources": "workspace:*"
+    "@weft/sources": "workspace:*",
+    "@weft/adapter": "workspace:*"
   },
   "peerDependencies": {
     "@anthropic-ai/claude-agent-sdk": ">=0.2.0"
   },
   "peerDependenciesMeta": {
-    "@anthropic-ai/claude-agent-sdk": { "optional": true }
+    "@anthropic-ai/claude-agent-sdk": {
+      "optional": true
+    }
   }
 }

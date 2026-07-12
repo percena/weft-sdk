@@ -16,9 +16,9 @@
   "type": "module",
   "scripts": {
     "build": "pnpm run build:L0 && pnpm run build:L1 && pnpm run build:L2 && pnpm run build:L3 && pnpm run build:L4 && pnpm run build:publish && pnpm run build:canary",
-    "build:L0": "pnpm run --filter '@weft/timeline' --filter '@weft/core' --filter '@weft/host-services' --filter '@weft/api-graph' build",
+    "build:L0": "pnpm run --filter '@weft/timeline' --filter '@weft/core' --filter '@weft/api-graph' build",
     "build:L1": "pnpm run --filter '@weft/policy' --filter '@weft/runtime-core' --filter '@weft/skills' build",
-    "build:L2": "pnpm run --filter '@weft/automations' --filter '@weft/adapter' --filter '@weft/sources' --filter '@weft/ui' build",
+    "build:L2": "pnpm run --filter '@weft/automations' --filter '@weft/adapter' --filter '@weft/sources' --filter '@weft/host-services' --filter '@weft/ui' build",
     "build:L3": "pnpm run --filter '@weft/cli-runtime' --filter '@weft/chat' build",
     "build:L4": "pnpm run --filter '@weft/providers' build",
     "build:publish": "pnpm run --filter '@percena/weft' --filter '@percena/weft-node' build",

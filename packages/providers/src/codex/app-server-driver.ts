@@ -6,6 +6,7 @@ import { Buffer } from 'node:buffer'
 import type {
   ProviderSourceToolDescriptor,
   PermissionMode,
+  PermissionResponseDetail,
   RuntimePolicyHook,
   RuntimeToolIntent,
   ToolPolicyDecision,
@@ -101,9 +102,21 @@ interface PendingTurn {
   reject: (error: Error) => void
 }
 
+/**
+ * The app-server driver contract: the base ProviderRuntimeDriver plus the
+ * provider thread id (A5) a host persists for cross-process `thread/resume`.
+ */
+export interface CodexAppServerDriver extends CodexProviderRuntimeDriver {
+  /** The codex thread id after the first turn initialized the thread
+   * (`thread/start`/`thread/resume` response). Undefined before that. Also
+   * surfaced on the timeline as
+   * `host_state_changed { kind: 'provider_session' }`. */
+  getProviderThreadId(): string | undefined
+}
+
 export function createCodexAppServerDriver(
   options: CreateCodexAppServerDriverOptions,
-): CodexProviderRuntimeDriver {
+): CodexAppServerDriver {
   let threadId = options.threadId
   let threadInitialized = false
   let activeSequencer: TimelineSequencer | undefined
@@ -422,6 +435,18 @@ export function createCodexAppServerDriver(
           threadId = readThreadId(response)
         }
         threadInitialized = true
+        // A5: surface the provider thread id on the timeline so hosts can
+        // persist it and resume the thread cross-process (`threadId` option).
+        if (threadId) {
+          sequencer.append({
+            type: 'host_state_changed',
+            state: {
+              kind: 'provider_session',
+              provider: 'codex',
+              providerThreadId: threadId,
+            },
+          }, rawRef('thread_initialized'))
+        }
       }
 
       const response = await options.client.request('turn/start', {
@@ -445,16 +470,20 @@ export function createCodexAppServerDriver(
         pendingTurns.set(providerTurnId, { resolve, reject })
       })
     },
-    async respondToPermission(requestId, allowed, remember): Promise<void> {
+    async respondToPermission(requestId, allowed, remember, detail): Promise<void> {
       const pending = pendingPermissions.get(requestId)
       if (!pending) return
       pendingPermissions.delete(requestId)
       activeSequencer?.append({
         type: 'permission_resolved',
         requestId,
-        resolution: { allowed, remember },
+        resolution: {
+          allowed,
+          remember,
+          ...(detail?.interrupt ? { reason: 'interrupt' } : {}),
+        },
       })
-      pending.resolve(buildPermissionResponse(pending, allowed, remember))
+      pending.resolve(buildPermissionResponse(pending, allowed, remember, detail))
     },
     async abort(): Promise<void> {
       // Best-effort: tell codex to stop the in-flight turn. Fire-and-forget so
@@ -484,6 +513,9 @@ export function createCodexAppServerDriver(
       unsubscribeClose?.()
       pendingPermissions.clear()
       pendingTurns.clear()
+    },
+    getProviderThreadId(): string | undefined {
+      return threadId
     },
   }
 }
@@ -522,6 +554,10 @@ function turnStartOverrides(
   if (options?.multiAgentMode) overrides.multiAgentMode = options.multiAgentMode
   if (options?.collaborationMode) overrides.collaborationMode = options.collaborationMode
   if (options?.environments) overrides.environments = options.environments
+  // B2: provider-namespaced per-turn passthrough — takes precedence over the
+  // deprecated flat fields above. Forwarded opaquely onto `turn/start`.
+  const perTurnCodex = options?.providerOptions?.codex
+  if (perTurnCodex) Object.assign(overrides, perTurnCodex)
   return overrides
 }
 
@@ -1199,11 +1235,22 @@ function safeServerRequestResponse(request: CodexAppServerRequest): unknown {
   }
 }
 
-function buildPermissionResponse(pending: PendingPermission, allowed: boolean, remember?: boolean): unknown {
+function buildPermissionResponse(
+  pending: PendingPermission,
+  allowed: boolean,
+  remember?: boolean,
+  detail?: PermissionResponseDetail,
+): unknown {
   if (pending.kind === 'permission') {
     return allowed
       ? { permissions: pending.requestedPermissions ?? {}, scope: remember ? 'session' : 'turn' }
       : { permissions: {}, scope: 'turn' }
+  }
+  if (!allowed && detail?.interrupt) {
+    // A6: `interrupt` maps to the codex `cancel` decision — unlike `decline`
+    // (the agent continues past the declined tool), `cancel` interrupts the
+    // whole turn, matching the Claude SDK's `PermissionResultDeny.interrupt`.
+    return { decision: 'cancel' }
   }
   return { decision: allowed ? (remember ? 'acceptForSession' : 'accept') : 'decline' }
 }

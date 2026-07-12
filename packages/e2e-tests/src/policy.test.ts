@@ -407,3 +407,51 @@ describe('Policy — provider-neutral permission evaluation', () => {
     })
   })
 })
+
+describe('B3 — policy ↔ runtime-core bridge', () => {
+  test('createPolicyRuntimeHook satisfies RuntimePolicyHook structurally and evaluates the policy', async () => {
+    const { createPermissionPolicy, createPolicyRuntimeHook } = await import('@weft/policy')
+    const policy = createPermissionPolicy({
+      mode: 'ask',
+      layers: [{ id: 'test', rules: { allowedBashPatterns: ['^git status'] } }],
+    })
+
+    // Compile-time: the bridge is assignable to runtime-core's hook contract.
+    const hook: import('@weft/runtime-core').RuntimePolicyHook = createPolicyRuntimeHook(policy)
+
+    const allowed = await hook({
+      toolName: 'Bash',
+      input: { command: 'git status' },
+      toolIntent: { kind: 'bash', command: 'git status', baseCommand: 'git' },
+    })
+    expect(allowed.decision).toBe('allow')
+
+    const asked = await hook({
+      toolName: 'Bash',
+      input: { command: 'rm -rf /' },
+      toolIntent: { kind: 'bash', command: 'rm -rf /', baseCommand: 'rm' },
+    })
+    expect(asked.decision).not.toBe('allow')
+  })
+
+  test('policy request/intent/scope types stay structural twins of runtime-core types', async () => {
+    // Pure compile-time parity checks — if the two type families drift, this
+    // file stops compiling (the review's B3 finding: divergent parallel type
+    // systems with hand-maintained parity).
+    type PolicyTypes = typeof import('@weft/policy')
+    type Req = import('@weft/policy').ToolPolicyRequest
+    type RtReq = import('@weft/runtime-core').ToolPolicyRequest
+    type Intent = import('@weft/policy').ToolIntent
+    type RtIntent = import('@weft/runtime-core').RuntimeToolIntent
+    type AssertMutual<A, B> = A extends B ? (B extends A ? true : never) : never
+    const reqParity: AssertMutual<Req, RtReq> = true
+    const intentParity: AssertMutual<Intent, RtIntent> = true
+    expect(reqParity && intentParity).toBe(true)
+    // Decision: policy's 3-way union must remain a subset of runtime-core's.
+    type Dec = import('@weft/policy').ToolPolicyDecision
+    type RtDec = import('@weft/runtime-core').ToolPolicyDecision
+    const decisionSubset: Dec extends RtDec ? true : never = true
+    expect(decisionSubset).toBe(true)
+    void (undefined as unknown as PolicyTypes)
+  })
+})

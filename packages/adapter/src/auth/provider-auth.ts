@@ -24,6 +24,17 @@ export interface BackendInitResult {
 }
 
 /**
+ * Result of backend post-initialization (auth injection, config setup).
+ * Extends BackendInitResult with a warning severity level for UI
+ * presentation. (B8: moved here from the deleted legacy `types.ts` — it is
+ * auth-lifecycle metadata, and this module is the only live adapter surface.)
+ */
+export interface PostInitResult extends BackendInitResult {
+  /** Severity level for the warning */
+  authWarningLevel?: 'error' | 'warning' | 'info'
+}
+
+/**
  * Provider runtime definition in the registry.
  * Maps a provider ID to its backend kind and auth mode.
  */

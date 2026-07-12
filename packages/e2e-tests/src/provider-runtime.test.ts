@@ -498,6 +498,7 @@ describe('Provider Runtime — SDK-first capability probes', () => {
     }])
     expect(replay.items.map(item => item.item.type)).toEqual([
       'runtime_capability_report',
+      'user_message',
       'assistant_message_delta',
       'assistant_message',
       'turn_completed',
@@ -527,6 +528,7 @@ describe('Provider Runtime — SDK-first capability probes', () => {
     expect(local.sentMessages).toEqual(['hello fallback'])
     expect(replay.items.map(item => item.item.type)).toEqual([
       'runtime_capability_report',
+      'user_message',
       'assistant_message_delta',
       'assistant_message',
       'turn_completed',
@@ -661,26 +663,27 @@ describe('Provider Runtime — SDK-first capability probes', () => {
     })
     expect(timeline.items.map(item => item.item.type)).toEqual([
       'turn_started',
+      'user_message',
       'assistant_message_delta',
       'assistant_message',
       'tool_call',
       'tool_result',
       'turn_completed',
     ])
-    expect(timeline.items[1]?.item).toMatchObject({
+    expect(timeline.items[2]?.item).toMatchObject({
       type: 'assistant_message_delta',
       text: 'Hel',
       messageId: 'partial-1',
       turnId: 'turn-1',
     })
-    expect(timeline.items[3]?.item).toMatchObject({
+    expect(timeline.items[4]?.item).toMatchObject({
       type: 'tool_call',
       callId: 'toolu_1',
       name: 'Bash',
       status: 'running',
       turnId: 'turn-1',
     })
-    expect(timeline.items[4]?.item).toMatchObject({
+    expect(timeline.items[5]?.item).toMatchObject({
       type: 'tool_result',
       callId: 'toolu_1',
       result: 'ok',
@@ -739,9 +742,10 @@ describe('Provider Runtime — SDK-first capability probes', () => {
 
     expect(timeline.items.map(item => item.item.type)).toEqual([
       'turn_started',
+      'user_message',
       'permission_requested',
     ])
-    expect(timeline.items[1]?.item).toMatchObject({
+    expect(timeline.items[2]?.item).toMatchObject({
       type: 'permission_requested',
       request: {
         requestId: 'toolu_2',
@@ -768,6 +772,7 @@ describe('Provider Runtime — SDK-first capability probes', () => {
     })
     expect(timeline.items.map(item => item.item.type)).toEqual([
       'turn_started',
+      'user_message',
       'permission_requested',
       'permission_resolved',
       'turn_completed',
@@ -936,6 +941,11 @@ describe('Provider Runtime — SDK-first capability probes', () => {
       'assistant_message',
       'turn_completed',
     ])
+    // A5: the provider thread id is surfaced once the thread initializes, so
+    // hosts can persist it for cross-process thread/resume.
+    expect(timeline.providerSessionItems.map(envelope =>
+      (envelope.item as { state?: { providerThreadId?: string } }).state?.providerThreadId,
+    )).toEqual(['thread-1'])
     expect(timeline.items[2]?.item).toMatchObject({
       type: 'tool_call',
       callId: 'cmd-1',
@@ -2267,8 +2277,16 @@ process.stdin.on('data', (chunk) => {
   })
 })
 
-function createCollectingSequencer(provider = 'claude'): TimelineSequencer & { items: TimelineEnvelope[] } {
+function createCollectingSequencer(provider = 'claude'): TimelineSequencer & {
+  items: TimelineEnvelope[]
+  /** A5: `host_state_changed { kind: 'provider_session' }` meta items are
+   * collected here instead of `items`, so the many exact-sequence assertions
+   * below stay focused on conversation items. Tests that care about session-id
+   * surfacing assert on this array explicitly. */
+  providerSessionItems: TimelineEnvelope[]
+} {
   const items: TimelineEnvelope[] = []
+  const providerSessionItems: TimelineEnvelope[] = []
   const sequencer = createTimelineSequencer({
     sessionId: 'test-session',
     provider,
@@ -2277,9 +2295,17 @@ function createCollectingSequencer(provider = 'claude'): TimelineSequencer & { i
   })
   return {
     items,
+    providerSessionItems,
     append(item, rawRef) {
       const envelope = sequencer.append(item, rawRef)
-      items.push(envelope)
+      if (
+        item.type === 'host_state_changed'
+        && (item.state as { kind?: string } | undefined)?.kind === 'provider_session'
+      ) {
+        providerSessionItems.push(envelope)
+      } else {
+        items.push(envelope)
+      }
       return envelope
     },
   }

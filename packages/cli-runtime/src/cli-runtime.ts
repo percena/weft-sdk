@@ -8,7 +8,7 @@ import {
 import { spawn, type ChildProcess } from 'node:child_process'
 import { createInterface } from 'node:readline'
 import { PushAgentEventStream } from './event-stream.ts'
-import { mapClaudeStreamJsonLine, mapCodexExecJsonLine } from './parsers.ts'
+import { extractCliProviderSessionId, mapClaudeStreamJsonLine, mapCodexExecJsonLine } from './parsers.ts'
 import { initialRuntimeState, mapPermissionModeToCodexParams, reduceRuntimeState, type RuntimeAction } from '@weft/runtime-core'
 import type {
   AgentRuntimeState,
@@ -34,7 +34,24 @@ function mapClaudePermissionMode(mode: CliAgentSessionOptions['permissionMode'])
   return 'default'
 }
 
-export function buildCliArgs(options: CliAgentSessionOptions, message: string): string[] {
+/**
+ * Build the CLI argv for one turn.
+ *
+ * A7: the prompt is NOT part of the argv — it is piped via stdin (claude `-p`
+ * reads stdin when no positional prompt is given; codex reads stdin for the
+ * `-` positional). This avoids OS argv-length limits on long prompts and stops
+ * the full prompt from leaking into `ps` output.
+ *
+ * When `resumeSessionId` is set, the turn resumes the provider conversation:
+ * `claude -p --resume <id>` / `codex exec resume <id>`. Note `codex exec
+ * resume` accepts `--json`/`--model`/`-c` but NOT `--cd`/`--sandbox` (the
+ * resumed session keeps its original cwd and sandbox), so those are omitted
+ * on resume.
+ */
+export function buildCliArgs(
+  options: CliAgentSessionOptions,
+  resumeSessionId?: string,
+): string[] {
   if (options.provider === 'claude') {
     const args = [
       '-p',
@@ -42,12 +59,26 @@ export function buildCliArgs(options: CliAgentSessionOptions, message: string): 
       'stream-json',
       '--include-partial-messages',
     ]
+    if (resumeSessionId) args.push('--resume', resumeSessionId)
     if (options.model) args.push('--model', options.model)
     const effort = options.reasoningEffort ?? options.thinkingLevel
     if (effort) args.push('--effort', effort)
     const permissionMode = mapClaudePermissionMode(options.permissionMode)
     if (permissionMode) args.push('--permission-mode', permissionMode)
-    args.push(message)
+    return args
+  }
+
+  if (resumeSessionId) {
+    const args = ['exec', 'resume', resumeSessionId, '--json']
+    if (options.model) args.push('--model', options.model)
+    if (options.reasoningEffort) args.push('--config', `model_reasoning_effort="${options.reasoningEffort}"`)
+    if (options.permissionMode) {
+      // `--sandbox` is not accepted by `exec resume` (sandbox is fixed at
+      // session creation); the approval policy is still overridable via `-c`.
+      const codexParams = mapPermissionModeToCodexParams(options.permissionMode)
+      args.push('--config', `approval_policy="${codexParams.approvalPolicy}"`)
+    }
+    args.push('-')
     return args
   }
 
@@ -59,7 +90,7 @@ export function buildCliArgs(options: CliAgentSessionOptions, message: string): 
     args.push('--config', `approval_policy="${codexParams.approvalPolicy}"`)
     args.push('--sandbox', codexParams.sandbox)
   }
-  args.push(message)
+  args.push('-')
   return args
 }
 
@@ -86,6 +117,11 @@ export function createCliAgentSession(options: CliAgentSessionOptions): AgentSes
   let state: AgentRuntimeState = initialRuntimeState
   let proc: ChildProcess | null = null
   const queuedSendOptions: Array<SendMessageOptions | undefined> = []
+  // A7: the provider conversation id captured from the first turn's JSON
+  // stream (claude `session_id`, codex thread id). Subsequent turns resume it
+  // so multi-turn context survives the one-process-per-turn model. Seedable
+  // via options.resumeSessionId for cross-process resume.
+  let providerSessionId: string | undefined = options.resumeSessionId
 
   function dispatch(action: RuntimeAction) {
     state = reduceRuntimeState(state, action)
@@ -109,6 +145,13 @@ export function createCliAgentSession(options: CliAgentSessionOptions): AgentSes
     const rl = createInterface({ input: stdout, crlfDelay: Infinity })
     let sawComplete = false
     for await (const line of rl) {
+      // A7: capture the provider conversation id for next-turn resume, and
+      // surface it so hosts can persist it for cross-process resume.
+      const capturedId = extractCliProviderSessionId(options.provider, line)
+      if (capturedId && capturedId !== providerSessionId) {
+        providerSessionId = capturedId
+        events.emit({ type: 'status', message: `provider_session:${capturedId}` })
+      }
       for (const event of mapProviderLine(options.provider, line)) {
         if (event.type === 'permission_request') {
           dispatch({ type: 'permission_request', requestId: event.requestId })
@@ -144,17 +187,24 @@ export function createCliAgentSession(options: CliAgentSessionOptions): AgentSes
     const acceptedCountAfterCurrentMessage = state.acceptedMessages.length
     events.emit({ type: 'status', message: `${options.provider} runtime running` })
     const executable = options.executable ?? options.provider
-    const args = buildCliArgs(optionsForSend(options, sendOptions), message)
+    const args = buildCliArgs(optionsForSend(options, sendOptions), providerSessionId)
     const env = options.provider === 'claude'
       ? (options.env ?? createSanitizedClaudeEnvironment())
       : (options.env ?? cleanEnv(process.env))
 
     try {
+      // A7: the prompt is piped via stdin (see buildCliArgs) — long prompts no
+      // longer hit argv limits or leak into `ps` output.
       proc = spawn(executable, args, {
         cwd: options.cwd,
         env,
-        stdio: ['ignore', 'pipe', 'pipe'],
+        stdio: ['pipe', 'pipe', 'pipe'],
       })
+      proc.stdin?.on('error', () => {
+        // The child may exit before consuming stdin (EPIPE); the exit-code
+        // path below owns error reporting.
+      })
+      proc.stdin?.end(message)
     } catch (err) {
       const messageText = `${options.provider} runtime failed to start: ${(err as Error).message}`
       dispatch({ type: 'error', error: messageText })

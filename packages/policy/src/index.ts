@@ -304,6 +304,8 @@ interface ParsedBashCommand {
   hasSubstitution: boolean
   /** an unquoted `<(` / `>(` (process substitution) ran a command */
   hasProcessSub: boolean
+  /** an unquoted write redirect (`>`, `>>`, `2>`, `&>`) clobbers/creates a file */
+  hasRedirect: boolean
 }
 
 // A quote-/escape-aware parse of a bash command for the ASK-mode danger check.
@@ -321,6 +323,7 @@ function parseBashCommand(command: string): ParsedBashCommand {
   const segments: { head: string; startsStruct: '(' | '{' | null }[] = []
   let hasSubstitution = false
   let hasProcessSub = false
+  let hasRedirect = false
 
   let head = ''
   let token = ''
@@ -400,6 +403,12 @@ function parseBashCommand(command: string): ParsedBashCommand {
     // Process substitution is only performed by bash when `<(`/`>(` is unquoted;
     // the quoted form is a literal `<(`/`>(` and must NOT be flagged.
     if ((c === '<' || c === '>') && next === '(') { hasProcessSub = true; i++; continue }
+    // An unquoted write redirect (`>`, `>>`, `2>`, `&>`) clobbers or creates a
+    // file with an otherwise-benign head (`echo x > ~/.bashrc`), achieving a
+    // file write that would require approval via Write/Edit — so flag it. `>` is
+    // a word boundary in bash, so flush the pending head first. A read redirect
+    // `<` only consumes a file and is left alone.
+    if (c === '>') { hasRedirect = true; flushToken(); continue }
     if (c === '&' && next === '&') { i++; flushSegment(); continue }
     if (c === '|' && next === '|') { i++; flushSegment(); continue }
     if (c === ';' || c === '|' || c === '&' || c === '\n' || c === '\r') { flushSegment(); continue }
@@ -414,7 +423,7 @@ function parseBashCommand(command: string): ParsedBashCommand {
   }
   flushSegment()
 
-  return { segments, hasSubstitution, hasProcessSub }
+  return { segments, hasSubstitution, hasProcessSub, hasRedirect }
 }
 
 function isReadOnlyBashCommand(command: string): boolean {
@@ -701,7 +710,9 @@ function evaluateBashPolicy(policy: PermissionPolicy, intent: ToolIntent): ToolP
     // reflects the program actually executed (`r\m`→`rm`, `r''m`→`rm`, `'rm'`→
     // `rm`, `FOO="a b" rm`→`rm`); constructs it cannot statically extract a head
     // from — command substitution (`$(…)` / backticks), process substitution
-    // (`<(` / `>(`), a subshell (`(…)`) or a brace group (`{ …; }`) — force a
+    // (`<(` / `>(`), a subshell (`(…)`) or a brace group (`{ …; }`) — plus an
+    // unquoted write redirect (`> file`), which writes a file with a benign head
+    // and would otherwise bypass the ask gate Write/Edit go through — force a
     // prompt rather than being certified on their innocuous outer head. All three
     // detections are quote-aware: a LITERAL quoted `<(` / `$(…)` / `(`/`{` is not
     // flagged (it does not spawn anything), so `echo "a<(b)"`, `echo '$(rm)'`,
@@ -718,12 +729,12 @@ function evaluateBashPolicy(policy: PermissionPolicy, intent: ToolIntent): ToolP
       parsed.hasSubstitution ||
       parsed.hasProcessSub ||
       parsed.segments.some((s) => s.startsStruct !== null)
-    if (dangerous || hidesCommand || obfuscatedHead) {
+    if (dangerous || hidesCommand || obfuscatedHead || parsed.hasRedirect) {
       return {
         decision: 'ask',
         reason: dangerous
           ? `${dangerous.head} requires approval in ask mode`
-          : 'composed or nested shell command requires approval in ask mode',
+          : 'composed, redirecting, or nested shell command requires approval in ask mode',
         intent,
       }
     }

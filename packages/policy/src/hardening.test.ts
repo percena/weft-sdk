@@ -110,6 +110,19 @@ describe('bash danger detection (ask mode)', () => {
     expect(decide('ask', 'Bash', { command: 'echo "`rm -rf /`"' })).toBe('ask')
   })
 
+  it('asks for an unquoted write redirect (writes a file behind a benign head)', () => {
+    // A redirect clobbers/creates a file with a safe-looking head, achieving a
+    // file write that Write/Edit would require approval for — so it must prompt.
+    expect(decide('ask', 'Bash', { command: 'echo pwned > ~/.ssh/authorized_keys' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'echo x >> /etc/hosts' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'true &> /important' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'cat foo 2> err.log' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: '> /etc/motd' })).toBe('ask')
+    // a literal `>` inside quotes is not a redirect and must stay allow
+    expect(decide('ask', 'Bash', { command: 'echo "a > b"' })).toBe('allow')
+    expect(decide('ask', 'Bash', { command: "git commit -m 'x > y'" })).toBe('allow')
+  })
+
   it('still allows a plain safe command', () => {
     expect(decide('ask', 'Bash', { command: 'echo hello' })).toBe('allow')
     expect(decide('ask', 'Bash', { command: 'echo hi | grep x' })).toBe('allow')

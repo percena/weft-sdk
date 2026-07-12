@@ -239,6 +239,8 @@ function createComponents(
         if (!target) return
 
         const resolvedTarget = resolveMarkdownLinkTarget(target)
+        // 'blocked' (javascript:/data:/… from anchor text) is dropped — never
+        // handed to the host's navigation callback.
         if (resolvedTarget.kind === 'file' && onFileClick) {
           onFileClick(resolvedTarget.path)
         } else if (resolvedTarget.kind === 'url' && onUrlClick) {

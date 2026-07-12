@@ -122,10 +122,16 @@ export function createProvisioning({ weftdBase, apiKey, tenantId, shopPort, syst
     if (existing) {
       app = existing
     } else {
+      // Register the control-plane app with the same origin allowlist the local
+      // server enforces (DEMO_CORS_ORIGIN). Fall back to '*' only when unset —
+      // the dev default — so a production integrator who sets DEMO_CORS_ORIGIN
+      // gets weftd-side origin enforcement instead of an open wildcard.
+      const allowedOrigins = (process.env.DEMO_CORS_ORIGIN ?? '')
+        .split(',').map(o => o.trim()).filter(Boolean)
       app = await weftdAPI('POST', `/v1/tenants/${tenantCtx.tenantId}/apps`, {
         slug: 'online-store-agentic',
         display_name: 'Online Store',
-        allowed_origins: ['*'],
+        allowed_origins: allowedOrigins.length ? allowedOrigins : ['*'],
       })
     }
     tenantCtx.appId = app.app_id

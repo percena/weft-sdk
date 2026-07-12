@@ -24,3 +24,6 @@ dev = [
 testpaths = ["tests"]
 addopts = "-q"
 asyncio_mode = "auto"
+# Put the app root on sys.path so `from app import ...` resolves when pytest is
+# invoked via `uv run pytest` (matches the agentic variant).
+pythonpath = ["."]

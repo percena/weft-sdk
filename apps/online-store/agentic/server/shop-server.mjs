@@ -153,7 +153,14 @@ export function createShopServer({ state = createShopState() } = {}) {
     // X-Weft-Actor is stamped by the Weft browser runtime for client-side tool calls.
     const actor = req.headers["x-weft-actor"] === "agent" ? "agent" : "user";
     const loggedInUser = getLoggedInUser(req);
-    const customerId = String(req.headers["x-customer-id"] ?? req.headers["x-weft-end-user"] ?? loggedInUser?.username ?? "guest");
+    // The authenticated session is authoritative: a logged-in user's carts/orders
+    // are scoped to their own username and cannot be reassigned by a
+    // client-supplied header (which would be an IDOR — read/write another
+    // customer's data via `X-Customer-ID: <victim>`). The X-Customer-ID /
+    // X-Weft-End-User headers only name the customer for anonymous browsing; when
+    // the agent drives tools client-side it carries the user's session cookie, so
+    // loggedInUser is set and its username wins.
+    const customerId = loggedInUser?.username ?? String(req.headers["x-customer-id"] ?? req.headers["x-weft-end-user"] ?? "guest");
 
     try {
       // --- Login / logout / me (L1 auth simulation) ---

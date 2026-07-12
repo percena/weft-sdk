@@ -1,5 +1,5 @@
 name: Bug report
-about: Report something that's broken in a published Weft package
+description: Report something that's broken in a published Weft package
 title: "[bug] "
 labels: ["bug"]
 body:

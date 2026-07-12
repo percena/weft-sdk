@@ -1,5 +1,5 @@
 name: Feature request
-about: Suggest a new capability for a published Weft package
+description: Suggest a new capability for a published Weft package
 title: "[feat] "
 labels: ["enhancement"]
 body:

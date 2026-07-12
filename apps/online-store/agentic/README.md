@@ -110,21 +110,25 @@ This is a **demo** — the security model is deliberately thin so the agentic
 pattern stays readable. Before copying any of this into a real product, close
 these gaps:
 
-- **`POST /api/chat/session/:id/token` has no ownership check.** The token-refresh
-  route mints a fresh scoped weftd token for whoever supplies a session id; it
-  does NOT verify the caller owns that session (the demo doesn't persist a
-  session→end_user mapping). A real integration MUST check the caller's cookie
-  identity matches the session's `end_user_id` before issuing a refresh.
+- **Session ownership is enforced in-memory only.** `POST /api/chat/session/:id/token`
+  verifies the caller's cookie identity owns the session before minting a fresh
+  scoped weftd token (`isSessionOwner`, fail-closed: an unknown session id is
+  rejected, not allowed). The session→end_user map is in-memory, so it is lost on
+  restart (every refresh then fails closed until the session is recreated). A real
+  integration should persist that mapping.
 - **`publicBaseURL` trusts `X-Forwarded-Host` / `X-Forwarded-Proto`.** A browser
   can spoof these headers, so the `base_url` handed back to the chat panel (and
   thus the destination of the scoped weftd token) is client-influenceable when
   `SHOP_PUBLIC_BASE` is unset. In production, set `SHOP_PUBLIC_BASE` to the fixed
   browser-reachable origin; the `X-Forwarded-*` fallback is only safe behind a
   trusted reverse proxy you control (e.g. a reverse proxy).
-- **The business REST API has no auth.** `customerId` is client-asserted
-  (`X-Customer-ID` / `X-Weft-End-User` / cookie); `/api/reset` is gated to a
-  logged-in user but the rest of the API is open. This is by design for a demo;
-  keep your real auth.
+- **The business REST API has only cookie-session scoping.** For a logged-in
+  user, `customerId` is taken from the authenticated session (the
+  `X-Customer-ID` / `X-Weft-End-User` headers are ignored — they name the
+  customer only for anonymous browsing), so a client cannot read/write another
+  customer's cart or orders by asserting a header. Beyond that per-customer
+  scoping the API has no role model; `/api/reset` is the only privileged route
+  (gated to a logged-in user). Add your real auth/roles for production.
 - **`X-Weft-Actor` is trusted from the client** for event attribution only
   (audit), not authorization — but a client can self-stamp `agent` to make its
   actions appear as the agent's. Derive it server-side if attribution matters.

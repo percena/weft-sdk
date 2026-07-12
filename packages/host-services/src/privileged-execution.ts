@@ -163,12 +163,23 @@ function hashCommand(command: string): string {
   return createHash('sha256').update(command, 'utf8').digest('hex')
 }
 
+// Shell metacharacters that enable command chaining, substitution, or
+// redirection. The allowlist below validates a single command invocation, so a
+// command carrying any of these can smuggle a second (unvalidated) command past
+// the check — reject before pattern-matching.
+const SHELL_METACHARACTERS = /[;&|`$(){}<>\n\r\\!*?~"']/
+
 function validatePrivilegedCommand(command: string): { allowed: boolean; reason?: string } {
   const normalized = command.trim().toLowerCase()
+
+  // The allow patterns are anchored end-to-end ($) so nothing can follow the
+  // matched invocation; the metacharacter guard is defense in depth against a
+  // token like `--cask foo;rm -rf /` that would otherwise be a single \S+ run.
   const allowed =
-    /^brew\s+install\s+--cask\s+\S+/.test(normalized) ||
-    /^brew\s+upgrade\s+--cask\s+\S+/.test(normalized) ||
-    /^installer\s+-pkg\s+\S+.*\s+-target\s+\//.test(normalized)
+    !SHELL_METACHARACTERS.test(normalized) &&
+    (/^brew\s+install\s+--cask\s+\S+$/.test(normalized) ||
+      /^brew\s+upgrade\s+--cask\s+\S+$/.test(normalized) ||
+      /^installer\s+-pkg\s+\S+\s+-target\s+\/\S*$/.test(normalized))
 
   return allowed
     ? { allowed: true }

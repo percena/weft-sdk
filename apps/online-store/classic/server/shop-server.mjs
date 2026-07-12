@@ -53,6 +53,18 @@ const MAX_JSON_BODY = 1 << 20;    // 1 MiB for JSON API bodies
 const MAX_SSE_PER_IP = 12;        // concurrent SSE connections per client IP
 const MAX_SSE_GLOBAL = 240;       // global concurrent SSE connections
 
+// SECURITY: only trust X-Forwarded-For when behind a configured trusted proxy
+// that overwrites it (DEMO_TRUSTED_PROXY=1); otherwise use the socket remote
+// address so an attacker can't rotate XFF to bypass the per-IP SSE cap. Read
+// per-request (not at module import) so an .env-set flag actually applies.
+function clientIp(req) {
+  if (process.env.DEMO_TRUSTED_PROXY === "1") {
+    const xff = req.headers["x-forwarded-for"];
+    if (typeof xff === "string" && xff) return xff.split(",")[0].trim();
+  }
+  return req.socket.remoteAddress ?? "";
+}
+
 // Extract the owning customer from a shop event: cart events carry
 // data.customer_id, order events carry data.order.customer_id, and product /
 // shop.reset events are global (no customer_id). The SSE fan-out uses this to
@@ -132,7 +144,12 @@ export function createShopServer({ state = createShopState() } = {}) {
     // calls (active in the agentic layer); in the classic it's always 'user'.
     const actor = req.headers["x-weft-actor"] === "agent" ? "agent" : "user";
     const loggedInUser = getLoggedInUser(req);
-    const customerId = String(req.headers["x-customer-id"] ?? req.headers["x-weft-end-user"] ?? loggedInUser?.username ?? "guest");
+    // The authenticated session is authoritative: a logged-in user's carts/orders
+    // are scoped to their own username and cannot be reassigned by a
+    // client-supplied header (which would be an IDOR — read/write another
+    // customer's data via `X-Customer-ID: <victim>`). The X-Customer-ID /
+    // X-Weft-End-User headers only name the customer for anonymous browsing.
+    const customerId = loggedInUser?.username ?? String(req.headers["x-customer-id"] ?? req.headers["x-weft-end-user"] ?? "guest");
 
     try {
       // --- Login / logout / me (L1 auth simulation) ---
@@ -159,8 +176,7 @@ export function createShopServer({ state = createShopState() } = {}) {
 
       if (url.pathname === "/api/events" && req.method === "GET") {
         // SECURITY: cap concurrent SSE connections per-IP + globally.
-        const ip = (req.headers["x-forwarded-for"] ?? req.socket.remoteAddress ?? "")
-          .split(",")[0].trim();
+        const ip = clientIp(req);
         const ipCount = ip ? [...sseClients].filter((r) => r.weftRemoteIp === ip).length : 0;
         if (sseClients.size >= MAX_SSE_GLOBAL || (ip && ipCount >= MAX_SSE_PER_IP)) {
           res.writeHead(429, { "Content-Type": "application/json" });

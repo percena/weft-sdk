@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+# Least privilege: CI only reads the repo (gitleaks downloads its binary from a
+# public release; upload-artifact needs no repo write). Overrides any wider
+# repo-default token grant.
+permissions:
+  contents: read
+
 jobs:
   check:
     name: Type Check + Build + Validate

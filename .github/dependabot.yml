@@ -1,9 +1,15 @@
 version: 2
 updates:
   # npm dependencies — keep the monorepo + published packages current.
-  # Grouped to reduce PR noise; pnpm workspace is at the repo root.
+  # Grouped to reduce PR noise; pnpm workspace is at the repo root. The published
+  # packages carry their runtime deps in publish/*/package.json (the root has
+  # only devDependencies), so list those manifests too — otherwise the
+  # runtime-deps group below never matches anything.
   - package-ecosystem: npm
-    directory: /
+    directories:
+      - /
+      - /publish/browser
+      - /publish/desktop
     schedule:
       interval: weekly
     open-pull-requests-limit: 5

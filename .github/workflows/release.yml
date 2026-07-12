@@ -27,8 +27,11 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    # NPM_TOKEN is intentionally NOT a job-level env var — it would otherwise be
+    # readable by `pnpm install/build/test` (which run repo code) before publish.
+    # It is scoped to the changesets publish step below. NPM_TRUSTED_PUBLISHING
+    # is a non-secret var gating the OIDC path, safe to expose job-wide.
     env:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       NPM_TRUSTED_PUBLISHING: ${{ vars.NPM_TRUSTED_PUBLISHING }}
     steps:
       - uses: actions/checkout@v6
@@ -62,3 +65,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # setup-node wrote an .npmrc referencing ${NODE_AUTH_TOKEN}; supply it
+          # so the (non-OIDC) token publish path authenticates instead of using
+          # setup-node's placeholder.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

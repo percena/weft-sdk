@@ -133,10 +133,16 @@ if WEB_DIST.exists():
     def spa(full_path: str):
         if full_path.startswith("api/") or full_path.startswith("v1/"):
             return JSONResponse(status_code=404, content={"error": f"no route: /{full_path}"})
-        candidate = WEB_DIST / full_path
-        if candidate.is_file():
+        # Starlette does NOT normalize percent-encoded `../`, so `full_path` can
+        # arrive as `../../etc/passwd`. Resolve the candidate and confirm it is
+        # still under the web root before serving — otherwise any file the
+        # process can read (including this app's .env with WEFT_API_KEY) would
+        # be exfiltrable.
+        web_root = WEB_DIST.resolve()
+        candidate = (web_root / full_path).resolve()
+        if candidate.is_relative_to(web_root) and candidate.is_file():
             return FileResponse(candidate)
-        return FileResponse(WEB_DIST / "index.html")
+        return FileResponse(web_root / "index.html")
 else:
     @app.get("/", include_in_schema=False)
     def _root():

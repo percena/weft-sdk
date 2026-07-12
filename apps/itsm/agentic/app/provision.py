@@ -99,8 +99,14 @@ class Provisioning:
             (a for a in (apps if isinstance(apps, list) else []) if a.get("slug") == self.app_slug),
             None,
         )
+        # Register the control-plane app with the same origin allowlist the local
+        # server enforces (ITSM_CORS_ORIGINS). Fall back to "*" only when unset —
+        # the dev default — so a production integrator who sets ITSM_CORS_ORIGINS
+        # gets weftd-side origin enforcement instead of an open wildcard.
+        allowed_origins = [o.strip() for o in os.environ.get("ITSM_CORS_ORIGINS", "").split(",") if o.strip()]
         app = existing or self.weftd_api("POST", f"/v1/tenants/{tenant_id}/apps", {
-            "slug": self.app_slug, "display_name": self.app_name, "allowed_origins": ["*"],
+            "slug": self.app_slug, "display_name": self.app_name,
+            "allowed_origins": allowed_origins or ["*"],
         })
         app_id = app["app_id"]
         app_base = f"/v1/tenants/{tenant_id}/apps/{app_id}"

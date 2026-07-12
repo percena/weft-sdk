@@ -220,6 +220,16 @@ const DANGEROUS_BASH_COMMANDS = new Set([
   'ssh',
   'scp',
   'rsync',
+  // Shell-indirection / command-spawning heads: these run an arbitrary command
+  // passed as an argument, so a naive base-command check would miss the real
+  // (dangerous) command they carry (e.g. `bash -c 'rm -rf /'`, `xargs rm`).
+  'bash',
+  'sh',
+  'zsh',
+  'eval',
+  'exec',
+  'env',
+  'xargs',
 ])
 
 const READ_ONLY_BASH_PATTERNS = [
@@ -233,6 +243,48 @@ const READ_ONLY_BASH_PATTERNS = [
   /^rg(\s|$)/,
   /^find\s+/,
 ]
+
+// Command chaining / substitution / redirection. A command containing any of
+// these composes multiple invocations (or spawns a subshell), so a prefix that
+// looks read-only (`cat x`) can be followed by anything (`cat x; rm -rf ~`).
+// Presence of any of these disqualifies the read-only fast-path and forces the
+// per-head danger check to inspect every composed command.
+const SHELL_COMPOSITION = /[;&|`\n\r]|\$\(|<|>/
+
+// Split a bash string into its composed command segments (on `;`, `|`, `&&`,
+// `||`, `&`, newline) and return the "head" of each — the executed program with
+// leading env-assignments (`FOO=1 rm`) and any directory prefix (`/bin/rm`)
+// stripped, lowercased. Used to catch a dangerous command wherever it appears
+// in a chain, not just at position zero.
+function extractCommandHeads(command: string): string[] {
+  return command
+    .split(/\|\||&&|[;|&\n\r]/)
+    .map((segment) => {
+      const withoutEnv = segment.trim().replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)+/, '')
+      const first = withoutEnv.trim().split(/\s+/)[0] ?? ''
+      return (first.split('/').pop() ?? '').toLowerCase()
+    })
+    .filter((head) => head.length > 0)
+}
+
+function isReadOnlyBashCommand(command: string): boolean {
+  const trimmed = command.trim()
+  // A composed command cannot be certified read-only — the read-only pattern
+  // would only match the first segment.
+  if (SHELL_COMPOSITION.test(trimmed)) return false
+  return READ_ONLY_BASH_PATTERNS.some((pattern) => pattern.test(trimmed))
+}
+
+// A path escapes its allow-prefix if any segment is `..`. `globMatches` compiles
+// `**` to `.*`, so `/workspace/**` matches `/workspace/../../etc/x`; and
+// core's `normalizePath` only swaps backslashes (it does NOT resolve `..`), so
+// the traversal must be rejected explicitly before the glob is consulted.
+function hasPathTraversal(path: string): boolean {
+  return path
+    .replace(/\\/g, '/')
+    .split('/')
+    .some((segment) => segment === '..')
+}
 
 export function createPermissionPolicy(options: CreatePermissionPolicyOptions = {}): PermissionPolicy {
   return {
@@ -492,17 +544,24 @@ function evaluateBashPolicy(policy: PermissionPolicy, intent: ToolIntent): ToolP
     return { decision: 'allow', intent }
   }
 
-  if (policy.mode === 'ask' && DANGEROUS_BASH_COMMANDS.has(intent.baseCommand)) {
-    return {
-      decision: 'ask',
-      reason: `${intent.baseCommand} requires approval in ask mode`,
-      intent,
+  if (policy.mode === 'ask') {
+    // Inspect every composed command head, not just position zero, so a
+    // dangerous command anywhere in a chain (`git status && rm -rf /`) or behind
+    // a subshell (`$(rm -rf /)`) still requires approval.
+    const heads = extractCommandHeads(intent.command)
+    const dangerous = heads.find((head) => DANGEROUS_BASH_COMMANDS.has(head))
+    if (dangerous || /`|\$\(/.test(intent.command)) {
+      return {
+        decision: 'ask',
+        reason: `${dangerous ?? (intent.baseCommand || 'command')} requires approval in ask mode`,
+        intent,
+      }
     }
   }
 
   if (policy.mode === 'explore') {
     const layeredAllow = findLayeredAllow(policy, intent)
-    const readOnly = READ_ONLY_BASH_PATTERNS.some((pattern) => pattern.test(intent.command.trim()))
+    const readOnly = isReadOnlyBashCommand(intent.command)
     if (!readOnly) {
       const hint = findBlockedCommandHint(policy, intent)
       return {
@@ -528,7 +587,9 @@ function normalizeToolIntent(request: ToolPolicyRequest): ToolIntent {
 
   if (request.toolName === 'Bash') {
     const command = String(request.input?.command ?? '')
-    const baseCommand = command.trim().split(/\s+/)[0] ?? ''
+    // Strip leading env-assignments + directory prefix so `FOO=1 /bin/rm` reports
+    // `rm`, not `FOO=1`, for both the danger check and the explanation text.
+    const baseCommand = extractCommandHeads(command)[0] ?? ''
     return { kind: 'bash', command, baseCommand }
   }
 
@@ -576,6 +637,8 @@ function findLayeredAllow(
 
 function matchLayerRules(layer: PolicyLayer, intent: ToolIntent): PolicyRuleMatch | undefined {
   if (intent.kind === 'file_write') {
+    // Never let a traversal path satisfy an allow-prefix (see hasPathTraversal).
+    if (hasPathTraversal(intent.path)) return undefined
     const pattern = layer.rules.allowedWritePaths?.find(rule => globMatches(rule, intent.path))
     return pattern ? { layerId: layer.id, ruleType: 'write-path', pattern } : undefined
   }

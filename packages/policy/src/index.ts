@@ -260,7 +260,15 @@ function extractCommandHeads(command: string): string[] {
   return command
     .split(/\|\||&&|[;|&\n\r]/)
     .map((segment) => {
-      const withoutEnv = segment.trim().replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)+/, '')
+      // Strip leading env-assignments (`FOO=1 rm`, `A="b c" rm`). The value may
+      // be quoted with spaces inside (`FOO="a b" rm`); `\S*` alone stops at the
+      // first space, leaving `b" rm …` whose head `b"` is not in the danger set
+      // — so a destructive command hiding behind a quoted assignment would
+      // bypass the check. Match quoted values before the bare `\S*` fallback.
+      const withoutEnv = segment.trim().replace(
+        /^(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|\S*)\s+)+/,
+        '',
+      )
       const first = withoutEnv.trim().split(/\s+/)[0] ?? ''
       return (first.split('/').pop() ?? '').toLowerCase()
     })
@@ -546,11 +554,22 @@ function evaluateBashPolicy(policy: PermissionPolicy, intent: ToolIntent): ToolP
 
   if (policy.mode === 'ask') {
     // Inspect every composed command head, not just position zero, so a
-    // dangerous command anywhere in a chain (`git status && rm -rf /`) or behind
-    // a subshell (`$(rm -rf /)`) still requires approval.
+    // dangerous command anywhere in a chain (`git status && rm -rf /`) still
+    // requires approval. Command-spawning constructs that
+    // `extractCommandHeads` cannot see into also force a prompt: it splits only
+    // on `; | & && ||` and would otherwise report the *outer* head — so
+    // command substitution (`$(rm -rf /)`, `` `rm -rf /` ``), process
+    // substitution (`cat <(rm -rf /)`, `tee >(rm -rf /)`), a subshell
+    // (`(rm -rf /)`) and a brace group (`{ rm -rf /; }`) would each let a
+    // destructive command hide behind an innocuous outer head. Process
+    // substitution and command substitution carry the command inline (regex),
+    // while a subshell/brace group surfaces as a head beginning with `(` or `{`.
     const heads = extractCommandHeads(intent.command)
     const dangerous = heads.find((head) => DANGEROUS_BASH_COMMANDS.has(head))
-    if (dangerous || /`|\$\(/.test(intent.command)) {
+    const hidesCommand =
+      /`|\$\(|<\(|>\(/.test(intent.command) ||
+      heads.some((head) => head.startsWith('(') || head.startsWith('{'))
+    if (dangerous || hidesCommand) {
       return {
         decision: 'ask',
         reason: `${dangerous ?? (intent.baseCommand || 'command')} requires approval in ask mode`,

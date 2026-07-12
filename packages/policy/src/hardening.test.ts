@@ -57,6 +57,38 @@ describe('bash danger detection (ask mode)', () => {
     expect(decide('ask', 'Bash', { command: '/bin/r\\m -rf /' })).toBe('ask')
   })
 
+  it('asks for backslash-newline line continuation joining a command name', () => {
+    // bash removes BOTH `\` and the newline before word splitting, so this rm.
+    expect(decide('ask', 'Bash', { command: 'r\\\nm -rf /' })).toBe('ask')
+  })
+
+  it('asks for ANSI-C / parameter expansion shaping the command name', () => {
+    // `$'m'`→`m`, `"${EMPTY}"`→`` (empty) so each resolves to `rm`; the scanner
+    // cannot know the expansion value, so a `$` surviving into the head prompts.
+    expect(decide('ask', 'Bash', { command: "r$'m' -rf /" })).toBe('ask')
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: bash parameter expansion, not a JS template
+    expect(decide('ask', 'Bash', { command: 'r"${EMPTY}"m -rf /' })).toBe('ask')
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: bash parameter expansion, not a JS template
+    expect(decide('ask', 'Bash', { command: 'r${EMPTY}m -rf /' })).toBe('ask')
+    // other `$`-bearing heads the scanner cannot resolve either
+    expect(decide('ask', 'Bash', { command: 'r$[1]m -rf /' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: '$0 -rf /' })).toBe('ask')
+  })
+
+  it('asks for a dangerous command hidden behind an execution prefix', () => {
+    // `command`/`time`/`nice`/`nohup`/`timeout`/`!`/scheduler-modifiers each run
+    // the command that follows, so the prefix (not the victim command) is the
+    // head. Flag the prefix — same tradeoff the set already makes for xargs/env.
+    expect(decide('ask', 'Bash', { command: 'command rm -rf /' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'time rm -rf /' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'nice rm -rf /' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'nohup rm -rf /' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'timeout 5 rm -rf /' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'stdbuf -o0 rm -rf /' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'taskset -c 0 rm -rf /' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: '! rm -rf /' })).toBe('ask')
+  })
+
   it('asks for a Bash coprocess (Bash 4+, runs the command that follows)', () => {
     expect(decide('ask', 'Bash', { command: 'coproc rm -rf /' })).toBe('ask')
   })
@@ -102,6 +134,19 @@ describe('common commands stay allow — quoted operators are not chain splits',
 
   it('allows backslash-newline line continuation (multi-line commands)', () => {
     expect(decide('ask', 'Bash', { command: 'docker run \\\n -v x:y \\\n image' })).toBe('allow')
+  })
+})
+
+// Execution prefixes (`command`/`time`/`nice`/`nohup`/`timeout`/`ionice`) are in
+// the danger set because they run the command that follows. The cost is a
+// conservative prompt on their safe uses too — same tradeoff the set already
+// makes for `xargs`/`env`/`exec`. Pinned so a change is deliberate.
+describe('accepted conservative FP — execution prefixes on safe commands', () => {
+  it('prompts even when the prefixed command is benign', () => {
+    expect(decide('ask', 'Bash', { command: 'time make' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'nice make' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'timeout 5 make' })).toBe('ask')
+    expect(decide('ask', 'Bash', { command: 'command -v ls' })).toBe('ask')
   })
 })
 

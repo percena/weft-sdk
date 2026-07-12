@@ -232,6 +232,26 @@ const DANGEROUS_BASH_COMMANDS = new Set([
   'xargs',
   // Bash 4+ coprocesses execute the command that follows `coproc`.
   'coproc',
+  // Command-finder / execution-modifier prefixes: each runs the command that
+  // follows it (`command rm`, `time rm`, `nice rm`, `nohup rm`, `timeout 5 rm`,
+  // `stdbuf -o0 rm`, `taskset -c 0 rm`, `! rm`), so the actual command is the
+  // NEXT word, not the prefix. Flag the prefix itself rather than chasing
+  // flags/duration-args after it — same conservative tradeoff the set already
+  // makes for `xargs`/`env`/`exec`. The set covers the common finders/modifiers;
+  // obscure ones can be added as needed.
+  'command',
+  'builtin',
+  'time',
+  'nice',
+  'nohup',
+  'timeout',
+  'ionice',
+  'stdbuf',
+  'chrt',
+  'taskset',
+  'numactl',
+  'cpulimit',
+  '!',
 ])
 
 const READ_ONLY_BASH_PATTERNS = [
@@ -336,7 +356,11 @@ function parseBashCommand(command: string): ParsedBashCommand {
     const next = command[i + 1]
 
     if (escaped) {
-      token += c // resolved escape (`r\m` → token `rm`)
+      // A backslash-newline is bash line continuation — BOTH chars are removed
+      // before word splitting, so `r\<newline>m` executes `rm`. Drop the newline
+      // (do not append it) so the surrounding token chars join as bash would.
+      // Any other escaped char is a literal, appended to resolve `r\m` → `rm`.
+      if (c !== '\n' && c !== '\r') token += c
       escaped = false
       continue
     }
@@ -672,11 +696,17 @@ function evaluateBashPolicy(policy: PermissionPolicy, intent: ToolIntent): ToolP
     // and `echo "(test)"` stay `allow`.
     const parsed = parseBashCommand(intent.command)
     const dangerous = parsed.segments.find((s) => DANGEROUS_BASH_COMMANDS.has(s.head))
+    // A `$` surviving into a resolved command head means parameter expansion,
+    // arithmetic, or ANSI-C quoting (`r$'m'`, `r"${EMPTY}"m`, `r${EMPTY}m`,
+    // `r$VARm`) shaped the command name — its value cannot be known statically,
+    // so request approval rather than guessing. `$(` command substitution is
+    // already caught by `hasSubstitution` (it leaves a sentinel, not a `$`).
+    const obfuscatedHead = parsed.segments.some((s) => s.head.includes('$'))
     const hidesCommand =
       parsed.hasSubstitution ||
       parsed.hasProcessSub ||
       parsed.segments.some((s) => s.startsStruct !== null)
-    if (dangerous || hidesCommand) {
+    if (dangerous || hidesCommand || obfuscatedHead) {
       return {
         decision: 'ask',
         reason: dangerous

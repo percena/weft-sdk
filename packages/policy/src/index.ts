@@ -230,6 +230,8 @@ const DANGEROUS_BASH_COMMANDS = new Set([
   'exec',
   'env',
   'xargs',
+  // Bash 4+ coprocesses execute the command that follows `coproc`.
+  'coproc',
 ])
 
 const READ_ONLY_BASH_PATTERNS = [
@@ -249,30 +251,134 @@ const READ_ONLY_BASH_PATTERNS = [
 // looks read-only (`cat x`) can be followed by anything (`cat x; rm -rf ~`).
 // Presence of any of these disqualifies the read-only fast-path and forces the
 // per-head danger check to inspect every composed command.
+//
+// NOTE: this regex operates on the RAW command, so a quoted `;` (literal, in an
+// argument) also disqualifies read-only — a conservative false-deny, not a
+// security hole (explore is deny-by-default). The ask-mode danger check uses
+// the quote-aware `parseBashCommand` below instead, where the precision matters
+// (a quoted `<(` must NOT be flagged as process substitution).
 const SHELL_COMPOSITION = /[;&|`\n\r]|\$\(|<|>/
 
-// Split a bash string into its composed command segments (on `;`, `|`, `&&`,
-// `||`, `&`, newline) and return the "head" of each — the executed program with
-// leading env-assignments (`FOO=1 rm`) and any directory prefix (`/bin/rm`)
-// stripped, lowercased. Used to catch a dangerous command wherever it appears
-// in a chain, not just at position zero.
-function extractCommandHeads(command: string): string[] {
-  return command
-    .split(/\|\||&&|[;|&\n\r]/)
-    .map((segment) => {
-      // Strip leading env-assignments (`FOO=1 rm`, `A="b c" rm`). The value may
-      // be quoted with spaces inside (`FOO="a b" rm`); `\S*` alone stops at the
-      // first space, leaving `b" rm …` whose head `b"` is not in the danger set
-      // — so a destructive command hiding behind a quoted assignment would
-      // bypass the check. Match quoted values before the bare `\S*` fallback.
-      const withoutEnv = segment.trim().replace(
-        /^(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|\S*)\s+)+/,
-        '',
-      )
-      const first = withoutEnv.trim().split(/\s+/)[0] ?? ''
-      return (first.split('/').pop() ?? '').toLowerCase()
-    })
-    .filter((head) => head.length > 0)
+// Sentinel inserted into a resolved head where an active command substitution
+// (`$(…)` / backtick) appeared, so a head like `$(rm)` still carries a marker
+// that downstream stripping can clean up. Control chars are used so they never
+// collide with a real command name or shell metacharacter.
+const SUBSTITUTION_SENTINEL = '\u0001'
+
+interface ParsedBashCommand {
+  /** one entry per composed command segment, with its resolved head */
+  segments: { head: string; startsStruct: '(' | '{' | null }[]
+  /** an unquoted OR double-quoted `$(…)` / backtick ran a command */
+  hasSubstitution: boolean
+  /** an unquoted `<(` / `>(` (process substitution) ran a command */
+  hasProcessSub: boolean
+}
+
+// A quote-/escape-aware parse of a bash command for the ASK-mode danger check.
+// Walks the string tracking single-quote, double-quote, and backslash-escape
+// state and produces, per composed command segment, the resolved `head` (the
+// executed program — quotes/escapes resolved so `r\m`, `r''m`, `r"m"`, and
+// `'rm'` all report `rm`; leading env-assignments and a directory prefix are
+// stripped) plus a `startsStruct` flag when the segment's first unquoted char is
+// `(` (subshell) or `{` (brace group). `hasSubstitution`/`hasProcessSub` flag
+// command-spawning constructs the head extractor cannot see into; both are
+// quote-aware so a LITERAL (quoted) `<(` / `$(…)` is not mistaken for the
+// active form. Single-quoted regions are entirely literal; inside double
+// quotes only `$(…)` and backticks stay active.
+function parseBashCommand(command: string): ParsedBashCommand {
+  const segments: { head: string; startsStruct: '(' | '{' | null }[] = []
+  let hasSubstitution = false
+  let hasProcessSub = false
+
+  let head = ''
+  let token = ''
+  let haveHead = false
+  let startsStruct: '(' | '{' | null = null
+  let inSingle = false
+  let inDouble = false
+  let escaped = false
+
+  const flushToken = () => {
+    if (haveHead || token.length === 0) {
+      token = ''
+      return
+    }
+    // Skip a leading env-assignment (`FOO=1`, `A="b c"`) so the reported head is
+    // the actual command, not the assignment. A quoted value's spaces were
+    // accumulated into `token` as one word, so a `NAME=` prefix is enough.
+    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(token)) {
+      token = ''
+      return
+    }
+    head = token
+    haveHead = true
+    token = ''
+  }
+  const flushSegment = () => {
+    flushToken()
+    if (haveHead) {
+      const h = (head.replaceAll(SUBSTITUTION_SENTINEL, '').split('/').pop() ?? '').toLowerCase()
+      segments.push({ head: h, startsStruct })
+    } else if (startsStruct) {
+      // segment began with a struct char but no head word was captured (e.g. the
+      // subshell's command was itself quoted/empty); still record the struct so
+      // the ask guard prompts.
+      segments.push({ head: startsStruct, startsStruct })
+    }
+    head = ''
+    token = ''
+    haveHead = false
+    startsStruct = null
+  }
+
+  for (let i = 0; i < command.length; i++) {
+    const c = command[i]
+    const next = command[i + 1]
+
+    if (escaped) {
+      token += c // resolved escape (`r\m` → token `rm`)
+      escaped = false
+      continue
+    }
+    if (inSingle) {
+      if (c === "'") { inSingle = false; continue }
+      token += c // single-quoted content is literal (incl. `;`, `<(`, `$(…`)
+      continue
+    }
+    if (inDouble) {
+      if (c === '"') { inDouble = false; continue }
+      if (c === '\\') { escaped = true; continue }
+      // `$(` and backticks stay active inside double quotes — record a sentinel
+      // so substitution is still detected, then keep the (literal) content.
+      if (c === '`') { hasSubstitution = true; token += SUBSTITUTION_SENTINEL; continue }
+      if (c === '$' && next === '(') { hasSubstitution = true; token += SUBSTITUTION_SENTINEL; i++; continue }
+      token += c
+      continue
+    }
+    // Unquoted
+    if (c === '\\') { escaped = true; continue }
+    if (c === "'") { inSingle = true; continue }
+    if (c === '"') { inDouble = true; continue }
+    if (c === '`') { hasSubstitution = true; token += SUBSTITUTION_SENTINEL; continue }
+    if (c === '$' && next === '(') { hasSubstitution = true; token += SUBSTITUTION_SENTINEL; i++; continue }
+    // Process substitution is only performed by bash when `<(`/`>(` is unquoted;
+    // the quoted form is a literal `<(`/`>(` and must NOT be flagged.
+    if ((c === '<' || c === '>') && next === '(') { hasProcessSub = true; i++; continue }
+    if (c === '&' && next === '&') { i++; flushSegment(); continue }
+    if (c === '|' && next === '|') { i++; flushSegment(); continue }
+    if (c === ';' || c === '|' || c === '&' || c === '\n' || c === '\r') { flushSegment(); continue }
+    if (c === ' ' || c === '\t') { flushToken(); continue }
+    // A subshell `(` or brace group `{` at the START of a segment (before any
+    // head word) hides a command we cannot statically extract — flag it.
+    if (!haveHead && !startsStruct && (c === '(' || c === '{')) {
+      startsStruct = c
+      continue
+    }
+    token += c
+  }
+  flushSegment()
+
+  return { segments, hasSubstitution, hasProcessSub }
 }
 
 function isReadOnlyBashCommand(command: string): boolean {
@@ -555,24 +661,27 @@ function evaluateBashPolicy(policy: PermissionPolicy, intent: ToolIntent): ToolP
   if (policy.mode === 'ask') {
     // Inspect every composed command head, not just position zero, so a
     // dangerous command anywhere in a chain (`git status && rm -rf /`) still
-    // requires approval. Command-spawning constructs that
-    // `extractCommandHeads` cannot see into also force a prompt: it splits only
-    // on `; | & && ||` and would otherwise report the *outer* head — so
-    // command substitution (`$(rm -rf /)`, `` `rm -rf /` ``), process
-    // substitution (`cat <(rm -rf /)`, `tee >(rm -rf /)`), a subshell
-    // (`(rm -rf /)`) and a brace group (`{ rm -rf /; }`) would each let a
-    // destructive command hide behind an innocuous outer head. Process
-    // substitution and command substitution carry the command inline (regex),
-    // while a subshell/brace group surfaces as a head beginning with `(` or `{`.
-    const heads = extractCommandHeads(intent.command)
-    const dangerous = heads.find((head) => DANGEROUS_BASH_COMMANDS.has(head))
+    // requires approval. `parseBashCommand` resolves quoting/escapes so the head
+    // reflects the program actually executed (`r\m`→`rm`, `r''m`→`rm`, `'rm'`→
+    // `rm`, `FOO="a b" rm`→`rm`); constructs it cannot statically extract a head
+    // from — command substitution (`$(…)` / backticks), process substitution
+    // (`<(` / `>(`), a subshell (`(…)`) or a brace group (`{ …; }`) — force a
+    // prompt rather than being certified on their innocuous outer head. All three
+    // detections are quote-aware: a LITERAL quoted `<(` / `$(…)` / `(`/`{` is not
+    // flagged (it does not spawn anything), so `echo "a<(b)"`, `echo '$(rm)'`,
+    // and `echo "(test)"` stay `allow`.
+    const parsed = parseBashCommand(intent.command)
+    const dangerous = parsed.segments.find((s) => DANGEROUS_BASH_COMMANDS.has(s.head))
     const hidesCommand =
-      /`|\$\(|<\(|>\(/.test(intent.command) ||
-      heads.some((head) => head.startsWith('(') || head.startsWith('{'))
+      parsed.hasSubstitution ||
+      parsed.hasProcessSub ||
+      parsed.segments.some((s) => s.startsStruct !== null)
     if (dangerous || hidesCommand) {
       return {
         decision: 'ask',
-        reason: `${dangerous ?? (intent.baseCommand || 'command')} requires approval in ask mode`,
+        reason: dangerous
+          ? `${dangerous.head} requires approval in ask mode`
+          : 'composed or nested shell command requires approval in ask mode',
         intent,
       }
     }
@@ -606,9 +715,10 @@ function normalizeToolIntent(request: ToolPolicyRequest): ToolIntent {
 
   if (request.toolName === 'Bash') {
     const command = String(request.input?.command ?? '')
-    // Strip leading env-assignments + directory prefix so `FOO=1 /bin/rm` reports
-    // `rm`, not `FOO=1`, for both the danger check and the explanation text.
-    const baseCommand = extractCommandHeads(command)[0] ?? ''
+    // Resolve quoting/escapes + strip leading env-assignments and directory
+    // prefix so `FOO=1 /bin/rm`, `r\m`, and `'rm'` all report `rm` for the
+    // danger check and explanation text.
+    const baseCommand = parseBashCommand(command).segments[0]?.head ?? ''
     return { kind: 'bash', command, baseCommand }
   }
 

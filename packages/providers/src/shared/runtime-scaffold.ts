@@ -379,6 +379,7 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
     // `complete` advances a queued message to accepted + running (if any), then
     // we actually send it. Fire-and-forget — the host's send owns error surfacing.
     dispatch({ type: 'complete' })
+    if (state.status === 'failed' || state.status === 'disposed') return
     const next = pendingQueue.shift()
     if (next) void sendDrained(next)
   }
@@ -485,6 +486,7 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
       const alreadyFailed = state.status === 'failed'
       dispatch({ type: 'error', error })
       if (!alreadyFailed) appendFailure(error)
+      pendingQueue.length = 0
     }
   }
 

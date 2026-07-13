@@ -2226,6 +2226,112 @@ process.stdin.on('data', (chunk) => {
     expect(params).not.toHaveProperty('multiAgentMode')
   })
 
+  test('Codex app-server driver falls back to thread/start when thread/resume fails (PI-5)', async () => {
+    let resumeCallCount = 0
+    const baseClient = createFakeCodexAppServerClient({ turnId: 'server-turn-resume-fallback' })
+    // Wrap the client so thread/resume returns an invalid response (no thread id),
+    // simulating an expired/invalid thread. The driver's readThreadId() throws
+    // inside the try/catch, causing a fallback to thread/start.
+    const client: typeof baseClient = {
+      ...baseClient,
+      async request<T = unknown>(method: string, params?: unknown): Promise<T> {
+        if (method === 'thread/resume') {
+          resumeCallCount++
+          // Return a response with no thread id — readThreadId() will throw
+          // "Codex app-server did not return a thread id", caught by the driver.
+          return { error: 'thread not found' } as T
+        }
+        return baseClient.request<T>(method, params)
+      },
+    }
+    const driver = createCodexAppServerDriver({
+      cwd: '/tmp/project',
+      client,
+      threadId: 'expired-thread-99',
+    })
+    const timeline = createCollectingSequencer('codex')
+
+    const send = driver.sendMessage({ message: 'retry after resume fails', options: { turnId: 'turn-resume-fallback' } }, timeline)
+    await waitFor(() => client.requests.some(request => request.method === 'turn/start'))
+
+    client.emitNotification({ method: 'turn/completed', params: { threadId: 'thread-1', turn: { id: 'server-turn-resume-fallback' } } })
+    await send
+
+    // thread/resume was attempted (returned invalid response, readThreadId threw).
+    expect(resumeCallCount).toBe(1)
+    // The driver fell through to thread/start (recorded by the base client).
+    expect(client.requests[0]).toMatchObject({ method: 'thread/start' })
+    expect(client.requests.some(request => request.method === 'thread/start')).toBe(true)
+    // No thread/resume in requests (the wrapper intercepted it before the base
+    // client could record it).
+    expect(client.requests.some(request => request.method === 'thread/resume')).toBe(false)
+    // The turn completed successfully via the fallback thread/start path.
+    expect(timeline.items.some(item => item.item.type === 'turn_completed')).toBe(true)
+  })
+
+  test('Codex app-server driver returns cancel decision when permission is denied with interrupt (PI-6)', async () => {
+    const client = createFakeCodexAppServerClient()
+    const driver = createCodexAppServerDriver({
+      cwd: '/tmp/project',
+      client,
+      policy: async () => ({ decision: 'ask', reason: 'approval required' }),
+    })
+    const timeline = createCollectingSequencer('codex')
+
+    const send = driver.sendMessage({ message: 'do work', options: { turnId: 'turn-interrupt' } }, timeline)
+    await waitFor(() => client.requests.some(request => request.method === 'turn/start'))
+
+    // Approval kind (commandExecution) — interrupt should return cancel, not decline.
+    const approval = client.emitRequest({
+      id: 50,
+      method: 'item/commandExecution/requestApproval',
+      params: {
+        threadId: 'thread-1',
+        turnId: 'turn-interrupt',
+        itemId: 'cmd-interrupt',
+        approvalId: 'approval-interrupt',
+        command: 'rm -rf tmp',
+        cwd: '/tmp/project',
+      },
+    })
+    await waitFor(() => timeline.items.some(item => item.item.type === 'permission_requested'))
+
+    await driver.respondToPermission?.('approval-interrupt', false, false, { interrupt: true })
+    await expect(approval).resolves.toEqual({ decision: 'cancel' })
+
+    // Permission kind (permissions/requestApproval) — interrupt should also
+    // return cancel, NOT { permissions: {}, scope: 'turn' }.
+    const permApproval = client.emitRequest({
+      id: 51,
+      method: 'item/permissions/requestApproval',
+      params: {
+        threadId: 'thread-1',
+        turnId: 'turn-interrupt',
+        itemId: 'perm-interrupt',
+        cwd: '/tmp/project',
+        permissions: { network: { enabled: true } },
+        reason: 'needs network',
+      },
+    })
+    await waitFor(() => timeline.items.filter(item => item.item.type === 'permission_requested').length === 2)
+
+    await driver.respondToPermission?.('perm-interrupt', false, false, { interrupt: true })
+    await expect(permApproval).resolves.toEqual({ decision: 'cancel' })
+
+    // Verify the permission_resolved timeline entries record the interrupt reason.
+    const resolved = timeline.items.filter(item => item.item.type === 'permission_resolved')
+    expect(resolved).toHaveLength(2)
+    for (const item of resolved) {
+      expect(item.item).toMatchObject({
+        type: 'permission_resolved',
+        resolution: { allowed: false, reason: 'interrupt' },
+      })
+    }
+
+    client.emitNotification({ method: 'turn/completed', params: { threadId: 'thread-1', turn: { id: 'turn-1' } } })
+    await send
+  })
+
   test('Codex app-server driver still calls thread/start when no threadId is provided', async () => {
     const client = createFakeCodexAppServerClient({ turnId: 'server-turn-start' })
     const driver = createCodexAppServerDriver({ cwd: '/tmp/project', client })

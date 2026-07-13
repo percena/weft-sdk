@@ -194,6 +194,33 @@ describe('accepted conservative FP — control structures on safe commands', () 
 // recognizes `FOO=1` as an assignment, strips it, and reports `rm` as the head.
 // The result is a prompt on a no-op command-not-found — conservative, not a
 // security hole. Pinned so a change is deliberate.
+// fd-duplication operators (`2>&1`, `>&2`, `>&-`) duplicate or close file
+// descriptors — they do NOT write a file. The scanner must NOT set
+// `hasRedirect: true` for these, otherwise benign piping patterns like
+// `cmd 2>&1 | grep err` would false-prompt. Conversely `>&file` (where the
+// target is not a single digit or `-`) IS a file redirect and must prompt.
+describe('fd-duplication operators are not file redirects (PI-9)', () => {
+  it('allows fd-duplication 2>&1 (stderr to stdout)', () => {
+    expect(decide('ask', 'Bash', { command: 'echo hello 2>&1' })).toBe('allow')
+  })
+
+  it('allows fd-duplication >&2 (stdout to stderr)', () => {
+    expect(decide('ask', 'Bash', { command: 'echo hello >&2' })).toBe('allow')
+  })
+
+  it('allows fd-close >&- (close stdout)', () => {
+    expect(decide('ask', 'Bash', { command: 'echo hello >&-' })).toBe('allow')
+  })
+
+  it('asks when a real redirect follows an fd-duplication in the same command', () => {
+    expect(decide('ask', 'Bash', { command: 'echo hello 2>&1 > file' })).toBe('ask')
+  })
+
+  it('asks for >&file (not fd-dup — redirects to a file named "file")', () => {
+    expect(decide('ask', 'Bash', { command: 'echo hello >&file' })).toBe('ask')
+  })
+})
+
 describe('scanner — accepted conservative false positive', () => {
   it('asks on FO\\O=1 rm (bash does not actually run rm here)', () => {
     expect(decide('ask', 'Bash', { command: 'FO\\O=1 rm -rf /' })).toBe('ask')

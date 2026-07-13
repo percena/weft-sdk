@@ -1,6 +1,7 @@
 import { readClaudeAuth, readCodexAuth } from '@weft/adapter/auth'
 import type { ProviderAuthDetection } from '@weft/adapter/auth'
 import type { RuntimeAuthDetection, RuntimeCandidate } from '@weft/runtime-core'
+import { execFile } from 'node:child_process'
 import { createClaudeRuntimeCandidates } from '../claude/index.ts'
 import { createCodexRuntimeCandidates } from '../codex/index.ts'
 
@@ -52,6 +53,35 @@ function narrowAuth(auth: ProviderAuthDetection): RuntimeAuthDetection {
   return { ...auth, mode: 'provider-owned' }
 }
 
+/**
+ * PI-8: probe whether the codex binary is invocable by spawning
+ * `<executable> --version`.  Returns true when the process starts
+ * (regardless of exit code), false on ENOENT.
+ *
+ * This is separate from `readCodexAuth` because that probe spawns
+ * `codex app-server` and performs JSON-RPC — it conflates "binary missing"
+ * with "auth/server failure", making both report `configured: false` with
+ * a truthy `error`.  The independent `--version` check lets us set
+ * `cliAvailable` (for `codex exec` fallback) without tying it to
+ * app-server health.
+ */
+async function probeCodexBinary(
+  executable: string,
+  env: Record<string, string>,
+): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    execFile(executable, ['--version'], { env, timeout: 5_000 }, (err) => {
+      if (!err) {
+        resolve(true)
+        return
+      }
+      // ENOENT means the binary was not found on disk.  Any other
+      // outcome (non-zero exit, timeout, signal) proves it exists.
+      resolve((err as NodeJS.ErrnoException).code !== 'ENOENT')
+    })
+  })
+}
+
 export async function detectRuntimeCandidates(
   options: DetectRuntimeCandidatesOptions,
 ): Promise<DetectedRuntimeCandidates> {
@@ -75,15 +105,26 @@ export async function detectRuntimeCandidates(
     }
   }
 
-  const auth = await readCodexAuth(options.executable, options.env, options.requestTimeoutMs)
+  // PI-8: resolve executable + env up front so the binary probe and the
+  // auth probe use the same binary path.
+  const resolvedEnv = options.env ?? Object.fromEntries(
+    Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined),
+  )
+  const codexBin = options.executable ?? resolvedEnv.WEFT_CODEX_EXECUTABLE ?? 'codex'
+
+  const [binaryExists, auth] = await Promise.all([
+    probeCodexBinary(codexBin, resolvedEnv),
+    readCodexAuth(options.executable, options.env, options.requestTimeoutMs),
+  ])
   // The codex probe spawns `codex app-server` and issues `account/read` —
   // success proves both the binary and the app-server surface work.
   const appServerAvailable = !auth.error
-  // C8: CLI fallback (`codex exec`) only needs the binary, not a working
-  // app-server.  Mirror the Claude path (line 66-67): if the auth probe got
-  // far enough to determine `configured` status the binary exists, even when
-  // the app-server surface failed.
-  const cliAvailable = !auth.error || auth.configured
+  // PI-8: CLI fallback (`codex exec`) only needs the binary, not a working
+  // app-server.  The old check `!auth.error || auth.configured` was a no-op
+  // (all codex error paths set configured:false), so CLI availability was
+  // incorrectly tied to app-server health.  The independent `--version`
+  // probe checks binary existence without depending on auth/server state.
+  const cliAvailable = binaryExists
   return {
     candidates: createCodexRuntimeCandidates({
       appServerAvailable,

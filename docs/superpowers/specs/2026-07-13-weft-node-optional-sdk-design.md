@@ -34,7 +34,7 @@ write failures immediately, and drains a bounded stderr diagnostic buffer.
 
 Tests cover interleaved app-server notifications, failed writes, and isolated
 consumer imports without the Claude SDK. The dependency constraints are pinned
-to Claude Agent SDK `0.3.207` and Codex SDK `0.144.1`; CI-style tests exercise
+to Claude Agent SDK `0.3.207` and Codex SDK `0.144.2`; CI-style tests exercise
 the installed versions and existing opt-in real provider smoke tests remain
 available.
 

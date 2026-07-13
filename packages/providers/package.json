@@ -25,6 +25,16 @@
         "default": "./dist/claude.cjs"
       }
     },
+    "./claude/sdk": {
+      "import": {
+        "types": "./dist/claude/sdk.d.ts",
+        "default": "./dist/claude/sdk.js"
+      },
+      "require": {
+        "types": "./dist/claude/sdk.d.cts",
+        "default": "./dist/claude/sdk.cjs"
+      }
+    },
     "./codex": {
       "import": {
         "types": "./dist/codex.d.ts",
@@ -69,11 +79,20 @@
     "@weft/adapter": "workspace:*"
   },
   "peerDependencies": {
-    "@anthropic-ai/claude-agent-sdk": ">=0.2.0"
+    "@anthropic-ai/claude-agent-sdk": "^0.3.207",
+    "@openai/codex-sdk": "^0.144.2"
   },
   "peerDependenciesMeta": {
     "@anthropic-ai/claude-agent-sdk": {
       "optional": true
+    },
+    "@openai/codex-sdk": {
+      "optional": true
     }
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
   }
 }

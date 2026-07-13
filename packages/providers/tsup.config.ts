@@ -4,6 +4,7 @@ export default defineConfig({
   entry: {
     flitro: 'src/flitro/index.ts',
     claude: 'src/claude/index.ts',
+    'claude/sdk': 'src/claude/sdk.ts',
     codex: 'src/codex/index.ts',
     factory: 'src/factory/index.ts',
     shared: 'src/shared/index.ts',

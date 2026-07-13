@@ -5,6 +5,7 @@ export default defineConfig({
     'index': 'src/index.ts',
     'chat': 'src/chat.ts',
     'providers-claude': 'src/providers-claude.ts',
+    'providers-claude-sdk': 'src/providers-claude-sdk.ts',
     'providers-codex': 'src/providers-codex.ts',
     'providers-flitro': 'src/providers-flitro.ts',
     'runtime': 'src/runtime.ts',

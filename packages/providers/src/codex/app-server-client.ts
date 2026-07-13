@@ -75,25 +75,26 @@ export function createCodexAppServerJsonRpcClient(
     void handleMessage(message)
   })
 
-  function write(message: unknown): void {
-    void options.transport.write(JSON.stringify(message))
-  }
-
   async function request<T = unknown>(method: string, params?: unknown): Promise<T> {
     const id = nextId++
-    write({
-      jsonrpc: '2.0',
-      id,
-      method,
-      ...(params === undefined ? {} : { params }),
-    })
-
     return new Promise<T>((resolve, reject) => {
       const timer = setTimeout(() => {
         pending.delete(id)
         reject(new Error(`Codex app-server request timed out: ${method}`))
       }, timeoutMs)
       pending.set(id, { resolve: resolve as (result: unknown) => void, reject, timer })
+      void Promise.resolve(options.transport.write(JSON.stringify({
+        jsonrpc: '2.0',
+        id,
+        method,
+        ...(params === undefined ? {} : { params }),
+      }))).catch(error => {
+        const entry = pending.get(id)
+        if (!entry) return
+        pending.delete(id)
+        clearTimeout(entry.timer)
+        entry.reject(error instanceof Error ? error : new Error(String(error)))
+      })
     })
   }
 
@@ -137,22 +138,22 @@ export function createCodexAppServerJsonRpcClient(
   async function handleServerRequest(id: number, request: CodexAppServerRequest): Promise<void> {
     const handler = requestHandlers.values().next().value as ((request: CodexAppServerRequest) => Promise<unknown>) | undefined
     if (!handler) {
-      write({ jsonrpc: '2.0', id, result: {} })
+      void options.transport.write(JSON.stringify({ jsonrpc: '2.0', id, result: {} }))
       return
     }
 
     try {
       const result = await handler(request)
-      write({ jsonrpc: '2.0', id, result })
+      void options.transport.write(JSON.stringify({ jsonrpc: '2.0', id, result }))
     } catch (error) {
-      write({
+      void options.transport.write(JSON.stringify({
         jsonrpc: '2.0',
         id,
         error: {
           code: -32000,
           message: (error as Error).message,
         },
-      })
+      }))
     }
   }
 
@@ -177,7 +178,7 @@ export function createCodexAppServerJsonRpcClient(
           version: '0.1.0',
         },
       })
-      write({ jsonrpc: '2.0', method: 'initialized', params: {} })
+      void options.transport.write(JSON.stringify({ jsonrpc: '2.0', method: 'initialized', params: {} }))
     },
     request,
     onNotification(handler) {
@@ -254,6 +255,11 @@ function createNodeSubprocessTransport(options: {
   if (!proc.stdout || !proc.stdin) {
     throw new Error('Failed to create subprocess with piped stdio')
   }
+
+  // app-server diagnostics are written to stderr. Consume the stream even when
+  // the host does not surface diagnostics yet, otherwise a verbose child can
+  // block once its stderr pipe fills and leave turns waiting indefinitely.
+  proc.stderr?.resume()
 
   const emitClose = (): void => {
     if (emittedClose) return

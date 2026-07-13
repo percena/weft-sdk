@@ -27,6 +27,12 @@ For browser / web apps, use
 npm install @percena/weft-node react react-dom
 ```
 
+Install `@anthropic-ai/claude-agent-sdk@^0.3.207` only when using the native
+Claude runtime or `@percena/weft-node/providers/claude/sdk`; Codex-only hosts
+and Claude CLI fallback do not require it. `@openai/codex-sdk@^0.144.2` is an
+optional compatibility baseline; the callback-capable runtime uses Codex
+app-server directly.
+
 ## Entry points
 
 | Subpath | What it exports |
@@ -34,6 +40,7 @@ npm install @percena/weft-node react react-dom
 | `@percena/weft-node` | Core runtime + timeline types, `useAgentSession`, `TimelineAgentChatPanel`, `EN_FALLBACK` |
 | `@percena/weft-node/chat` | Full streaming chat panel (`TimelineAgentChatPanel`, hooks, i18n fallback) |
 | `@percena/weft-node/providers/claude` | Claude Agent SDK runtime + CLI fallback |
+| `@percena/weft-node/providers/claude/sdk` | Optional Claude Agent SDK session and MCP helpers |
 | `@percena/weft-node/providers/codex` | Codex app-server runtime + CLI fallback |
 | `@percena/weft-node/providers/flitro` | Flitro embed runtime (also available in the browser package) |
 | `@percena/weft-node/runtime` | Config-driven provider selection (`createHostAgentRuntime`) |

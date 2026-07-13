@@ -20,11 +20,22 @@ import {
 } from '@weft/providers/codex'
 import type { AgentEvent } from '@weft/core'
 import type { AgentSessionRuntime } from '@weft/cli-runtime'
+import { readCodexAuth } from '@weft/adapter'
 import type { SendMessageOptions } from '@weft/runtime-core'
 import type { TimelineSequencer } from '@weft/timeline'
 import { createTimelineSequencer, type TimelineEnvelope } from '@weft/timeline'
 
 describe('Provider Runtime — SDK-first capability probes', () => {
+  test('normal Claude provider entry isolates optional SDK value imports in an explicit sdk subpath', async () => {
+    const claudeEntry = await readFile(join(process.cwd(), 'packages/providers/src/claude/index.ts'), 'utf8')
+    const sdkEntry = join(process.cwd(), 'packages/providers/src/claude/sdk.ts')
+    const desktopFacade = await readFile(join(process.cwd(), 'publish/desktop/package.json'), 'utf8')
+
+    expect(claudeEntry).not.toContain("from '@anthropic-ai/claude-agent-sdk'")
+    await expect(readFile(sdkEntry, 'utf8')).resolves.toContain("from '@anthropic-ai/claude-agent-sdk'")
+    expect(JSON.parse(desktopFacade).exports['./providers/claude/sdk']).toBeDefined()
+  })
+
   test('Claude provider prefers native SDK and marks CLI fallback policy as degraded', () => {
     const candidates = createClaudeRuntimeCandidates({
       nativeSdkAvailable: false,
@@ -1766,6 +1777,64 @@ process.stdin.on('data', (chunk) => {
       id: 3,
       result: { decision: 'accept' },
     })
+  })
+
+  test('Codex app-server JSON-RPC client registers a pending request before a synchronous response', async () => {
+    const handlers = new Set<(message: unknown) => void>()
+    const client = createCodexAppServerJsonRpcClient({
+      requestTimeoutMs: 50,
+      transport: {
+        write(message) {
+          const request = JSON.parse(message) as { id?: number }
+          if (request.id !== undefined) {
+            for (const handler of handlers) handler({ jsonrpc: '2.0', id: request.id, result: { ok: true } })
+          }
+        },
+        onMessage(handler) {
+          handlers.add(handler)
+          return () => handlers.delete(handler)
+        },
+      },
+    })
+
+    await expect(client.request('account/read')).resolves.toEqual({ ok: true })
+  })
+
+  test('Codex auth detection ignores notifications while awaiting matching JSON-RPC responses', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'weft-codex-auth-notification-'))
+    const executable = join(tempDir, 'codex-notification.js')
+    await writeFile(executable, `#!/usr/bin/env node
+let buffer = ''
+process.stdin.on('data', chunk => {
+  buffer += chunk
+  for (;;) {
+    const newline = buffer.indexOf('\\n')
+    if (newline < 0) return
+    const line = buffer.slice(0, newline)
+    buffer = buffer.slice(newline + 1)
+    if (!line.trim()) continue
+    const request = JSON.parse(line)
+    if (request.method === 'initialize') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', method: 'account/updated', params: { authMode: 'chatgpt' } }) + '\\n')
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: request.id, result: {} }) + '\\n')
+    }
+    if (request.method === 'account/read') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', method: 'account/updated', params: { authMode: 'chatgpt' } }) + '\\n')
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: request.id, result: { account: { id: 'account-1' } } }) + '\\n')
+    }
+  }
+})
+`)
+    await chmod(executable, 0o755)
+
+    try {
+      await expect(readCodexAuth(executable, process.env as Record<string, string>, 1_000)).resolves.toMatchObject({
+        configured: true,
+        accountPresent: true,
+      })
+    } finally {
+      await rm(tempDir, { recursive: true, force: true })
+    }
   })
 
   test('Codex app-server driver filters trailing item/* notifications after abort', async () => {

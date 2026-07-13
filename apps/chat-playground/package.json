@@ -10,9 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@weft/core": "workspace:*",
-    "@weft/timeline": "workspace:*",
-    "@weft/ui": "workspace:*",
+    "@percena/weft": "workspace:*",
     "i18next": "^23.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

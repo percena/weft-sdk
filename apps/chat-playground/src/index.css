@@ -1,7 +1,9 @@
-@import "@weft/ui/styles";
+/* Tailwind here styles ONLY the playground's own UI. The chat panel's CSS
+   ships precompiled via `import '@percena/weft/styles'` in main.tsx, so no
+   @source needs to scan the SDK. */
+@import "tailwindcss";
 
 @source "./**/*.{ts,tsx}";
-@source "../../../packages/ui/src/**/*.{ts,tsx}";
 
 html,
 body,

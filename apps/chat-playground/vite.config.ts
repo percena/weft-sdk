@@ -21,11 +21,10 @@ export default defineConfig({
         warn(warning)
       },
       output: {
+        // The chat panel (shiki/markdown/motion) ships pre-bundled inside
+        // @percena/weft/chat, so only split React into its own chunk here.
         manualChunks: {
-          shiki: ['shiki'],
-          markdown: ['react-markdown', 'remark-gfm', 'remark-math', 'rehype-katex', 'rehype-raw'],
           react: ['react', 'react-dom'],
-          motion: ['motion'],
         },
       },
     },

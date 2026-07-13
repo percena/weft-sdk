@@ -1,6 +1,6 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
-import { EN_FALLBACK } from '@weft/ui/lib/en-fallback'
+import { EN_FALLBACK } from '@percena/weft'
 
 i18n.use(initReactI18next).init({
   resources: {

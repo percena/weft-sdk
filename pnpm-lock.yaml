@@ -45,15 +45,9 @@ importers:
 
   apps/chat-playground:
     dependencies:
-      '@weft/core':
+      '@percena/weft':
         specifier: workspace:*
-        version: link:../../packages/core
-      '@weft/timeline':
-        specifier: workspace:*
-        version: link:../../packages/timeline
-      '@weft/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
+        version: link:../../publish/browser
       i18next:
         specifier: ^23.0.0
         version: 23.16.8

@@ -5,9 +5,9 @@ import {
   UserMessageBubble,
   type ActivityItem,
   type Turn,
-} from '@weft/ui'
-import { processEvent, type ChatEvent, type SessionState } from '@weft/ui'
-import type { PermissionMode } from '@weft/core'
+} from '@percena/weft/chat'
+import { processEvent, type ChatEvent, type SessionState } from '@percena/weft/chat'
+import type { PermissionMode } from '@percena/weft'
 import {
   DEMO_EVENTS,
   DEMO_SESSION_ID,
@@ -16,7 +16,7 @@ import {
   createDemoSessionState,
   getDemoTurns,
 } from './demo-session'
-import type { TimelineEnvelope } from '@weft/timeline'
+import type { TimelineEnvelope } from '@percena/weft'
 import { RuntimeClient, } from './runtime-client'
 import {
   AVAILABLE_LIVE_SOURCES,

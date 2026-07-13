@@ -4,7 +4,13 @@ A Weft chat UI playground: replay full agent conversations (tool calls, permissi
 
 ## Quick Start
 
+The playground consumes the published `@percena/weft` browser package, so build
+it once from the repo root before the first run:
+
 ```bash
+# from repo root — builds publish/browser (the @percena/weft dist the playground imports)
+pnpm run build:publish   # or: pnpm --filter @percena/weft build
+
 cd apps/chat-playground
 
 # No .env needed — just start
@@ -56,10 +62,8 @@ Switch to the Live tab in the UI, select a provider (Claude / Codex), enter a wo
 ## Tech Stack
 
 - React 19 + Vite 6 + Tailwind CSS v4
-- `@weft/ui` — TurnCard, UserMessageBubble, processEvent, and other UI components
-- `@weft/core` — PermissionMode and other type definitions
-- `@weft/timeline` — TimelineEnvelope type
-- Does not depend on the `@percena/weft` published package — uses internal workspace packages directly
+- `@percena/weft` — TurnCard, UserMessageBubble, processEvent, PermissionMode, TimelineEnvelope, EN_FALLBACK, and the precompiled chat-panel CSS. This is the published browser package; the playground is a faithful consumer of it.
+- Imports from `@percena/weft` (root, for types) and `@percena/weft/chat` (for UI components). The chat panel's CSS ships precompiled via `import '@percena/weft/styles'`; the playground's own Tailwind only styles its own UI.
 
 ## Layout
 
@@ -70,4 +74,4 @@ Switch to the Live tab in the UI, select a provider (Claude / Codex), enter a wo
 | `src/runtime-client.ts` | Runtime HTTP/WebSocket client for Live mode |
 | `src/live-session-store.ts` | Live session persistence (localStorage) |
 | `src/timeline-transcript.ts` | Timeline → chat transcript conversion |
-| `src/i18n-init.ts` | i18next initialization (en fallback from `@weft/ui`) |
+| `src/i18n-init.ts` | i18next initialization (en fallback from `@percena/weft`) |

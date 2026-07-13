@@ -1,7 +1,7 @@
-import { mapTimelineEnvelopeToProcessorEvent, type ChatEvent, type SessionState, processEvent } from '@weft/ui'
-import type { PermissionMode } from '@weft/core'
-import { groupMessagesByTurn, type Turn, } from '@weft/ui'
-import type { TimelineEnvelope, TimelineCursor } from '@weft/timeline'
+import { mapTimelineEnvelopeToProcessorEvent, type ChatEvent, type SessionState, processEvent } from '@percena/weft/chat'
+import type { PermissionMode } from '@percena/weft'
+import { groupMessagesByTurn, type Turn, } from '@percena/weft/chat'
+import type { TimelineEnvelope, TimelineCursor } from '@percena/weft'
 import type { ReasoningEffort } from './live-session-store'
 import { isChatTranscriptTimelineEnvelope } from './timeline-transcript'
 

@@ -1,27 +1,31 @@
 # Chat Playground
 
-A Weft chat UI playground: replay full agent conversations (tool calls, permission approvals, streaming output) from mock data, or connect to a real runtime (Claude / Codex) for live sessions.
+A desktop (Electron) demo of the Weft local Coding Agent SDK: replay full agent
+conversations from mock data (Fixture mode), or drive a real local
+**Claude Code** / **Codex** agent turn end-to-end with zero server (Local mode).
+
+The playground is the reference consumer of the `@percena/weft-node` package —
+its Electron main process runs the local agent runtime in-process, and the
+renderer reuses the shared React chat UI (`TurnCard`, processor, timeline).
 
 ## Quick Start
 
-The playground consumes the published `@percena/weft` browser package, so build
-it once from the repo root before the first run:
+The playground imports the built `@percena/weft-node` dist, so build it once from
+the repo root before the first run:
 
 ```bash
-# from repo root — builds publish/browser (the @percena/weft dist the playground imports)
-pnpm run build:publish   # or: pnpm --filter @percena/weft build
+# from repo root — builds publish/desktop (the @percena/weft-node dist)
+pnpm --filter @percena/weft-node build
 
 cd apps/chat-playground
 
-# No .env needed — just start
+# No .env needed — launch the Electron window
 pnpm dev
-#    → http://127.0.0.1:5173
 ```
 
-The app opens in **Fixture mode** by default: click Start to replay a pre-built timeline (a complete "update config file" agent conversation).
-
-- Add `?autoplay=1` to the URL for auto-play
-- Switch to the **Live** tab to connect to a real runtime
+The app opens in **Fixture mode** by default: click Start to replay a pre-built
+timeline (a complete "update config file" agent conversation). Switch to the
+**Local** tab to run a real agent turn on this machine.
 
 ## Two Modes
 
@@ -32,46 +36,54 @@ Uses pre-built timeline events from `demo-session.ts` to demonstrate:
 - Timeline detail panel (runtime capability report, source state, permission status)
 - TurnCard component rendering (activity collapse/expand, tool output)
 
-### Live Mode (requires runtime host)
+A no-backend fallback that works out of the box — useful for UI/processor
+development without local provider auth.
 
-Connect to a real runtime server for live conversations:
+### Local Mode (real agent, no server)
 
-```bash
-# 1. Configure runtime URL (optional, defaults to 127.0.0.1:4127)
-cp .env.example .env
-#    Edit VITE_RUNTIME_URL to point to your runtime
+Drives a real local agent through `@percena/weft-node/runtime` in the Electron
+main process. The renderer streams `TimelineEnvelope` events over IPC and renders
+them through the same processor + TurnCard UI as Fixture mode.
 
-# 2. Start the playground
-pnpm dev
-```
+Requirements (local provider auth on this machine):
+- **Claude**: the `claude` CLI logged in, or `@anthropic-ai/claude-agent-sdk`
+  installed (native SDK path; falls back to the CLI otherwise).
+- **Codex**: the `codex` CLI on `PATH` and logged in (`codex app-server`).
 
-Switch to the Live tab in the UI, select a provider (Claude / Codex), enter a working directory, and connect. Supports:
-- Real-time SSE streaming output
-- Tool call visualization (command execution, file search)
-- Session persistence (localStorage)
-- Multi-session management
-
-## .env Configuration
-
-| Variable | Required | Default | Description |
-| --- | --- | --- | --- |
-| `VITE_RUNTIME_URL` | No | `http://127.0.0.1:4127` | Runtime host URL for live sessions |
-
-> Fixture mode needs no `.env` — it works out of the box.
+Select a provider (Claude / Codex), pick a working folder, set a permission mode
+(Explore / Ask / Auto) and reasoning effort, then send a message. A real agent
+turn streams into the timeline; permission requests surface an inline
+Allow / Deny card whose decision round-trips back to the runtime.
 
 ## Tech Stack
 
-- React 19 + Vite 6 + Tailwind CSS v4
-- `@percena/weft` — TurnCard, UserMessageBubble, processEvent, PermissionMode, TimelineEnvelope, EN_FALLBACK, and the precompiled chat-panel CSS. This is the published browser package; the playground is a faithful consumer of it.
-- Imports from `@percena/weft` (root, for types) and `@percena/weft/chat` (for UI components). The chat panel's CSS ships precompiled via `import '@percena/weft/styles'`; the playground's own Tailwind only styles its own UI.
+- Electron 43 + electron-vite (main / preload / renderer) + React 19 + Tailwind v4
+- `@percena/weft-node` — `createHostAgentRuntime` + `detectRuntimeCandidates`
+  (in the main process), `TurnCard`, `processEvent`, `PermissionMode`,
+  `TimelineEnvelope`, `EN_FALLBACK`, and the precompiled chat-panel CSS (renderer).
+- The chat panel's CSS ships precompiled via
+  `import '@percena/weft-node/styles'`; the playground's own Tailwind only styles
+  its own UI.
 
 ## Layout
 
 | Path | Description |
 | --- | --- |
-| `src/App.tsx` | Main UI: Fixture / Live mode switching, timeline rendering, session management |
+| `electron/main.ts` | Electron main: BrowserWindow + IPC driving `createHostAgentRuntime` |
+| `electron/preload.ts` | `contextBridge` IPC surface (`window.weftDesktop`) |
+| `shared/ipc-contract.ts` | IPC channel names + payload types (main/preload/renderer) |
+| `electron.vite.config.ts` | main / preload / renderer build config |
+| `src/App.tsx` | Main UI: Fixture / Local mode, timeline, permission cards, session management |
+| `src/runtime-client.ts` | IPC-backed runtime client (envelope → processor state) |
 | `src/demo-session.ts` | Mock timeline data for Fixture mode |
-| `src/runtime-client.ts` | Runtime HTTP/WebSocket client for Live mode |
-| `src/live-session-store.ts` | Live session persistence (localStorage) |
+| `src/live-session-store.ts` | Local session persistence (localStorage) |
 | `src/timeline-transcript.ts` | Timeline → chat transcript conversion |
-| `src/i18n-init.ts` | i18next initialization (en fallback from `@percena/weft`) |
+| `src/i18n-init.ts` | i18next initialization (en fallback from `@percena/weft-node`) |
+
+## Scripts
+
+| Script | Description |
+| --- | --- |
+| `pnpm dev` | Launch the Electron app (HMR renderer + main) |
+| `pnpm build` | Build main + preload + renderer to `out/` |
+| `pnpm typecheck` | `tsc --noEmit` over `src` + `shared` + `electron` |

@@ -1,4 +1,4 @@
-import type { TimelineEnvelope } from '@percena/weft'
+import type { TimelineEnvelope } from '@percena/weft-node'
 
 export function isChatTranscriptTimelineEnvelope(envelope: TimelineEnvelope): boolean {
   switch (envelope.item.type) {

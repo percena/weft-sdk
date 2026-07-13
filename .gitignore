@@ -47,6 +47,7 @@ node_modules/
 
 # Build output
 dist
+out
 .cache
 
 # Vite files

@@ -3,11 +3,12 @@ import { createPortal } from 'react-dom'
 import {
   TurnCard,
   UserMessageBubble,
+  PermissionRequestCard,
   type ActivityItem,
   type Turn,
-} from '@percena/weft/chat'
-import { processEvent, type ChatEvent, type SessionState } from '@percena/weft/chat'
-import type { PermissionMode } from '@percena/weft'
+} from '@percena/weft-node/chat'
+import { processEvent, type ChatEvent, type SessionState } from '@percena/weft-node/chat'
+import type { PermissionMode } from '@percena/weft-node'
 import {
   DEMO_EVENTS,
   DEMO_SESSION_ID,
@@ -16,8 +17,9 @@ import {
   createDemoSessionState,
   getDemoTurns,
 } from './demo-session'
-import type { TimelineEnvelope } from '@percena/weft'
+import type { TimelineEnvelope } from '@percena/weft-node'
 import { RuntimeClient, } from './runtime-client'
+import { getDesktopApi } from '../shared/ipc-contract'
 import {
   AVAILABLE_LIVE_SOURCES,
   LIVE_FRAMEWORK_OPTIONS,
@@ -373,7 +375,7 @@ function ChatTranscript({
         <div className="rounded-[8px] bg-background shadow-minimal p-5 text-[13px] text-muted-foreground">
           {mode === 'fixture'
             ? 'Press Start to stream a mock agent run through the same processor and turn-card UI.'
-            : 'Connect to a running host server and send a message to start a live agent session.'}
+            : 'Start the local agent and send a message to begin a turn.'}
         </div>
       )}
 
@@ -502,23 +504,22 @@ function FilePickerDialog({
   const existingPaths = useMemo(() => new Set(selectedAttachmentPaths), [selectedAttachmentPaths])
 
   useEffect(() => {
-    let cancelled = false
+    let cancelled = true
+    const api = getDesktopApi()
+    if (!api) {
+      setError('Desktop runtime bridge unavailable.')
+      setLoading(false)
+      return
+    }
+    cancelled = false
     setLoading(true)
     setError(null)
-    const browseUrl = currentPath
-      ? `${HOST_SERVER_URL}/fs/browse?path=${encodeURIComponent(currentPath)}`
-      : `${HOST_SERVER_URL}/fs/browse`
-    fetch(browseUrl)
-      .then(async response => {
-        const data = await response.json() as HostFileSystemListing & { reason?: string }
-        if (!response.ok) throw new Error(data.reason ?? `Browse failed: ${response.status}`)
-        return data
-      })
+    api.fsBrowse(currentPath ?? undefined)
       .then(data => {
-        if (!cancelled) {
-          setListing(data)
-          setSelectedFiles(files => files.filter(path => data.entries.some(entry => entry.path === path)))
-        }
+        if (cancelled) return
+        setListing(data)
+        setSelectedFiles(files => files.filter(path => data.entries.some(entry => entry.path === path)))
+        if (data.reason) setError(data.reason)
       })
       .catch((err: Error) => {
         if (!cancelled) setError(err.message)
@@ -891,7 +892,7 @@ function LiveComposer({
             <textarea
               value={input}
               onChange={(event) => onInputChange(event.target.value)}
-              placeholder={connected ? 'Send a message to the agent...' : 'Connect to the host server to start live streaming...'}
+              placeholder={connected ? 'Send a message to the agent...' : 'Start the local agent to begin...'}
               rows={3}
               className="max-h-[180px] min-h-[88px] w-full resize-none bg-transparent px-4 py-3 text-[13px] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground"
             />
@@ -962,8 +963,8 @@ function LiveComposer({
                 type="submit"
                 disabled={connected ? !canSend : reconnecting}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-background shadow-minimal transition hover:opacity-90 disabled:opacity-40"
-                title={connected ? 'Send message' : 'Connect to host server'}
-                aria-label={connected ? 'Send message' : 'Connect to host server'}
+                title={connected ? 'Send message' : 'Start local agent'}
+                aria-label={connected ? 'Send message' : 'Start local agent'}
               >
                 {reconnecting ? '…' : '↑'}
               </button>
@@ -989,8 +990,6 @@ function LiveComposer({
     </div>
   )
 }
-
-const HOST_SERVER_URL = import.meta.env.VITE_RUNTIME_URL ?? 'http://127.0.0.1:4127'
 
 export default function App() {
   const [mode, setMode] = useState<Mode>('fixture')
@@ -1145,12 +1144,11 @@ export default function App() {
     }))
   }, [patchActiveLiveSession])
 
-  const connectToHostServer = useCallback(() => {
+  const startLocalAgent = useCallback(() => {
     const session = activeLiveSessionRef.current
     if (!session) return
     runtimeClientRef.current?.disconnect()
     const client = new RuntimeClient({
-      baseUrl: HOST_SERVER_URL,
       sessionId: session.id,
     })
     const localSessionId = session.id
@@ -1199,7 +1197,7 @@ export default function App() {
     })
   }, [patchActiveLiveSession])
 
-  const disconnectFromHostServer = useCallback(() => {
+  const disconnectLocalAgent = useCallback(() => {
     const sessionId = activeLiveSessionRef.current?.id
     runtimeClientRef.current?.disconnect()
     runtimeClientRef.current = null
@@ -1249,7 +1247,7 @@ export default function App() {
   }, [liveInput])
 
   const createNewLiveSession = useCallback(() => {
-    disconnectFromHostServer()
+    disconnectLocalAgent()
     const now = Date.now()
     const next = createLiveSessionRecord({
       id: `live-${now}`,
@@ -1258,14 +1256,14 @@ export default function App() {
     })
     setLiveStore(prev => upsertLiveSession(prev, next, next.id))
     setLiveInput('')
-  }, [disconnectFromHostServer])
+  }, [disconnectLocalAgent])
 
   const selectLiveSession = useCallback((sessionId: string) => {
     if (sessionId === activeLiveSessionRef.current?.id) return
-    disconnectFromHostServer()
+    disconnectLocalAgent()
     setLiveStore(prev => ({ ...prev, activeSessionId: sessionId }))
     setLiveInput('')
-  }, [disconnectFromHostServer])
+  }, [disconnectLocalAgent])
 
   const addLiveAttachments = useCallback((paths: string[]) => {
     if (paths.length === 0) return
@@ -1309,10 +1307,10 @@ export default function App() {
 
   const switchMode = useCallback((newMode: Mode) => {
     if (newMode === 'fixture') {
-      disconnectFromHostServer()
+      disconnectLocalAgent()
     }
     setMode(newMode)
-  }, [disconnectFromHostServer])
+  }, [disconnectLocalAgent])
 
   return (
     <main className="dark min-h-screen bg-foreground-2 text-foreground">
@@ -1336,8 +1334,8 @@ export default function App() {
                   {mode === 'fixture'
                     ? 'Mock events are rendered through processor state and Weft turn cards.'
                     : liveConnected
-                      ? 'Connected to host server — send messages to start a live agent turn.'
-                      : 'Connect to a running host server for live agent interaction.'}
+                      ? 'Local agent connected — send a message to start a turn.'
+                      : 'Start the local agent (Claude or Codex) to run a turn on this machine.'}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -1360,17 +1358,28 @@ export default function App() {
                   </>
                 ) : (
                   liveConnected ? (
+                    <>
+                      {activeLiveSession?.status === 'running' && (
+                        <button
+                          type="button"
+                          onClick={() => runtimeClientRef.current?.abort('user stopped the turn')}
+                          className="rounded-[7px] bg-background px-3 py-2 text-[13px] text-foreground shadow-minimal transition hover:bg-foreground/[0.05]"
+                        >
+                          Stop
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={disconnectFromHostServer}
+                        onClick={disconnectLocalAgent}
                         className="rounded-[7px] bg-background px-3 py-2 text-[13px] text-foreground shadow-minimal transition hover:bg-foreground/[0.05]"
                       >
                         Disconnect
                       </button>
-                    ) : (
+                    </>
+                  ) : (
                       <button
                         type="button"
-                        onClick={connectToHostServer}
+                        onClick={startLocalAgent}
                         className="rounded-[7px] bg-accent px-3 py-2 text-[13px] font-medium text-background shadow-minimal transition hover:opacity-90"
                       >
                         Connect
@@ -1431,7 +1440,7 @@ export default function App() {
               session={activeLiveSession}
               onInputChange={setLiveInput}
               onSend={sendLiveMessage}
-              onConnect={connectToHostServer}
+              onConnect={startLocalAgent}
               onConfigChange={updateActiveLiveConfig}
               onAddAttachments={addLiveAttachments}
               onRemoveAttachment={removeLiveAttachment}
@@ -1444,6 +1453,23 @@ export default function App() {
               activity={selectedActivity}
               onClose={() => setSelectedActivity(null)}
             />
+          )}
+
+          {mode === 'live' && liveSessionState?.pendingPermissionRequests && liveSessionState.pendingPermissionRequests.length > 0 && (
+            <div className="fixed bottom-20 left-1/2 z-40 w-[min(520px,calc(100vw-32px))] -translate-x-1/2 space-y-2">
+              {liveSessionState.pendingPermissionRequests.map(req => (
+                <div key={req.requestId} className="overflow-hidden rounded-[10px] border border-border bg-background shadow-modal-small">
+                  <PermissionRequestCard
+                    requestId={req.requestId}
+                    toolName={req.toolName}
+                    reason={req.description ?? req.reason}
+                    input={req.command ? { command: req.command } : undefined}
+                    onAllow={(id, remember) => runtimeClientRef.current?.respondToPermission(id, true, remember)}
+                    onDeny={(id) => runtimeClientRef.current?.respondToPermission(id, false)}
+                  />
+                </div>
+              ))}
+            </div>
           )}
         </section>
 

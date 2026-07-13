@@ -1,6 +1,6 @@
-import { mapTimelineEnvelopeToProcessorEvent, processEvent, type SessionState } from '@percena/weft/chat'
-import type { PermissionMode } from '@percena/weft'
-import type { TimelineEnvelope } from '@percena/weft'
+import { mapTimelineEnvelopeToProcessorEvent, processEvent, type SessionState } from '@percena/weft-node/chat'
+import type { PermissionMode } from '@percena/weft-node'
+import type { TimelineEnvelope } from '@percena/weft-node'
 import { createRuntimeClientState } from './runtime-client'
 import { isChatTranscriptTimelineEnvelope } from './timeline-transcript'
 

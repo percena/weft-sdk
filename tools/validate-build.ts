@@ -86,7 +86,6 @@ const packages: PackageCheck[] = [
       'chat.js', 'chat.d.ts',
       'providers-claude.js', 'providers-claude.d.ts',
       'providers-codex.js', 'providers-codex.d.ts',
-      'providers-flitro.js', 'providers-flitro.d.ts',
       'runtime.js', 'runtime.d.ts',
       'cli-runtime.js', 'cli-runtime.d.ts',
       'skills.js', 'skills.d.ts',

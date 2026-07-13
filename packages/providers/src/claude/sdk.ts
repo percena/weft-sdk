@@ -24,3 +24,17 @@ export {
   tool,
   SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
 } from '@anthropic-ai/claude-agent-sdk'
+
+export type {
+  Options,
+  Query,
+  SDKMessage,
+  CanUseTool,
+  EffortLevel,
+  HookEvent,
+  HookCallbackMatcher,
+  HookJSONOutput,
+  PermissionMode,
+  PermissionResult,
+  McpServerConfig,
+} from '@anthropic-ai/claude-agent-sdk'

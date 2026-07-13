@@ -140,6 +140,14 @@ describe('@percena/weft-node publish contract', () => {
     }
   })
 
+  test('Codex-only declarations do not require the optional Claude SDK', () => {
+    for (const file of ['runtime.d.ts', 'providers-codex.d.ts', 'providers-flitro.d.ts']) {
+      const declaration = readFileSync(desktopDistPath(file), 'utf8')
+      expect(declaration).not.toContain("from '@anthropic-ai/claude-agent-sdk'")
+      expect(declaration).not.toContain("from \"@anthropic-ai/claude-agent-sdk\"")
+    }
+  })
+
   test('no @percena transitive dependencies in desktop package', () => {
     const deps = Object.keys(desktopPackageJson().dependencies ?? {})
     const percenaDeps = deps.filter(d => d.startsWith('@percena/'))

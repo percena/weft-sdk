@@ -1,18 +1,5 @@
 import type { ClaudeProviderRuntimeDriver, ProviderRuntimeDriverInput } from './index'
 import type {
-  Options,
-  Query,
-  SDKMessage,
-  CanUseTool,
-  EffortLevel,
-  HookEvent,
-  HookCallbackMatcher,
-  HookJSONOutput,
-  PermissionMode as SdkPermissionMode,
-  PermissionResult,
-  McpServerConfig as SdkMcpServerConfig,
-} from '@anthropic-ai/claude-agent-sdk'
-import type {
   PermissionMode,
   PermissionResponseDetail,
   ProviderSourceToolDescriptor,
@@ -29,16 +16,54 @@ import type {
   TimelineSequencer,
 } from '@weft/timeline'
 
-type ClaudeSdkPermissionMode = SdkPermissionMode
-
-/** The `options` arg the SDK passes to `canUseTool`. Extracted from the
- * `CanUseTool` signature so it tracks the SDK (no named export exists). */
-type ClaudeSdkCanUseToolContext = Parameters<CanUseTool>[2]
+/** SDK-independent structural contracts keep the normal provider entry usable
+ * when the optional Claude Agent SDK is absent. The explicit `claude/sdk`
+ * subpath exposes the upstream SDK's precise helper types. */
+interface Options {
+  [key: string]: unknown
+  permissionMode?: string
+  allowDangerouslySkipPermissions?: boolean
+  hooks?: Partial<Record<string, HookCallbackMatcher[]>>
+  thinking?: unknown
+  outputFormat?: unknown
+}
+type Query = AsyncIterable<unknown> & Record<string, any>
+type SDKMessage = unknown
+type ClaudeSdkPermissionMode = string
+type EffortLevel = string
+type HookEvent = string
+interface HookCallbackMatcher {
+  matcher?: string
+  hooks: Array<(input: unknown, toolUseId?: string) => Promise<HookJSONOutput>>
+}
+interface HookJSONOutput {
+  continue: boolean
+  hookSpecificOutput?: Record<string, unknown>
+}
+interface PermissionResult {
+  [key: string]: unknown
+  behavior: 'allow' | 'deny'
+  toolUseID?: string
+  message?: string
+  updatedInput?: Record<string, unknown>
+}
+interface ClaudeSdkCanUseToolContext {
+  toolUseID?: string
+  title?: string
+  displayName?: string
+  description?: string
+  decisionReason?: string
+  agentID?: string
+  blockedPath?: string
+  suggestions?: unknown
+  signal?: AbortSignal
+}
+type SdkMcpServerConfig = Record<string, unknown>
 
 /**
  * Control methods on the SDK `Query` object that weft exposes to the host.
  * Optional so test fakes only implement what they exercise — the real SDK
- * `Query` (`sdk.d.ts:2162`) satisfies this in full.
+ * provider `Query` satisfies this in full.
  *
  * B6 note: several SDK docstrings say these are "only available in streaming
  * input mode". weft sends string prompts (single-prompt mode); on the pinned
@@ -80,7 +105,7 @@ type ClaudeSdkQueryControl = Partial<
 
 /**
  * The handle returned by `query()`. The SDK's `Query extends
- * AsyncGenerator<SDKMessage, void>` and also carries the control methods
+ * AsyncGenerator-like stream and also carries the control methods
  * above; we keep them optional so injected fakes stay lightweight.
  */
 export type ClaudeSdkQuery = AsyncIterable<SDKMessage> & ClaudeSdkQueryControl
@@ -148,7 +173,7 @@ export type ClaudeSdkQueryRunner = (params: ClaudeSdkQueryParams) => ClaudeSdkQu
  * they are derived from weft's own config and per-turn input, and would be
  * overwritten by the driver). Everything else in {@link Options} is passed
  * through verbatim from `sdkOptions`, keeping weft aligned with the SDK as it
- * evolves (baseline: @anthropic-ai/claude-agent-sdk v0.3.159).
+ * evolves. It is intentionally structural so the SDK remains optional.
  */
 export type ClaudeSdkPassthroughOptions = Options
 
@@ -340,7 +365,7 @@ class ClaudeNativeSdkDriver implements ClaudeProviderRuntimeDriver {
       ...(perTurn?.maxBudgetUsd !== undefined ? { maxBudgetUsd: perTurn.maxBudgetUsd } : {}),
       ...resumeOptions,
       ...this.buildHooks(sequencer),
-      canUseTool: (toolName, toolInput, context) =>
+      canUseTool: (toolName: string, toolInput: Record<string, unknown>, context: ClaudeSdkCanUseToolContext) =>
         this.handleCanUseTool(toolName, toolInput, context, sequencer),
     }
   }
@@ -1172,4 +1197,3 @@ function normalizeToolResult(content: unknown): unknown {
     return record.type === 'text' ? stringValue(record.text) ?? '' : record
   }).join('\n')
 }
-

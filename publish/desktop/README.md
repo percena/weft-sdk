@@ -29,9 +29,9 @@ npm install @percena/weft-node react react-dom
 
 Install `@anthropic-ai/claude-agent-sdk@^0.3.207` only when using the native
 Claude runtime or `@percena/weft-node/providers/claude/sdk`; Codex-only hosts
-and Claude CLI fallback do not require it. `@openai/codex-sdk@^0.144.2` is an
-optional compatibility baseline; the callback-capable runtime uses Codex
-app-server directly.
+and Claude CLI fallback do not require it. The callback-capable Codex runtime
+uses Codex app-server directly; its SDK version is verified in this repository,
+not imposed on package consumers.
 
 ## Entry points
 

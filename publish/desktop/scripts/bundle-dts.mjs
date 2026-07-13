@@ -51,7 +51,9 @@ function readPkgAllDts(pkgName) {
   const dir = PKG_DIR[`@weft/${parts[0]}`];
   if (!dir) return null;
   const distDir = path.join(PKGS, dir, 'dist');
-  const files = findDts(distDir);
+  const subpath = parts.slice(1).join('/');
+  const entry = path.join(distDir, `${subpath || 'index'}.d.ts`);
+  const files = subpath && fs.existsSync(entry) ? [entry] : findDts(distDir);
   if (files.length === 0) return null;
 
   const dtsBlocks = [];

@@ -14,16 +14,6 @@ import type {
   LoadedSource,
   SourceStateSnapshot,
 } from '@weft/sources'
-import type {
-  RuntimeCandidate,
-} from '@weft/runtime-core'
-
-/**
- * Inline app-server candidate, replacing the deleted `createFlitroRuntimeCandidates`
- * factory (Phase 3/4 removed it; the runtime now takes the candidate array
- * directly). Describes an available Flitro app-server runtime.
- */
-const appServerCandidates: RuntimeCandidate[] = [{ kind: 'app-server', available: true }]
 
 describe('Runtime factory — host composition', () => {
   test('builds Claude runtime from source registry state and provider-owned auth', async () => {
@@ -208,36 +198,6 @@ describe('Runtime factory — host composition', () => {
     await waitFor(() => noPolicyCanUseToolResults.length > 0)
     expect(noPolicyCanUseToolResults[0]?.behavior).toBe('allow')
   })
-
-  test('builds Flitro app-server runtime as a first-class provider', async () => {    const result = createHostAgentRuntime({
-      provider: 'flitro',
-      cwd: '/tmp/project',
-      sessionId: 'flitro-host-session',
-      candidates: appServerCandidates,
-      auth: { mode: 'provider-owned', configured: true, source: 'test' },
-      flitro: {
-        server: { baseUrl: 'http://127.0.0.1:8080', apiKey: 'secret-value' },
-        model: 'openai/gpt-5.4',
-        skillNames: ['review'],
-        mcpServerNames: ['linear'],
-        permissionMode: 'ask',
-      },
-    })
-
-    const report = await result.runtime.preflight()
-
-    expect(result.runtime.provider).toBe('flitro')
-    expect(result.runtime.runtimeKind).toBe('app-server')
-    expect(report).toMatchObject({
-      provider: 'flitro',
-      selected: 'app-server',
-      auth: {
-        configured: true,
-        source: 'test',
-      },
-    })
-  })
-
 })
 
 function loadedSource(config: {

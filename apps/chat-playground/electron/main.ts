@@ -70,6 +70,21 @@ function createWindow(): void {
   } else {
     void mainWindow.loadFile(join(__dirname, '..', 'renderer', 'index.html'))
   }
+
+  // Tear down every live runtime when the window closes so no provider
+  // subprocess or in-flight turn keeps running unobserved. On macOS the app
+  // stays resident after the last window closes (window-all-closed keeps it
+  // alive on darwin), so without this the runtime + subprocess would leak —
+  // silently consuming provider API credit with no live UI — until an
+  // explicit quit fires before-quit. disconnect() never touches the window
+  // (only runtime.events/commands), and every events.connect callback guards
+  // on mainWindow.isDestroyed(), so teardown is race-free against the stream.
+  mainWindow.on('closed', () => {
+    mainWindow = null
+    for (const id of [...runtimes.keys()]) {
+      void disconnect(id)
+    }
+  })
 }
 
 function resolveProviderOptions(options: StartSessionOptions) {

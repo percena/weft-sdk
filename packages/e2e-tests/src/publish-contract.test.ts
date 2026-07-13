@@ -196,6 +196,27 @@ describe('@percena/weft-node publish contract', () => {
     expect(root.selectRuntimeCandidate).toBeUndefined()
   })
 
+  test('desktop runtime entry is local-only — no flitro surface leaks through ./runtime', async () => {
+    // §5/§9: @percena/weft-node is local-only (claude + codex). The remote
+    // weftd-client (flitro) runtime must not leak through ./runtime any more
+    // than through the removed ./providers/flitro subpath. Guards the
+    // HostRuntimeProvider union, the options type, and the built symbol
+    // namespace against the flitro branch regressing back into the factory.
+    const dts = readFileSync(desktopDistPath('runtime.d.ts'), 'utf8')
+    expect(dts).not.toContain('HostRuntimeFlitroOptions')
+    expect(dts).not.toContain('flitro?: HostRuntimeFlitroOptions')
+    expect(dts).not.toMatch(/HostRuntimeProvider\s*=\s*[^;]*flitro/)
+
+    const runtime = await import(pathToFileURL(desktopDistPath('runtime.js')).href)
+    expect(typeof runtime.createHostAgentRuntime).toBe('function')
+    expect(typeof runtime.detectRuntimeCandidates).toBe('function')
+    expect(typeof runtime.readClaudeAuth).toBe('function')
+    expect(typeof runtime.readCodexAuth).toBe('function')
+    // The flitro provider/remote-client runtimes must not be re-exported here.
+    expect(runtime.createFlitroProviderRuntime).toBeUndefined()
+    expect(runtime.createFlitroEmbedRuntime).toBeUndefined()
+  })
+
   test('desktop root .d.ts exports the shared timeline types', () => {
     const dts = readFileSync(desktopDistPath('index.d.ts'), 'utf8')
     expect(dts).toContain('PermissionMode')

@@ -315,6 +315,9 @@ importers:
 
   packages/e2e-tests:
     dependencies:
+      '@percena/weft-node':
+        specifier: workspace:*
+        version: link:../../publish/desktop
       '@weft/adapter':
         specifier: workspace:*
         version: link:../adapter

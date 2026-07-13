@@ -3,8 +3,12 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { createHostAgentRuntime, detectRuntimeCandidates } from '@weft/providers/factory'
-import type { TimelineEnvelope } from '@weft/timeline'
+// Import from the published `@percena/weft-node/runtime` entry (not the
+// workspace `@weft/providers/factory` source) so the smoke also fails fast if
+// the published re-export surface breaks — mirroring the exact import path the
+// chat-playground Electron main process uses.
+import { createHostAgentRuntime, detectRuntimeCandidates } from '@percena/weft-node/runtime'
+import type { TimelineEnvelope } from '@percena/weft-node'
 
 /**
  * Desktop demo smoke (Stack-B local path). Drives the same

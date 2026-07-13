@@ -140,8 +140,12 @@ describe('@percena/weft-node publish contract', () => {
     }
   })
 
-  test('Codex-only declarations do not require the optional Claude SDK', () => {
-    for (const file of ['runtime.d.ts', 'providers-codex.d.ts', 'providers-flitro.d.ts']) {
+  test('SDK-free entries do not require the optional Claude SDK', () => {
+    // providers-claude.d.ts is the normal Claude provider entry; it must stay
+    // SDK-import-free so Codex-only and CLI-fallback hosts load without the
+    // optional peer. Only the explicit ./providers/claude/sdk subpath may
+    // reference @anthropic-ai/claude-agent-sdk.
+    for (const file of ['runtime.d.ts', 'providers-codex.d.ts', 'providers-flitro.d.ts', 'providers-claude.d.ts']) {
       const declaration = readFileSync(desktopDistPath(file), 'utf8')
       expect(declaration).not.toContain("from '@anthropic-ai/claude-agent-sdk'")
       expect(declaration).not.toContain("from \"@anthropic-ai/claude-agent-sdk\"")

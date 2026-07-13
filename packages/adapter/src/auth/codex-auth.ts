@@ -120,13 +120,11 @@ export async function readCodexAuth(
     };
   }
 
-  // Handle async spawn errors (e.g. ENOENT for missing binary)
-  const spawnError = new Promise<never>((_, reject) => {
-    proc!.on('error', (err: Error) => {
-      reject(new Error(`Codex auth detection failed: ${err.message}. ` +
-        "Ensure `codex` is on PATH or set WEFT_CODEX_EXECUTABLE."));
-    });
-  });
+  // app-server diagnostics are written to stderr. Drain the stream even when
+  // diagnostics are not surfaced, otherwise a verbose child can block once its
+  // stderr pipe fills and leave auth detection waiting until the request
+  // timeout. Mirrors the app-server subprocess transport.
+  proc.stderr?.resume();
 
   try {
     const rl = createInterface({ input: proc.stdout!, crlfDelay: Infinity });
@@ -145,6 +143,19 @@ export async function readCodexAuth(
       pendingResponses.clear();
     };
 
+    // Surface async spawn errors (e.g. ENOENT for a missing binary) and
+    // unexpected process exit by rejecting any in-flight request and clearing
+    // its timer, so the request promise settles promptly instead of waiting
+    // for the timeout. Intentional kills after the handshake find the pending
+    // map empty and no-op.
+    proc.on('error', (err: Error) => {
+      rejectPending(new Error(`Codex auth detection failed: ${err.message}. ` +
+        "Ensure `codex` is on PATH or set WEFT_CODEX_EXECUTABLE."));
+    });
+    proc.once('exit', () => {
+      rejectPending(new Error('Codex app-server subprocess exited unexpectedly'));
+    });
+
     rl.on('line', (line: string) => {
       const trimmed = line.trim();
       if (!trimmed) return;
@@ -157,7 +168,8 @@ export async function readCodexAuth(
         clearTimeout(pending.timer);
         pending.resolve(response);
       } catch {
-        rejectPending(new Error(`Invalid JSON-RPC response: ${trimmed}`));
+        // Ignore non-JSON stdout lines; app-server diagnostics go to stderr
+        // and only JSON-RPC responses with a numeric id resolve pending work.
       }
     });
 
@@ -176,7 +188,7 @@ export async function readCodexAuth(
         pendingResponses.set(message.id, { resolve, reject, timer });
       });
       writeMsg(message);
-      return Promise.race([response, spawnError]);
+      return response;
     };
 
     // Step 1: initialize (no protocolVersion — app-server handshake uses only

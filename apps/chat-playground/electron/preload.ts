@@ -16,6 +16,8 @@ import {
   type AbortOptions,
   type DisconnectOptions,
   type FsBrowseResult,
+  type ListModelsResult,
+  type LocalProvider,
   type EnvelopeEvent,
   type StreamEndEvent,
   type CapabilityEvent,
@@ -34,6 +36,8 @@ const weftDesktop: WeftDesktopApi = {
     ipcRenderer.invoke(IPC.DISCONNECT, options) as Promise<void>,
   fsBrowse: (path?: string) =>
     ipcRenderer.invoke(IPC.FS_BROWSE, path) as Promise<FsBrowseResult>,
+  listModels: (provider: LocalProvider) =>
+    ipcRenderer.invoke(IPC.LIST_MODELS, provider) as Promise<ListModelsResult>,
 
   onEnvelope: (handler: (event: EnvelopeEvent) => void) =>
     subscribe(IPC.ENVELOPE, handler),

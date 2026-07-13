@@ -23,7 +23,6 @@ import { getDesktopApi } from '../shared/ipc-contract'
 import {
   AVAILABLE_LIVE_SOURCES,
   LIVE_FRAMEWORK_OPTIONS,
-  MODEL_OPTIONS,
   getReasoningEffortOptions,
   appendLiveTimeline,
   buildSessionStateFromTimeline,
@@ -689,6 +688,7 @@ function LiveComposer({
   connected,
   reconnecting,
   session,
+  modelOptions,
   onInputChange,
   onSend,
   onConnect,
@@ -701,9 +701,11 @@ function LiveComposer({
   connected: boolean
   reconnecting: boolean
   session: LiveSessionRecord
+  /** Discovered model ids for the active provider (empty = nothing discoverable, turns send no model). */
+  modelOptions: string[]
   onInputChange: (value: string) => void
   onSend: () => void
-  onConnect: () => void
+  onConnect: (pendingMessage?: string) => void
   onConfigChange: (patch: Partial<LiveSessionRecord['config']>) => void
   onAddAttachments: (paths: string[]) => void
   onRemoveAttachment: (attachmentId: string) => void
@@ -713,7 +715,15 @@ function LiveComposer({
   const [showPermissionMenu, setShowPermissionMenu] = useState(false)
   const [filePickerMode, setFilePickerMode] = useState<FilePickerMode | null>(null)
   const canSend = connected && input.trim().length > 0
-  const providerModels = MODEL_OPTIONS[session.config.provider]
+  // Active model first (the one the user is currently using), then the rest
+  // alphabetically so the picker defaults to the in-use model and remaining
+  // choices are easy to scan. No generic "Default" entry — the active model
+  // IS the default and is sent explicitly (it always works against the gateway).
+  const providerModels = useMemo(() => {
+    const active = session.config.model
+    const rest = modelOptions.filter(model => model !== active).sort((a, b) => a.localeCompare(b))
+    return active ? [active, ...rest] : rest
+  }, [modelOptions, session.config.model])
   const effortOptions = getReasoningEffortOptions(session.config.provider)
   const permission = getPermissionOption(session.config.permissionMode)
   const selectedSources = AVAILABLE_LIVE_SOURCES.filter(source =>
@@ -726,13 +736,14 @@ function LiveComposer({
       : `${selectedSources.length} Sources`
 
   const setProvider = (provider: LiveProvider) => {
-    const effortStillValid = session.config.reasoningEffort
-      ? getReasoningEffortOptions(provider).some(option => option.effort === session.config.reasoningEffort)
-      : true
+    // Switching provider resets model + effort; the listModels discovery effect
+    // (App.tsx) refills both with the new provider's currently-active model
+    // and effort (ANTHROPIC_MODEL/CLAUDE_CODE_EFFORT_LEVEL or codex config
+    // equivalents), rather than carrying over the previous provider's values.
     onConfigChange({
       provider,
-      model: MODEL_OPTIONS[provider][0],
-      reasoningEffort: effortStillValid ? session.config.reasoningEffort : undefined,
+      model: '',
+      reasoningEffort: undefined,
     })
   }
 
@@ -767,7 +778,7 @@ function LiveComposer({
           onSubmit={(event) => {
             event.preventDefault()
             if (connected) onSend()
-            else onConnect()
+            else onConnect(input.trim() || undefined)
           }}
           className="relative"
         >
@@ -935,6 +946,10 @@ function LiveComposer({
                   onChange={(event) => onConfigChange({ model: event.target.value })}
                   className="h-8 max-w-[168px] appearance-none rounded-[7px] bg-transparent pl-2 pr-6 text-[12px] text-foreground outline-none"
                 >
+                  {/* Active model first, then the rest alphabetically (see
+                      providerModels). The selected value is the user's current
+                      model — sent explicitly, which always works against the
+                      compatible endpoint. */}
                   {providerModels.map(model => (
                     <option key={model} value={model}>{model}</option>
                   ))}
@@ -1017,7 +1032,7 @@ export default function App() {
       ...session,
       config: {
         ...session.config,
-        ...(provider === 'claude' || provider === 'codex' ? { provider, model: MODEL_OPTIONS[provider][0] } : {}),
+        ...(provider === 'claude' || provider === 'codex' ? { provider, model: '' } : {}),
         ...(cwd ? { cwd } : {}),
       },
     }))
@@ -1029,6 +1044,7 @@ export default function App() {
   const [_liveHasGap, setLiveHasGap] = useState(false)
   const [liveError, setLiveError] = useState<string | null>(null)
   const [liveInput, setLiveInput] = useState('')
+  const [liveModelOptions, setLiveModelOptions] = useState<Record<LiveProvider, string[]>>({ claude: [], codex: [] })
   const runtimeClientRef = useRef<RuntimeClient | null>(null)
   const activeLiveSessionRef = useRef<LiveSessionRecord | null>(null)
 
@@ -1043,6 +1059,56 @@ export default function App() {
   useEffect(() => {
     activeLiveSessionRef.current = activeLiveSession ?? null
   }, [activeLiveSession])
+
+  // Discover the real model list for the active provider's compatible API
+  // endpoint (the playground hardcodes no model ids — see electron/main.ts
+  // listModels). Refetched whenever the live session's provider changes.
+  useEffect(() => {
+    if (mode !== 'live' || !activeLiveSession) return
+    const provider = activeLiveSession.config.provider
+    let cancelled = false
+    void (async () => {
+      const api = getDesktopApi()
+      if (!api) return
+      try {
+        const result = await api.listModels(provider)
+        if (cancelled) return
+        setLiveModelOptions(prev => ({ ...prev, [provider]: result.models }))
+        // Default the picker to the user's currently-active model + effort
+        // rather than a generic "Default". On first load (model/effort unset)
+        // or when a stale persisted model id isn't in the endpoint's real list,
+        // fall back to the provider's active default (ANTHROPIC_MODEL /
+        // config.toml `model` / CLAUDE_CODE_EFFORT_LEVEL / config effort).
+        const current = activeLiveSessionRef.current
+        if (!current || current.config.provider !== provider) return
+        const currentModel = current.config.model ?? ''
+        const modelInvalid = !currentModel || !result.models.includes(currentModel)
+        const wantModel = modelInvalid
+          ? (result.defaultModel && result.models.includes(result.defaultModel)
+            ? result.defaultModel
+            : (result.models[0] ?? ''))
+          : currentModel
+        const currentEffort = current.config.reasoningEffort
+        const wantEffort = (currentEffort == null && result.defaultEffort
+          && getReasoningEffortOptions(provider).some(option => option.effort === result.defaultEffort))
+          ? (result.defaultEffort as ReasoningEffort)
+          : currentEffort
+        if (wantModel !== currentModel || wantEffort !== currentEffort) {
+          setLiveStore(prev => updateLiveSession(prev, current.id, session => ({
+            ...session,
+            config: {
+              ...session.config,
+              model: wantModel,
+              ...(wantEffort != null ? { reasoningEffort: wantEffort } : {}),
+            },
+          })))
+        }
+      } catch {
+        // discovery failed — picker stays empty; turns still send the model
+      }
+    })()
+    return () => { cancelled = true }
+  }, [mode, activeLiveSession?.config.provider])
 
   useEffect(() => {
     if (!activeLiveSession) return
@@ -1144,7 +1210,7 @@ export default function App() {
     }))
   }, [patchActiveLiveSession])
 
-  const startLocalAgent = useCallback(() => {
+  const startLocalAgent = useCallback((pendingMessage?: string) => {
     const session = activeLiveSessionRef.current
     if (!session) return
     runtimeClientRef.current?.disconnect()
@@ -1183,18 +1249,41 @@ export default function App() {
       permissionMode: session.config.permissionMode,
       sourceSlugs: session.config.selectedSourceSlugs,
       attachments: session.config.attachments.map(({ path, name }) => ({ path, name })),
-    }).catch((err: Error) => {
-      runtimeClientRef.current = null
-      setLiveConnected(false)
-      setLiveReconnecting(false)
-      setLiveError(err.message)
-      setLiveStore(prev => updateLiveSession(prev, localSessionId, current => ({
-        ...current,
-        status: 'error',
-        lastError: err.message,
-        updatedAt: Date.now(),
-      })))
     })
+      .then(async () => {
+        // The form submit when not connected passes the already-typed message
+        // through so the user's first ↑ click both connects AND sends — without
+        // this, the typed text would be silently dropped (the agent would show
+        // "connected" with no turn, looking like Live mode is broken).
+        if (!pendingMessage) return
+        setLiveInput('')
+        setLiveStore(prev => updateLiveSession(prev, localSessionId, current => ({
+          ...current,
+          status: 'running',
+          lastError: undefined,
+          updatedAt: Date.now(),
+        })))
+        await client.sendMessage(pendingMessage, {
+          model: session.config.model,
+          reasoningEffort: session.config.reasoningEffort,
+          permissionMode: session.config.permissionMode,
+          cwd: session.config.cwd,
+          sourceSlugs: session.config.selectedSourceSlugs,
+          attachments: session.config.attachments.map(({ path, name }) => ({ path, name })),
+        })
+      })
+      .catch((err: Error) => {
+        runtimeClientRef.current = null
+        setLiveConnected(false)
+        setLiveReconnecting(false)
+        setLiveError(err.message)
+        setLiveStore(prev => updateLiveSession(prev, localSessionId, current => ({
+          ...current,
+          status: 'error',
+          lastError: err.message,
+          updatedAt: Date.now(),
+        })))
+      })
   }, [patchActiveLiveSession])
 
   const disconnectLocalAgent = useCallback(() => {
@@ -1379,7 +1468,7 @@ export default function App() {
                   ) : (
                       <button
                         type="button"
-                        onClick={startLocalAgent}
+                        onClick={() => startLocalAgent()}
                         className="rounded-[7px] bg-accent px-3 py-2 text-[13px] font-medium text-background shadow-minimal transition hover:opacity-90"
                       >
                         Connect
@@ -1438,6 +1527,7 @@ export default function App() {
               connected={liveConnected}
               reconnecting={liveReconnecting}
               session={activeLiveSession}
+              modelOptions={liveModelOptions[activeLiveSession.config.provider]}
               onInputChange={setLiveInput}
               onSend={sendLiveMessage}
               onConnect={startLocalAgent}

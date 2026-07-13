@@ -12,6 +12,7 @@ export const IPC = {
   RESPOND_PERMISSION: 'desktop:respondToPermission',
   DISCONNECT: 'desktop:disconnect',
   FS_BROWSE: 'desktop:fsBrowse',
+  LIST_MODELS: 'desktop:listModels',
   // Main → renderer (send, one-way events)
   ENVELOPE: 'desktop:envelope',
   CAPABILITY: 'desktop:capability',
@@ -79,6 +80,33 @@ export interface FsBrowseResult {
   reason?: string
 }
 
+/**
+ * Discovered model list for a provider's compatible API endpoint.
+ *
+ * The playground does NOT hardcode model ids — a compatible Anthropic/OpenAI
+ * endpoint may serve any model (e.g. glm-5.2, deepseek-v4-flash, qwen3-max).
+ * The main process discovers the real list and returns it here so the renderer
+ * can populate the model picker. `source` is where the list came from:
+ *  - 'gateway': GET {base_url}/v1/models on the endpoint succeeded
+ *  - 'env':     read from ANTHROPIC_* / codex config env vars (gateway has no /v1/models)
+ *  - 'config':  read from ~/.codex/config.toml
+ *  - 'none':    nothing discoverable; the picker stays empty and turns send no
+ *    model (the SDK uses its own default)
+ *
+ * `defaultModel` is the provider's own default (e.g. ANTHROPIC_MODEL or the
+ * codex config.toml `model`), surfaced so the picker can default to the model
+ * the user is currently using rather than a generic "Default" entry.
+ * `defaultEffort` is the provider's active reasoning effort (e.g.
+ * CLAUDE_CODE_EFFORT_LEVEL or codex config.toml `model_reasoning_effort`),
+ * surfaced so the effort picker can likewise default to the active value.
+ */
+export interface ListModelsResult {
+  models: string[]
+  source: 'gateway' | 'env' | 'config' | 'none'
+  defaultModel?: string
+  defaultEffort?: string
+}
+
 export interface EnvelopeEvent {
   sessionId: string
   envelope: unknown
@@ -107,6 +135,7 @@ export interface WeftDesktopApi {
   respondToPermission(options: RespondPermissionOptions): Promise<void>
   disconnect(options: DisconnectOptions): Promise<void>
   fsBrowse(path?: string): Promise<FsBrowseResult>
+  listModels(provider: LocalProvider): Promise<ListModelsResult>
   onEnvelope(handler: (event: EnvelopeEvent) => void): () => void
   onCapability(handler: (event: CapabilityEvent) => void): () => void
   onStreamError(handler: (event: StreamEndEvent) => void): () => void

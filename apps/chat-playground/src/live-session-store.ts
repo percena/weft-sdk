@@ -60,11 +60,13 @@ export const AVAILABLE_LIVE_SOURCES: LiveSource[] = [
   { slug: 'automation-events', name: 'Automation Events', description: 'Include scheduler, webhook, and automation timeline context.' },
 ]
 
-export const MODEL_OPTIONS: Record<LiveProvider, string[]> = {
-  codex: ['gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini'],
-  claude: ['claude-sonnet-4-6', 'claude-opus-4-8', 'claude-haiku-4-5-20251001'],
-}
-
+/**
+ * Model ids are NOT hardcoded: a compatible Anthropic/OpenAI endpoint serves
+ * whatever the gateway exposes (e.g. glm-5.2, deepseek-v4-flash, qwen3-max),
+ * not the official catalog. The picker is populated at runtime by
+ * `window.weftDesktop.listModels(provider)` (see electron/main.ts); an empty
+ * model string means "send no model — let the SDK use its configured default".
+ */
 export const REASONING_EFFORT_OPTIONS: Record<LiveProvider, Array<{ effort: ReasoningEffort; label: string }>> = {
   codex: [
     { effort: 'low', label: 'Low' },
@@ -96,7 +98,10 @@ export function getReasoningEffortOptions(provider: LiveProvider): Array<{ effor
 
 export function defaultLiveSessionConfig(overrides: Partial<LiveSessionConfig> = {}): LiveSessionConfig {
   const provider = overrides.provider ?? 'codex'
-  const model = overrides.model ?? MODEL_OPTIONS[provider][0]
+  // model/effort start empty and are filled by the listModels discovery effect
+  // (App.tsx) with the user's currently-active model/effort for this provider's
+  // compatible endpoint. Empty here just means "not yet discovered".
+  const model = overrides.model ?? ''
   const allowedEfforts = new Set(REASONING_EFFORT_OPTIONS[provider].map(option => option.effort))
   return {
     provider,

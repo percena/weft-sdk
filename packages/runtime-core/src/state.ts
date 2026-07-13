@@ -98,7 +98,7 @@ export function reduceRuntimeState(
       // UX is preserved while the reducer stays guarded. This does NOT affect
       // the X-C `replay_reconcile` path (a separate action that sets status
       // unconditionally) — `send_message` is never dispatched in replay mode.
-      if (state.status === 'running' || state.status === 'waiting_for_permission') {
+      if (state.status === 'running' || state.status === 'waiting_for_permission' || state.status === 'turn_completed') {
         return {
           ...state,
           queuedMessages: [...state.queuedMessages, action.message],

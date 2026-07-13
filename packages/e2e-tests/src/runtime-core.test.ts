@@ -594,7 +594,28 @@ describe('Runtime Core — state machine reducer', () => {
     expect(drained.queuedMessages).toEqual([])
   })
 
-  // session contract: send_message must not silently resurrect a terminal state.
+  // PI-1: a send arriving during the turn_completed transient must PARK in
+  // queuedMessages, not start a fresh turn. Pre-fix it hit the else-branch
+  // (acceptedMessages + status:running), leaving queuedMessages empty so the
+  // following `complete` transitioned to `ready` and the drained send ran with
+  // state=ready — a third send then bypassed the queue and raced the in-flight
+  // turn. The complete→turn_completed drain path is what makes parking correct.
+  test('send_message from turn_completed parks in queuedMessages (PI-1)', () => {
+    const running = reduceRuntimeState(undefined, { type: 'send_message', message: 'first' })
+    const turnCompleted = reduceRuntimeState(running, { type: 'turn_completed' })
+    const parked = reduceRuntimeState(turnCompleted, { type: 'send_message', message: 'second' })
+    // Parks; status stays turn_completed (not promoted to running).
+    expect(parked.status).toBe('turn_completed')
+    expect(parked.queuedMessages).toEqual(['second'])
+    expect(parked.acceptedMessages).toEqual(['first'])
+    // The following complete drains the parked message → running (not ready).
+    const drained = reduceRuntimeState(parked, { type: 'complete' })
+    expect(drained.status).toBe('running')
+    expect(drained.acceptedMessages).toEqual(['first', 'second'])
+    expect(drained.queuedMessages).toEqual([])
+  })
+
+
   test('send_message from failed is a no-op (session contract: no resurrection)', () => {
     const failed = reduceRuntimeState(undefined, { type: 'error', error: 'crashed' })
     expect(failed.status).toBe('failed')

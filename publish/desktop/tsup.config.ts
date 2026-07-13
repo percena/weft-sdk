@@ -7,7 +7,6 @@ export default defineConfig({
     'providers-claude': 'src/providers-claude.ts',
     'providers-claude-sdk': 'src/providers-claude-sdk.ts',
     'providers-codex': 'src/providers-codex.ts',
-    'providers-flitro': 'src/providers-flitro.ts',
     'runtime': 'src/runtime.ts',
     'cli-runtime': 'src/cli-runtime.ts',
     'skills': 'src/skills.ts',

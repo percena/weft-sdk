@@ -1,11 +1,12 @@
 /**
- * weft — Agentic Chat SDK root entry.
+ * weft-node — local Coding Agent SDK root entry.
  *
- * Exports the Tenant-facing integration surface: runtime types, hosted-mode
- * React hooks and components, timeline event types, and i18n fallback.
+ * Exports the shared integration surface: runtime/timeline types, React chat
+ * hooks and components, and i18n fallback. Symmetric with `@percena/weft`'s
+ * root entry so consumers can migrate by changing only the package specifier.
  *
- * For the full chat UI: import from '@percena/weft/chat'.
- * For headless (no React): import from '@percena/weft/providers/flitro'.
+ * For the full chat UI: import from '@percena/weft-node/chat'.
+ * For the local headless runtime: import from '@percena/weft-node/runtime'.
  */
 
 // --- Runtime + timeline types (centralized in runtime-types.ts) ---
@@ -14,6 +15,5 @@ export * from './runtime-types.ts'
 // --- Hosted-mode React integration (bundled from workspace package) ---
 export { useAgentSession } from '@weft/chat'
 export type { UseAgentSessionOptions, AgentSession } from '@weft/chat'
-export { createFlitroEmbedRuntime, type CreateFlitroEmbedRuntimeOptions } from '@weft/providers/flitro'
 export { TimelineAgentChatPanel, AgentChatPanel, useTimelineAgentChatSession, useAgentChatSession } from '@weft/chat'
 export { EN_FALLBACK } from '@weft/ui/lib/en-fallback'

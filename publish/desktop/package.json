@@ -33,10 +33,6 @@
       "types": "./dist/providers-codex.d.ts",
       "default": "./dist/providers-codex.js"
     },
-    "./providers/flitro": {
-      "types": "./dist/providers-flitro.d.ts",
-      "default": "./dist/providers-flitro.js"
-    },
     "./runtime": {
       "types": "./dist/runtime.d.ts",
       "default": "./dist/runtime.js"

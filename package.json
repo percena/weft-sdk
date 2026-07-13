@@ -34,15 +34,15 @@
     "build:canary": "pnpm run --filter '@weft/browser-canary' build"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.2",
+    "@biomejs/biome": "^2.5.3",
     "@changesets/cli": "^2.31.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "tsup": "^8.5.1",
-    "tsx": "^4.19.0",
+    "tsx": "^4.23.0",
     "typescript": "^6.0.3",
-    "vitest": "^3.2.6"
+    "vitest": "^4.1.10"
   },
   "engines": {
     "node": ">=22"

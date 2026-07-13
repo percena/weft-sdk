@@ -2032,8 +2032,12 @@ process.stdin.on('data', chunk => {
     const deltas = timeline.items.filter(item => item.item.type === 'tool_output_delta')
     expect(deltas).toHaveLength(2)
     expect(deltas[0]?.item).toMatchObject({ type: 'tool_output_delta', callId: 'mcp-p', text: 'downloading 50%' })
-    expect(deltas[1]?.item).toMatchObject({ type: 'tool_output_delta', callId: 'mcp-p' })
-    expect(String((deltas[1]?.item as { text: string }).text)).toContain('path')
+    const completedDelta = deltas[1]
+    expect(completedDelta?.item).toMatchObject({ type: 'tool_output_delta', callId: 'mcp-p' })
+    if (completedDelta?.item.type !== 'tool_output_delta') {
+      throw new Error('Expected a completed tool output delta')
+    }
+    expect(String(completedDelta.item.text)).toContain('path')
   })
 
   test('Codex app-server driver stops tracking an aborted turn once its turn/completed arrives', async () => {

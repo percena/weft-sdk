@@ -13,6 +13,8 @@ export type {
   SendMessageOptions,
 } from '@weft/runtime-core'
 
+export type { PermissionMode } from '@weft/core'
+
 export type {
   TimelineEnvelope,
   TimelineItem,

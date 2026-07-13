@@ -21,10 +21,6 @@ import {
   type CodexAppServerClient,
   type CreateCodexAppServerSubprocessClientOptions,
 } from '../codex/index.ts'
-import {
-  createFlitroProviderRuntime,
-  type WeftHttpClientOptions,
-} from '../flitro/index.ts'
 
 export {
   detectRuntimeCandidates,
@@ -32,7 +28,12 @@ export {
   type DetectedRuntimeCandidates,
 } from './detect.ts'
 
-export type HostRuntimeProvider = 'claude' | 'codex' | 'flitro'
+// Local-only: the host runtime drives Claude and Codex in-process / as
+// subprocesses. Flitro (the remote weftd client) is intentionally NOT a host
+// provider here — it ships only in `@percena/weft`'s `./providers/flitro`
+// entry. Keeping the union narrow prevents the remote-client runtime from
+// leaking into `@percena/weft-node/runtime` (local-only package).
+export type HostRuntimeProvider = 'claude' | 'codex'
 
 export interface HostRuntimeClaudeOptions {
   model?: string
@@ -62,14 +63,6 @@ export interface HostRuntimeCodexOptions {
   appServerSubprocess?: CreateCodexAppServerSubprocessClientOptions
 }
 
-export interface HostRuntimeFlitroOptions {
-  server: WeftHttpClientOptions
-  model?: string
-  skillNames?: string[]
-  mcpServerNames?: string[]
-  permissionMode?: PermissionMode
-}
-
 export interface CreateHostAgentRuntimeOptions {
   provider: HostRuntimeProvider
   cwd: string
@@ -86,7 +79,6 @@ export interface CreateHostAgentRuntimeOptions {
   sourceRuntime?: CreateSourceRuntimeAssemblyPlanOptions
   claude?: HostRuntimeClaudeOptions
   codex?: HostRuntimeCodexOptions
-  flitro?: HostRuntimeFlitroOptions
 }
 
 export interface HostAgentRuntimeResult {
@@ -136,33 +128,6 @@ export function createHostAgentRuntime(
         query: options.claude?.query,
         loadSdk: options.claude?.loadSdk,
         sdkOptions: options.claude?.sdkOptions,
-      }),
-      sourceRuntime,
-    }
-  }
-
-  if (options.provider === 'flitro') {
-    if (!options.flitro?.server) {
-      throw new Error('createHostAgentRuntime: flitro.server is required for provider="flitro"')
-    }
-    if (!options.sessionId) {
-      throw new Error('createHostAgentRuntime: sessionId is required for provider="flitro"')
-    }
-    return {
-      runtime: createFlitroProviderRuntime({
-        server: options.flitro.server,
-        sessionId: options.sessionId,
-        epoch: options.epoch,
-        now: options.now,
-        candidates: options.candidates,
-        auth: options.auth,
-        allowFallback: options.allowFallback,
-        extensions,
-        model: options.flitro.model ?? options.model,
-        skillNames: options.flitro.skillNames,
-        mcpServerNames: options.flitro.mcpServerNames,
-        sourceTools: sourceRuntime?.sourceTools,
-        permissionMode: options.flitro?.permissionMode,
       }),
       sourceRuntime,
     }

@@ -168,27 +168,3 @@ function cleanEnv(env: Record<string, string | undefined> | undefined): Record<s
 }
 
 export type { ProviderRuntimeDriverInput } from '../shared/runtime-scaffold.ts'
-
-// Re-export SDK utilities so hosts can access them without a direct
-// `@anthropic-ai/claude-agent-sdk` dependency (session management, MCP helpers,
-// session store). All re-exports are type-only or thin wrappers — they add no
-// code to bundles that tree-shake.
-export {
-  type SessionStore,
-  type SDKSessionInfo,
-  type SessionMessage,
-  InMemorySessionStore,
-  listSessions,
-  getSessionInfo,
-  getSessionMessages,
-  deleteSession,
-  forkSession,
-  renameSession,
-  tagSession,
-  importSessionToStore,
-  getSubagentMessages,
-  listSubagents,
-  createSdkMcpServer,
-  tool,
-  SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
-} from '@anthropic-ai/claude-agent-sdk'

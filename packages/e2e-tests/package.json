@@ -5,6 +5,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@percena/weft-node": "workspace:*",
     "@weft/core": "workspace:*",
     "@weft/adapter": "workspace:*",
     "@weft/ui": "workspace:*",

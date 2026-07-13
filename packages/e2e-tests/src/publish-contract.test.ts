@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { describe, expect, test } from 'vitest'
@@ -92,6 +92,31 @@ describe('@percena/weft publish contract', () => {
     const percenaDeps = deps.filter(d => d.startsWith('@percena/'))
     expect(percenaDeps).toEqual([])
   })
+
+  test('root .d.ts exports the shared timeline types', () => {
+    const dts = readFileSync(publishDistPath('index.d.ts'), 'utf8')
+    expect(dts).toContain('PermissionMode')
+    expect(dts).toContain('TimelineEnvelope')
+  })
+
+  test('chat entry exports the shared processor + grouping surface', async () => {
+    const chat = await import(pathToFileURL(publishDistPath('chat.js')).href)
+    expect(typeof chat.processEvent).toBe('function')
+    expect(typeof chat.mapTimelineEnvelopeToProcessorEvent).toBe('function')
+    expect(typeof chat.groupMessagesByTurn).toBe('function')
+    const dts = readFileSync(publishDistPath('chat.d.ts'), 'utf8')
+    expect(dts).toContain('SessionState')
+    expect(dts).toContain('ChatEvent')
+  })
+
+  test('dist emits no server surface (no createServer / listen)', () => {
+    const distDir = resolve(repoRoot, 'publish/browser/dist')
+    for (const file of readdirSync(distDir).filter(f => f.endsWith('.js'))) {
+      const output = readFileSync(resolve(distDir, file), 'utf8')
+      expect(output).not.toMatch(/\bcreateServer\b/)
+      expect(output).not.toMatch(/\.listen\s*\(/)
+    }
+  })
 })
 
 function desktopDistPath(fileName: string): string {
@@ -109,7 +134,7 @@ function desktopPackageJson(): {
 // publish/desktop/package.json#exports.
 const desktopSubpaths = [
   '.', './chat',
-  './providers/claude', './providers/codex', './providers/flitro',
+  './providers/claude', './providers/codex',
   './runtime', './cli-runtime',
   './skills', './sources', './automations', './policy',
   './styles',
@@ -118,7 +143,7 @@ const desktopSubpaths = [
 // Entry dist files the desktop build must emit (one per non-styles subpath).
 const desktopDistFiles = [
   'index.js', 'chat.js',
-  'providers-claude.js', 'providers-codex.js', 'providers-flitro.js',
+  'providers-claude.js', 'providers-codex.js',
   'runtime.js', 'cli-runtime.js',
   'skills.js', 'sources.js', 'automations.js', 'policy.js',
 ]
@@ -140,6 +165,18 @@ describe('@percena/weft-node publish contract', () => {
     }
   })
 
+  test('SDK-free entries do not require the optional Claude SDK', () => {
+    // providers-claude.d.ts is the normal Claude provider entry; it must stay
+    // SDK-import-free so Codex-only and CLI-fallback hosts load without the
+    // optional peer. Only the explicit ./providers/claude/sdk subpath may
+    // reference @anthropic-ai/claude-agent-sdk.
+    for (const file of ['runtime.d.ts', 'providers-codex.d.ts', 'providers-claude.d.ts']) {
+      const declaration = readFileSync(desktopDistPath(file), 'utf8')
+      expect(declaration).not.toContain("from '@anthropic-ai/claude-agent-sdk'")
+      expect(declaration).not.toContain("from \"@anthropic-ai/claude-agent-sdk\"")
+    }
+  })
+
   test('no @percena transitive dependencies in desktop package', () => {
     const deps = Object.keys(desktopPackageJson().dependencies ?? {})
     const percenaDeps = deps.filter(d => d.startsWith('@percena/'))
@@ -150,7 +187,58 @@ describe('@percena/weft-node publish contract', () => {
     const root = await import(pathToFileURL(desktopDistPath('index.js')).href)
     expect(typeof root.useAgentSession).toBe('function')
     expect(typeof root.TimelineAgentChatPanel).toBe('function')
-    expect(typeof root.createFlitroEmbedRuntime).toBe('function')
     expect(typeof root.EN_FALLBACK).toBe('object')
+    // Local-only package: the remote-client runtime symbol must NOT leak here.
+    expect(root.createFlitroEmbedRuntime).toBeUndefined()
+    // Must NOT leak backend / platform-internal surface.
+    expect(root.createPermissionPolicy).toBeUndefined()
+    expect(root.evaluateToolPolicy).toBeUndefined()
+    expect(root.selectRuntimeCandidate).toBeUndefined()
+  })
+
+  test('desktop runtime entry is local-only — no flitro surface leaks through ./runtime', async () => {
+    // §5/§9: @percena/weft-node is local-only (claude + codex). The remote
+    // weftd-client (flitro) runtime must not leak through ./runtime any more
+    // than through the removed ./providers/flitro subpath. Guards the
+    // HostRuntimeProvider union, the options type, and the built symbol
+    // namespace against the flitro branch regressing back into the factory.
+    const dts = readFileSync(desktopDistPath('runtime.d.ts'), 'utf8')
+    expect(dts).not.toContain('HostRuntimeFlitroOptions')
+    expect(dts).not.toContain('flitro?: HostRuntimeFlitroOptions')
+    expect(dts).not.toMatch(/HostRuntimeProvider\s*=\s*[^;]*flitro/)
+
+    const runtime = await import(pathToFileURL(desktopDistPath('runtime.js')).href)
+    expect(typeof runtime.createHostAgentRuntime).toBe('function')
+    expect(typeof runtime.detectRuntimeCandidates).toBe('function')
+    expect(typeof runtime.readClaudeAuth).toBe('function')
+    expect(typeof runtime.readCodexAuth).toBe('function')
+    // The flitro provider/remote-client runtimes must not be re-exported here.
+    expect(runtime.createFlitroProviderRuntime).toBeUndefined()
+    expect(runtime.createFlitroEmbedRuntime).toBeUndefined()
+  })
+
+  test('desktop root .d.ts exports the shared timeline types', () => {
+    const dts = readFileSync(desktopDistPath('index.d.ts'), 'utf8')
+    expect(dts).toContain('PermissionMode')
+    expect(dts).toContain('TimelineEnvelope')
+  })
+
+  test('desktop chat entry exports the shared processor + grouping surface', async () => {
+    const chat = await import(pathToFileURL(desktopDistPath('chat.js')).href)
+    expect(typeof chat.processEvent).toBe('function')
+    expect(typeof chat.mapTimelineEnvelopeToProcessorEvent).toBe('function')
+    expect(typeof chat.groupMessagesByTurn).toBe('function')
+    const dts = readFileSync(desktopDistPath('chat.d.ts'), 'utf8')
+    expect(dts).toContain('SessionState')
+    expect(dts).toContain('ChatEvent')
+  })
+
+  test('desktop dist emits no server surface (no createServer / listen)', () => {
+    const distDir = resolve(repoRoot, 'publish/desktop/dist')
+    for (const file of readdirSync(distDir).filter(f => f.endsWith('.js'))) {
+      const output = readFileSync(resolve(distDir, file), 'utf8')
+      expect(output).not.toMatch(/\bcreateServer\b/)
+      expect(output).not.toMatch(/\.listen\s*\(/)
+    }
   })
 })

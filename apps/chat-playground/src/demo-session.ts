@@ -1,7 +1,7 @@
-import { processEvent, type ChatEvent, type SessionState } from '@weft/ui'
-import { mapTimelineEnvelopeToProcessorEvent } from '@weft/ui'
-import type { TimelineEnvelope } from '@weft/timeline'
-import { groupMessagesByTurn, type Turn } from '@weft/ui'
+import { processEvent, type ChatEvent, type SessionState } from '@percena/weft-node/chat'
+import { mapTimelineEnvelopeToProcessorEvent } from '@percena/weft-node/chat'
+import type { TimelineEnvelope } from '@percena/weft-node'
+import { groupMessagesByTurn, type Turn } from '@percena/weft-node/chat'
 
 export const DEMO_SESSION_ID = 'demo'
 export const DEMO_WORKSPACE_ID = 'demo-workspace'
@@ -333,6 +333,7 @@ export function createDemoSessionState(): SessionState {
       workspaceId: DEMO_WORKSPACE_ID,
       workspaceName: DEMO_WORKSPACE_NAME,
       lastMessageAt: baseTimestamp,
+      lastUsedAt: baseTimestamp,
       messages: [],
       isProcessing: false,
     },

@@ -242,7 +242,7 @@ describe('CLI Runtime — provider stream adapters', () => {
     expect(claudeArgs).toContain('--resume')
     expect(claudeArgs[claudeArgs.indexOf('--resume') + 1]).toBe('claude-sess-9')
     // Prompt is piped via stdin — no positional prompt in argv.
-    expect(claudeArgs[claudeArgs.length - 1]).not.toBe('hello')
+    expect(claudeArgs).not.toContain('hello')
 
     const codexArgs = buildCliArgs({
       provider: 'codex',

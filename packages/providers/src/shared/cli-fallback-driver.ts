@@ -35,6 +35,24 @@ export function createCliFallbackDriver(options: {
     connected = true
     options.session.events.connect((event: Parameters<typeof projector.project>[0]) => {
       if (!activeSequencer) return
+      // C7: the CLI runtime emits a plain status string for provider session
+      // capture (`provider_session:<id>`).  The native SDK driver and codex
+      // app-server driver emit structured `host_state_changed` timeline items
+      // instead.  Intercept the status event here (where we have a sequencer)
+      // and emit the matching timeline item so all three drivers are consistent.
+      if (event.type === 'status' && typeof event.message === 'string' && event.message.startsWith('provider_session:')) {
+        const capturedId = event.message.split(':').slice(1).join(':')
+        activeSequencer.append({
+          type: 'host_state_changed',
+          state: {
+            kind: 'provider_session',
+            provider: options.provider,
+            ...(options.provider === 'claude'
+              ? { providerSessionId: capturedId }
+              : { providerThreadId: capturedId }),
+          },
+        })
+      }
       for (const envelope of projector.project(event)) {
         activeSequencer.append(envelope.item, envelope.rawRef)
       }

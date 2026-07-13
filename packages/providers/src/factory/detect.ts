@@ -79,13 +79,18 @@ export async function detectRuntimeCandidates(
   // The codex probe spawns `codex app-server` and issues `account/read` —
   // success proves both the binary and the app-server surface work.
   const appServerAvailable = !auth.error
+  // C8: CLI fallback (`codex exec`) only needs the binary, not a working
+  // app-server.  Mirror the Claude path (line 66-67): if the auth probe got
+  // far enough to determine `configured` status the binary exists, even when
+  // the app-server surface failed.
+  const cliAvailable = !auth.error || auth.configured
   return {
     candidates: createCodexRuntimeCandidates({
       appServerAvailable,
       nativeSdkAvailable: false,
-      cliFallbackAvailable: appServerAvailable,
+      cliFallbackAvailable: cliAvailable,
       appServerReason: appServerAvailable ? undefined : auth.error,
-      cliFallbackReason: appServerAvailable ? undefined : auth.error,
+      cliFallbackReason: cliAvailable ? undefined : auth.error,
     }),
     auth: narrowAuth(auth),
   }

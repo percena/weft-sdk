@@ -403,6 +403,7 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
         const alreadyFailed = state.status === 'failed'
         dispatch({ type: 'error', error })
         if (!alreadyFailed) appendFailure(error)
+        pendingQueue.length = 0
         return
       }
       drainEagerQueue()
@@ -562,8 +563,11 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
           // subsequent `send_message` legitimately transitions → `running`.
           // `disposed` is rejected above; `replay_reconcile` is a separate
           // action and is untouched.
-          if (state.status === 'failed') dispatch({ type: 'abort' })
-          const shouldQueue = state.status === 'running' || state.status === 'waiting_for_permission'
+          if (state.status === 'failed') {
+            dispatch({ type: 'abort' })
+            pendingQueue.length = 0
+          }
+          const shouldQueue = state.status !== 'ready' && state.status !== 'idle' && state.status !== 'preflighting'
           dispatch({ type: 'send_message', message })
           if (shouldQueue) {
             pendingQueue.push(input)
@@ -586,7 +590,10 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
         // note above) — the reducer no longer resurrects `failed` via
         // `send_message`, so dispatch `abort` (→ `ready`, clears lastError)
         // first to preserve the retry-after-error UX.
-        if (state.status === 'failed') dispatch({ type: 'abort' })
+        if (state.status === 'failed') {
+          dispatch({ type: 'abort' })
+          pendingQueue.length = 0
+        }
         // A2 fix: a send while a turn is in flight must QUEUE, not race. The
         // reducer already files it into `queuedMessages`; previously the code
         // still called `driver.sendMessage` immediately, running two
@@ -595,7 +602,7 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
         // while the queued copy was later double-drained by `complete`. Now
         // the input parks in `pendingQueue` and `drainEagerQueue` sends it
         // after the current turn resolves — matching deferred-mode semantics.
-        const shouldQueue = state.status === 'running' || state.status === 'waiting_for_permission'
+        const shouldQueue = state.status !== 'ready' && state.status !== 'idle' && state.status !== 'preflighting'
         dispatch({ type: 'send_message', message })
         if (shouldQueue) {
           pendingQueue.push(input)

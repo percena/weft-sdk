@@ -296,20 +296,22 @@ class ClaudeNativeSdkDriver implements ClaudeProviderRuntimeDriver {
     const permissionMapping = mapPermissionMode(perTurn?.permissionMode ?? this.options.permissionMode)
 
     // A1: continue the provider session across turns. Unless the host manages
-    // sessions explicitly (sdkOptions.resume / continue / forkSession), resume
-    // the session id captured from the previous turn's init/result messages so
-    // multi-turn conversations keep their context.
+    // sessions explicitly (sdkOptions.resume / continue / forkSession /
+    // sessionId, or persistSession is false), resume the session id captured
+    // from the previous turn's init/result messages so multi-turn
+    // conversations keep their context.
     const sdkSession = this.options.sdkOptions
     const hostManagesSession = Boolean(
-      sdkSession?.resume || sdkSession?.continue || sdkSession?.forkSession,
+      sdkSession?.resume || sdkSession?.continue || sdkSession?.forkSession
+      || sdkSession?.sessionId || sdkSession?.persistSession === false,
     )
     const resumeOptions = this.providerSessionId && !hostManagesSession
       ? { resume: this.providerSessionId }
       : {}
 
-    // B2: provider-namespaced per-turn passthrough. Takes precedence over the
-    // deprecated flat provider fields; driver-owned callbacks (hooks/canUseTool)
-    // are spread after it and always win.
+    // B2: provider-namespaced per-turn passthrough. Spread early (right after
+    // sdkOptions) so driver-managed fields always win; driver-owned callbacks
+    // (hooks/canUseTool) are also re-asserted after it.
     const perTurnClaude = (perTurn?.providerOptions?.claude ?? {}) as Partial<Options>
 
     // Merge sdkOptions.mcpServers (e.g. in-process 'sdk' type) with source-tool-
@@ -323,6 +325,7 @@ class ClaudeNativeSdkDriver implements ClaudeProviderRuntimeDriver {
 
     return {
       ...this.options.sdkOptions,
+      ...perTurnClaude,
       cwd: this.options.cwd,
       model: perTurn?.model ?? this.options.model ?? this.options.sdkOptions?.model,
       effort: (perTurn?.reasoningEffort ?? this.options.reasoningEffort ?? this.options.sdkOptions?.effort) as EffortLevel | undefined,
@@ -336,7 +339,6 @@ class ClaudeNativeSdkDriver implements ClaudeProviderRuntimeDriver {
       ...(perTurn?.maxTurns !== undefined ? { maxTurns: perTurn.maxTurns } : {}),
       ...(perTurn?.maxBudgetUsd !== undefined ? { maxBudgetUsd: perTurn.maxBudgetUsd } : {}),
       ...resumeOptions,
-      ...perTurnClaude,
       ...this.buildHooks(sequencer),
       canUseTool: (toolName, toolInput, context) =>
         this.handleCanUseTool(toolName, toolInput, context, sequencer),

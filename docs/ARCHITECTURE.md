@@ -194,7 +194,7 @@ Sources register MCP (stdio/HTTP), API, or local tools into the runtime via `cre
 
 | Package | Description |
 |---------|-------------|
-| `@weft/policy` | Permission modes (`safe`/`ask`/`allow-all`), tool policy engine, layered rules, approvals |
+| `@weft/policy` | Permission modes (`explore`/`ask`/`auto`), tool policy engine, layered rules, approvals |
 | `@weft/sources` | MCP / API / local source registry, `SourceCredentialManager`, credential boundary |
 | `@weft/skills` | Skill definitions, storage, activation plan, required sources |
 | `@weft/automations` | Event bus, cron/condition matcher, prompt/webhook actions, loop guard |

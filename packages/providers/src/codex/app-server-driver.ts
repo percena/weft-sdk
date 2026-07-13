@@ -416,15 +416,21 @@ export function createCodexAppServerDriver(
           // `serviceName`/`threadSource`/`multiAgentMode` are `ThreadStartParams`
           // only (codex ignores unknown fields, but we avoid sending
           // protocol-undefined ones on resume).
-          const response = await options.client.request('thread/resume', {
-            threadId,
-            cwd: options.cwd,
-            ...configParams,
-            ...permissionParams,
-            ...commonTopLevel,
-          })
-          threadId = readThreadId(response)
-        } else {
+          try {
+            const response = await options.client.request('thread/resume', {
+              threadId,
+              cwd: options.cwd,
+              ...configParams,
+              ...permissionParams,
+              ...commonTopLevel,
+            })
+            threadId = readThreadId(response)
+          } catch {
+            // Thread expired or invalid — fall through to thread/start
+            threadId = undefined
+          }
+        }
+        if (!threadId) {
           const response = await options.client.request('thread/start', {
             cwd: options.cwd,
             ...configParams,
@@ -1241,16 +1247,16 @@ function buildPermissionResponse(
   remember?: boolean,
   detail?: PermissionResponseDetail,
 ): unknown {
-  if (pending.kind === 'permission') {
-    return allowed
-      ? { permissions: pending.requestedPermissions ?? {}, scope: remember ? 'session' : 'turn' }
-      : { permissions: {}, scope: 'turn' }
-  }
   if (!allowed && detail?.interrupt) {
     // A6: `interrupt` maps to the codex `cancel` decision — unlike `decline`
     // (the agent continues past the declined tool), `cancel` interrupts the
     // whole turn, matching the Claude SDK's `PermissionResultDeny.interrupt`.
     return { decision: 'cancel' }
+  }
+  if (pending.kind === 'permission') {
+    return allowed
+      ? { permissions: pending.requestedPermissions ?? {}, scope: remember ? 'session' : 'turn' }
+      : { permissions: {}, scope: 'turn' }
   }
   return { decision: allowed ? (remember ? 'acceptForSession' : 'accept') : 'decline' }
 }

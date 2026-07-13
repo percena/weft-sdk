@@ -408,7 +408,19 @@ function parseBashCommand(command: string): ParsedBashCommand {
     // file write that would require approval via Write/Edit — so flag it. `>` is
     // a word boundary in bash, so flush the pending head first. A read redirect
     // `<` only consumes a file and is left alone.
-    if (c === '>') { hasRedirect = true; flushToken(); continue }
+    if (c === '>') {
+      // P1: fd duplication (`2>&1`, `>&2`, `>&-`) is NOT a file write — skip it.
+      // `>&DIGIT` or `>&-` duplicates a file descriptor; anything else after `>`
+      // (including `>&word` where word is not a single digit) is a real redirect.
+      if (next === '&') {
+        const afterAmp = command[i + 2]
+        if (afterAmp && (afterAmp === '-' || (afterAmp >= '0' && afterAmp <= '9'))) {
+          i++ // skip the '&'
+          continue
+        }
+      }
+      hasRedirect = true; flushToken(); continue
+    }
     if (c === '&' && next === '&') { i++; flushSegment(); continue }
     if (c === '|' && next === '|') { i++; flushSegment(); continue }
     if (c === ';' || c === '|' || c === '&' || c === '\n' || c === '\r') { flushSegment(); continue }

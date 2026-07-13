@@ -40,7 +40,7 @@ function createControlledDriver() {
     driver,
     started,
     get maxActive() { return maxActive },
-    releaseNext() { started.find(Boolean) },
+    releaseNext() { started[0]?.release() },
     release(index: number) { started[index].release() },
   }
 }

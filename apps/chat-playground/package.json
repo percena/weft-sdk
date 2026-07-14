@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@percena/weft-node": "workspace:*",
+    "@percena/weft-node": "0.1.1",
     "i18next": "^23.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

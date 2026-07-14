@@ -11,3 +11,4 @@
  * `@percena/weft-node` facade.
  */
 export * from './auth/index.ts'
+export * from './models/index.ts'

@@ -5,7 +5,7 @@
  * All methods map 1-to-1 with the server's HTTP endpoints.
  */
 
-import type { PermissionResponseDetail } from '@weft/runtime-core'
+import type { PermissionResponseDetail, ProviderModelDiscovery, ProviderModelSource } from '@weft/runtime-core'
 
 export interface WeftHttpClientOptions {
   /** Base URL of the Weft server, e.g. http://localhost:8080 */
@@ -168,6 +168,35 @@ export class WeftHttpClient {
 
   async getSession(sessionId: string): Promise<WeftSession> {
     return this.get<WeftSession>(`/v1/sessions/${encodeURIComponent(sessionId)}`)
+  }
+
+  /**
+   * Discover the model list + active defaults for a provider's compatible API
+   * endpoint, as resolved by the Weft server (which holds the tenant's
+   * connection base_url + sealed credential). The browser cannot read local
+   * `~/.claude`/`~/.codex` config or hold the gateway token, so discovery is a
+   * server responsibility — this is the remote analog of
+   * `@percena/weft-node`'s local `listProviderModels`. Returns the same
+   * `ProviderModelDiscovery` wire contract so the picker UI is identical
+   * across packages.
+   *
+   * `provider` is an open string: `@percena/weft` is the general package
+   * (claude / codex / flitro) and must not close over a fixed provider set —
+   * the server maps the identifier to its connection protocols server-side, so
+   * an unknown/unsupported provider returns source:'none' rather than failing
+   * to type-check. The server's JSON is snake_case; this method adapts it to
+   * the camelCase {@link ProviderModelDiscovery} so the shared contract type
+   * is the merge point across packages.
+   */
+  async listProviderModels(provider: string): Promise<ProviderModelDiscovery> {
+    const wire = await this.get<ProviderModelsWire>(`/v1/provider/models?provider=${encodeURIComponent(provider)}`)
+    return {
+      models: wire.models ?? [],
+      source: wire.source ?? 'none',
+      ...(wire.default_model ? { defaultModel: wire.default_model } : {}),
+      ...(wire.default_effort ? { defaultEffort: wire.default_effort } : {}),
+      ...(wire.base_url ? { baseUrl: wire.base_url } : {}),
+    }
   }
 
   /**
@@ -367,4 +396,13 @@ export class WeftHttpClient {
       clearTimeout(timer)
     }
   }
+}
+
+/** Server wire shape (snake_case) for the model-discovery response. */
+interface ProviderModelsWire {
+  models?: string[]
+  source?: ProviderModelSource
+  default_model?: string
+  default_effort?: string
+  base_url?: string
 }

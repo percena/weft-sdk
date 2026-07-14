@@ -24,7 +24,7 @@ import {
   type WeftSseTimelineStreamOptions,
 } from './timeline-stream.ts'
 import type { TimelineEnvelope, TimelineStream } from './types.ts'
-import type { PermissionResponseDetail } from '@weft/runtime-core'
+import type { PermissionResponseDetail, ProviderModelDiscovery } from '@weft/runtime-core'
 
 export interface WeftClientOptions {
   /** Base URL of the agent server, e.g. https://agents.example.com */
@@ -131,6 +131,25 @@ export class WeftClient {
   /** Replace the scoped token (e.g. after a backend-driven refresh). */
   setToken(token: string): void {
     this.http.setToken(token)
+  }
+
+  /**
+   * Discover the model list + active defaults for a provider. Delegates to the
+   * Weft server (`GET /v1/provider/models?provider=...`), which resolves the
+   * tenant's provider connection and probes its compatible gateway. Returns
+   * the shared `ProviderModelDiscovery` wire contract so the picker UI is
+   * identical to `@percena/weft-node`'s local path. `provider` is an open
+   * string — `@percena/weft` is the general package (claude / codex / flitro)
+   * and must not close over a fixed provider set; the server maps the identifier
+   * to its connection protocols server-side. The server route is implemented as
+   * `GET /v1/provider/models?provider=...` (owner/admin-gated; resolves the
+   * tenant from the auth token, mirroring `/v1/sessions`) — see weftd
+   * `docs/sdk/2026-07-14-provider-model-discovery.md`. An unknown/unsupported
+   * provider returns `source: 'none'` (picker empty, turns send no model, the
+   * SDK uses its own default).
+   */
+  listProviderModels(provider: string): Promise<ProviderModelDiscovery> {
+    return this.http.listProviderModels(provider)
   }
 
   readonly sessions = {

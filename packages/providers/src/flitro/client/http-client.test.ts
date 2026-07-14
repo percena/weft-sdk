@@ -63,6 +63,31 @@ describe('WeftHttpClient', () => {
       detail,
     })
   })
+
+  test('listProviderModels GETs /v1/provider/models?provider=... and returns the discovery shape', async () => {
+    let receivedUrl = ''
+    const server = createServer((req, res) => {
+      receivedUrl = req.url ?? ''
+      writeJson(res, 200, {
+        models: ['glm-5.2', 'deepseek-v4-flash'],
+        source: 'gateway',
+        default_model: 'glm-5.2',
+        default_effort: 'high',
+        base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      })
+    })
+    servers.push(server)
+    const baseUrl = await listen(server)
+    const client = new WeftHttpClient({ baseUrl })
+
+    const result = await client.listProviderModels('claude')
+
+    expect(receivedUrl).toBe('/v1/provider/models?provider=claude')
+    expect(result.models).toEqual(['glm-5.2', 'deepseek-v4-flash'])
+    expect(result.source).toBe('gateway')
+    expect(result.defaultModel).toBe('glm-5.2')
+    expect(result.defaultEffort).toBe('high')
+  })
 })
 
 async function listen(server: ReturnType<typeof createServer>): Promise<string> {

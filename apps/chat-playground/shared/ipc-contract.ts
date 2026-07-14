@@ -86,10 +86,13 @@ export interface FsBrowseResult {
  * The playground does NOT hardcode model ids — a compatible Anthropic/OpenAI
  * endpoint may serve any model (e.g. glm-5.2, deepseek-v4-flash, qwen3-max).
  * The main process discovers the real list and returns it here so the renderer
- * can populate the model picker. `source` is where the list came from:
- *  - 'gateway': GET {base_url}/v1/models on the endpoint succeeded
- *  - 'env':     read from ANTHROPIC_* / codex config env vars (gateway has no /v1/models)
- *  - 'config':  read from ~/.codex/config.toml
+ * can populate the model picker. `source` mirrors the shared
+ * `ProviderModelSource` (`@weft/runtime-core`) produced identically by every
+ * discovery site:
+ *  - 'gateway': GET {base_url}/v1/models on the endpoint succeeded (live list)
+ *  - 'config':  read from local/stored config — NOT probed (claude settings.json
+ *    env block, codex ~/.codex/config.toml). A static fallback the picker
+ *    treats the same regardless of provider.
  *  - 'none':    nothing discoverable; the picker stays empty and turns send no
  *    model (the SDK uses its own default)
  *
@@ -102,7 +105,7 @@ export interface FsBrowseResult {
  */
 export interface ListModelsResult {
   models: string[]
-  source: 'gateway' | 'env' | 'config' | 'none'
+  source: 'gateway' | 'config' | 'none'
   defaultModel?: string
   defaultEffort?: string
 }

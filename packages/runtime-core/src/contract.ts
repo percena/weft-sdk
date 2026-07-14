@@ -95,6 +95,93 @@ export interface RuntimeAuthDetection extends ProviderAuthDetection {
   mode: 'provider-owned'
 }
 
+/**
+ * Where a discovered model list came from. Produced identically by every
+ * deployment site (weft-node local-fs probe, server-side probe, browser
+ * remote fetch) so the picker / auto-heal UI logic is shared.
+ *
+ *  - 'gateway': GET {base}/v1/models on the endpoint succeeded (live list)
+ *  - 'config': read from local/stored config — NOT probed (claude settings.json
+ *    env, codex config.toml `model`, the server's stored connection models). A
+ *    static fallback the picker treats the same regardless of provider.
+ *  - 'none': nothing discoverable; the picker stays empty and turns send no
+ *    model (the runtime uses its own default)
+ *
+ * Provider-agnostic: there is no per-provider 'env' value — whether a provider's
+ * default came from an env block or a config file is a provider-implementation
+ * detail, not a picker concern, so all static fallbacks collapse to 'config'.
+ */
+export type ProviderModelSource = 'gateway' | 'config' | 'none'
+
+/**
+ * A provider's discovered model list + its active defaults.
+ *
+ * The single wire contract produced by all three discovery sites (weft-node
+ * local fs, the server, browser remote). The picker defaults to
+ * {@link defaultModel} and the effort picker to {@link defaultEffort}; a stale
+ * persisted model id not in {@link models} auto-heals to `defaultModel`.
+ * `defaultEffort` is normalized where possible — unknown values pass through
+ * (codex `Custom(String)` is protocol-legal, see {@link ModelReasoningEffort}).
+ */
+export interface ProviderModelDiscovery {
+  /** Discovered model ids (deduped). Empty = nothing discoverable. */
+  models: string[]
+  /** Where the list came from. */
+  source: ProviderModelSource
+  /** The provider's currently-active model (ANTHROPIC_MODEL / codex config
+   * `model` / the server's connection default). The picker defaults to this. */
+  defaultModel?: string
+  /** The provider's active reasoning effort (CLAUDE_CODE_EFFORT_LEVEL / codex
+   * config `model_reasoning_effort` / the server's connection default). */
+  defaultEffort?: string
+  /** Resolved base URL (debugging / capability report). */
+  baseUrl?: string
+}
+
+/**
+ * Common options for a model-discovery probe. Transport-specific surfaces
+ * (weft-node `env`/`offline`, browser `connectionID`/`fetchImpl`) extend this;
+ * the return type is always {@link ProviderModelDiscovery}.
+ *
+ * `provider` is an **open string**, matching weft's `provider: string`
+ * convention (`RuntimeCapabilityReport`, `AgentRuntimeOptions`). The shared
+ * contract is imported by the general `@percena/weft` (claude / codex / flitro),
+ * so it must not close over a fixed provider set. `@percena/weft-node` — local
+ * only, claude/codex — narrows it in its own `ListProviderModelsCallOptions`.
+ */
+export interface ListProviderModelsOptions {
+  provider: string
+  /** Abort the gateway probe. */
+  signal?: AbortSignal
+}
+
+/**
+ * Normalize a raw reasoning-effort value to a {@link ModelReasoningEffort}
+ * string, or undefined. Trims + lowercases and passes through any slug-shaped
+ * value (`/^[a-z0-9][a-z0-9_-]*$/`); non-slug garbage (spaces / special chars)
+ * a picker gate should never forward as `reasoning_effort` → undefined.
+ * Empty/whitespace → undefined. Never throws.
+ *
+ * Provider-agnostic: it does NOT carry any provider's effort ladder (no
+ * baked known-set). codex `Custom(String)` is a slug and passes through; the
+ * well-known values (none/minimal/low/medium/high/xhigh/max) are slugs too, so
+ * they pass through unchanged. Each provider validates against its own enum at
+ * the send boundary, not here.
+ *
+ * Shared across weft-node, the server (re-implemented server-side), and picker
+ * UIs so the "is this effort even shaped like an effort?" gate is identical
+ * everywhere.
+ */
+export function normalizeReasoningEffort(value: string | undefined | null): string | undefined {
+  if (value == null) return undefined
+  const v = String(value).trim().toLowerCase()
+  if (!v) return undefined
+  // Provider-agnostic slug gate: a well-formed effort id passes through (codex
+  // Custom, claude max, the standard ladder all are slugs); malformed input
+  // like "high reasoning" is dropped. No provider-specific known-set here.
+  return /^[a-z0-9][a-z0-9_-]*$/.test(v) ? v : undefined
+}
+
 export interface RuntimeCandidate {
   kind: AgentRuntimeKind
   available: boolean

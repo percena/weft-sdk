@@ -27,6 +27,16 @@
         "types": "./dist/auth/index.d.cts",
         "default": "./dist/auth/index.cjs"
       }
+    },
+    "./models": {
+      "import": {
+        "types": "./dist/models/index.d.ts",
+        "default": "./dist/models/index.js"
+      },
+      "require": {
+        "types": "./dist/models/index.d.cts",
+        "default": "./dist/models/index.cjs"
+      }
     }
   },
   "files": [

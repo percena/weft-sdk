@@ -37,10 +37,13 @@ npx skills experimental_install # restore from a committed skills-lock.json
 
 ## Requirements
 
-- `@percena/weft` ^1.0.1
+- `@percena/weft` ^1.0.1 — eager-installed before the first build (frontend bundle imports it)
+- `@playwright/cli` (global; provides the `playwright-cli` bin) — lazy-installed at the e2e phase only
 - A REST API with an OpenAPI/swagger spec
 - Node 20+ **or** Python 3.11+
 - A Weft control-plane (`weftd`) tenant, provisioned at [https://weft-kit.dev](https://weft-kit.dev)
+
+Both npm packages are **verified + installed if missing** at their point of use (eager for the SDK, lazy for the e2e driver) — see "Prerequisites" in `SKILL.md`. The skill does not let a missing package abort with a bare `Cannot find module` / `command not found`.
 
 ## Security
 

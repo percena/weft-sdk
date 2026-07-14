@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Requires @percena/weft ^1.0.1, a REST API with an OpenAPI/swagger spec, Node 20+ or Python 3.11+, and a Weft control-plane (weftd) tenant provisioned at https://weft-kit.dev."
 metadata:
   author: percena
-  version: "1.0.1"
+  version: "1.0.2"
   min-weft-sdk: "1.0.1"
   source: https://github.com/percena/weft-sdk/tree/main/skills/integrate-weft-kit
   changelog: https://github.com/percena/weft-sdk/blob/main/skills/integrate-weft-kit/CHANGELOG.md
@@ -27,6 +27,28 @@ This skill is self-contained: the runbook, `templates/`, and `references/` are e
 - A running integration hits `EADDRINUSE`, `502 weftd proxy failed: …TLS…`, or the chat prompts on every write tool → operational gotchas in Common Mistakes.
 
 **When NOT:** spec-less APIs (no OpenAPI) → use `client_http_request`, no graph. Public-vs-private reachability decides `execution`, not whether to integrate.
+
+## Prerequisites — verify + install (eager for build deps, lazy at point of use)
+
+Two npm packages must be present for a full run. **Verify + install if missing — do NOT let a missing package throw an execution error mid-run** (e.g. `Cannot find module '@percena/weft'`, `playwright-cli: command not found`). But don't install everything upfront: **eager-install only what the next phase needs; lazy-install the rest at its point of use.** This avoids a wasteful global install when the user only builds/provisions (or when weftd is down + the loop falls back to non-weftd REST tests, never reaching e2e). Re-check after a fresh clone or a branch switch.
+
+- **`@percena/weft`** — *eager, before Part 1 (build).* The browser SDK ships the chat panel, action-bridge, + the `weft-api-graph` bin; the frontend bundle `import`s it at build time, so it must resolve **before** the first `vite build`. Verify in the **project** first; install with the **project's own package manager** only if the verify finds nothing. Pin to `^1.0.1` (the frontmatter `metadata.min-weft-sdk`). Do **not** use `workspace:*` — that only resolves inside the weft monorepo (see Part 1 §0).
+  ```bash
+  # 1. verify presence with the project's package manager (pick the one the project uses)
+  npm ls @percena/weft 2>/dev/null || pnpm ls @percena/weft 2>/dev/null || yarn list --pattern '@percena/weft' 2>/dev/null
+  # 2. install ONLY if the verify above found nothing — use the SAME package manager the project already uses
+  npm install   @percena/weft@^1.0.1   # pnpm add @percena/weft@^1.0.1  |  yarn add @percena/weft@^1.0.1
+  ```
+
+- **`@playwright/cli`** (provides the `playwright-cli` bin) — *lazy, at Phase 3 (e2e) point of use.* Only the headed-e2e loop needs it; don't global-install it for a build-only run. The verify-or-install guard lives in Phase 3, right before the first `playwright-cli` command:
+  ```bash
+  # the bin is `playwright-cli`; the npm package that provides it is `@playwright/cli`
+  command -v playwright-cli || npm install -g @playwright/cli
+  ```
+  > ⚠️ Do **NOT** `npm install -g playwright-cli` or `npx playwright-cli` — `playwright-cli` is a *different, unrelated* npm package that happens to share the bin name. The scoped `@playwright/cli` is the correct one (it provides the `playwright-cli` bin). Verify with `command -v`, not by package-name guess.
+  The e2e steps run it **headed** (`playwright-cli open` → `goto`/`click`/`fill` …) so the user sees the browser + the automated live cursor + can intervene (see Phase 3).
+
+If an install itself fails (no Node 20+, registry offline, no write access for `-g`), surface that root cause + stop — don't paper over it with a downstream error.
 
 ## Trust model (read this first — security is a contract, not an afterthought)
 
@@ -110,7 +132,7 @@ The worked example for a **Node** backend — the contract above, materialized. 
 
 **Backend language:** the runbook + `templates/*.mjs` assume **Node**. For a **Python/FastAPI** backend, use `templates/python/` instead — see "Non-JS backend (Python)" below.
 
-0. **Scaffold** — start from your existing traditional REST + SPA app (or create one). Deltas: add `@percena/weft: ^1.0.1` from npm (do **not** use `workspace:*` — that only works inside a private monorepo; the graph analyzer + `weft-api-graph` bin ship **inside** `@percena/weft`, so no separate graph-tool dep); configure the Vite/webpack dev proxy to your API port; ensure `types:["vite/client"]` if using Vite; set the HTML title to `{{appName}}`. Confirm install + existing tests still pass (the REST routes survived).
+0. **Scaffold** — start from your existing traditional REST + SPA app (or create one). First **verify `@percena/weft` resolves in the project — install it if missing (Prerequisites above) before any build**. Deltas: add `@percena/weft: ^1.0.1` from npm (do **not** use `workspace:*` — that only works inside a private monorepo; the graph analyzer + `weft-api-graph` bin ship **inside** `@percena/weft`, so no separate graph-tool dep); configure the Vite/webpack dev proxy to your API port; ensure `types:["vite/client"]` if using Vite; set the HTML title to `{{appName}}`. Confirm install + existing tests still pass (the REST routes survived).
 1. **Copy the agentic layer in** — `templates/{provision.mjs,session-routes.mjs}` → your server directory; `templates/{ChatPane.tsx,chat-bootstrap.ts,auth-context.tsx,customer.ts}` → your frontend `src/` (adapt auth-context/customer to YOUR auth cookies); `templates/{run.mjs,.env.example}` → app root (or merge `assertWeftdCreds` into your existing entrypoint). Build a system-prompt module that imports your shared state-machine module. Wire your HTTP server: `import { createProvisioning } from './provision.mjs'`, `import { wireSessionRoutes } from './session-routes.mjs'`; resolve `WEFTD_BASE`/`WEFT_API_KEY`/`WEFT_TENANT_ID` from env; `const { ensureApp, weftdAPI } = createProvisioning({ weftdBase, apiKey, tenantId, shopPort: port, systemPrompt })`; create shared `sseClients = new Set()` / `sessions = new Map()`; call `wireSessionRoutes(server, { weftdBase, apiKey, tenantId, ensureApp, weftdAPI, sseClients, sessions, sessionCookie: '{{sessionCookie}}', sseEventName: '{{sseEventName}}' })` AFTER the request handler is registered (it wraps the listener). Match `ActionReplayLayer`'s `eventName` prop to `{{sseEventName}}`. Set `APP_PUBLIC_BASE` in production. The `/v1` proxy in `session-routes.mjs` is **verbatim** production-hardened code (TLS retry, `headersSent` gating) — don't simplify. `provisionGraph` try/catches the graph file's ENOENT so first-provision doesn't reject before the graph is generated. **Preserve the action-bridge** — include `ActionReplayLayer` + `weftAction(...)` (from `@percena/weft/action-bridge`) on interactive elements so the automated live cursor replays agent tool calls.
 2. **`.env`** (backend only; never browser) — fill from the substituted `.env.example`: `WEFTD_BASE`, `WEFT_API_KEY`, `WEFT_TENANT_ID`, `OPENAI_API_KEY`/`OPENAI_BASE_URL`/`OPENAI_MODELS`/`OPENAI_MODEL`, and your server port.
 3. **Browser SDK** — `templates/ChatPane.tsx` + `chat-bootstrap.ts` wire `@percena/weft` (the browser never sees the tenant key). Backend mints a scoped weftd session; token refresh is **reactive** (401→`onTokenExpired`), not a timer. `/v1/*` proxies to weftd same-origin; retry only pre-handshake TLS errors, never mid-stream.
@@ -219,7 +241,7 @@ This is the detailed procedure for the closed loop + the test categories above. 
 - **Real API endpoint** — the live LLM (`OPENAI_API_KEY` → the real endpoint). Most realistic; **costs money** per run.
 - **Mock data** — scripted LLM responses (no real API call). Free; **may not represent the real environment**.
 
-**Run Playwright in HEADED mode** (`headless: false` / `--headed`) — the user must SEE the browser + the action-bridge automated live cursor + be able to intervene mid-run. Do NOT use background/silent/headless mode. Probe the weftd endpoint health first (`GET <WEFTD_BASE>/health`); if down/keys expired, fall back to the non-weftd parts (REST tests, graph validation, dry provisioning) + document the rest. Then:
+**Run Playwright in HEADED mode** (`headless: false` / `--headed`) — the user must SEE the browser + the action-bridge automated live cursor + be able to intervene mid-run. Do NOT use background/silent/headless mode. **First e2e command: verify + lazy-install the driver** — `command -v playwright-cli || npm install -g @playwright/cli` (the package is `@playwright/cli`, NOT `playwright-cli`; see Prerequisites). A missing driver must not abort the loop with `command not found`. Probe the weftd endpoint health first (`GET <WEFTD_BASE>/health`); if down/keys expired, fall back to the non-weftd parts (REST tests, graph validation, dry provisioning) + document the rest. Then:
 1. **Stack up** — start the server + build the web bundle; open the chat, log in.
 2. **State machine** — drive a resource through **every** transition incl. back-edges; confirm a **409 + `allowed_actions`** on an illegal transition and that the agent relays them without blind-retry.
 3. **Cross-session reference (the fail-open regression test)** — create a resource in session A; in a **new** session (reload the page → fresh weftd session with empty lineage), operate on it by id. It MUST succeed with **no duplicate created** — if a duplicate appears, a referential edge is still `required:true`. Automate with Playwright (HEADED): find the composer, set `Auto` permission mode, drive the chat, and **verify via ground-truth state polling** (not chat text); reload between sessions.

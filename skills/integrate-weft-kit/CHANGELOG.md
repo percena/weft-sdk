@@ -5,6 +5,17 @@ The skill follows [semantic versioning](https://semver.org/) independently of th
 `@percena/weft` SDK; `metadata.min-weft-sdk` (in `SKILL.md` frontmatter) declares the
 minimum SDK version assumed.
 
+## [1.0.2] — 2026-07-14
+
+### Added
+- **Prerequisites (verify + install — eager for build deps, lazy at point of use)** — a new runbook section. `@percena/weft` is verified + installed (with the project's own package manager) **eager**, before the first `vite build` (the frontend bundle imports it). `@playwright/cli` (the package that provides the `playwright-cli` bin) is verified + installed **lazy**, at the Phase 3 e2e point of use only — so a build-only run (or a weftd-down fallback that never reaches e2e) doesn't force a global driver install. The closed loop must not abort with `Cannot find module '@percena/weft'` or `playwright-cli: command not found`. Cross-linked from Part 1 §0 (Scaffold) + Phase 3 (e2e).
+
+### Fixed
+- Playwright driver package name: the `playwright-cli` bin is provided by **`@playwright/cli`** (install via `npm install -g @playwright/cli`), NOT the unrelated `playwright-cli` npm package that shares the bin name. `npx playwright-cli` is explicitly warned against (it resolves the wrong package). `README.md` Requirements now lists `@playwright/cli`.
+
+### Notes
+- Contract (§1-9) + placeholder set unchanged → patch bump.
+
 ## [1.0.1] — 2026-07-11
 
 The graph analyzer is folded into `@percena/weft` — integrators no longer add a separate graph-tool dependency. Templates are parameterized for any host app (no product-specific cookie/SSE/env names).

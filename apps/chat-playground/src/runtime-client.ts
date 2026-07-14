@@ -89,6 +89,12 @@ export class RuntimeClient {
   private _capabilityReport: unknown | null = null
   /** Unsubscribers for main→renderer subscriptions. */
   private readonly unsubscribers: Array<() => void> = []
+  /** Seen envelope keys (`epoch:seq`) for O(1) dedup — scanning the timeline
+   * per envelope would be O(n²) over a stream where every delta is an envelope. */
+  private readonly seenEnvelopeKeys = new Set<string>()
+  /** Turns grouped from the current sessionState; recomputed only when
+   * sessionState changes (processEvent returns a new state object). */
+  private turnsCache: { source: SessionState; turns: Turn[] } | null = null
 
   constructor(options: RuntimeClientOptions) {
     this.sessionId = options.sessionId
@@ -101,7 +107,13 @@ export class RuntimeClient {
   }
 
   getState(): RuntimeClientState {
-    const turns = groupMessagesByTurn(this.sessionState.session.messages)
+    if (this.turnsCache?.source !== this.sessionState) {
+      this.turnsCache = {
+        source: this.sessionState,
+        turns: groupMessagesByTurn(this.sessionState.session.messages),
+      }
+    }
+    const turns = this.turnsCache.turns
     return {
       sessionState: this.sessionState,
       turns,
@@ -225,9 +237,10 @@ export class RuntimeClient {
     // Dedup by epoch+seq (the runtime replays capability/turn history under a
     // stable epoch; guards against any duplicate main→renderer delivery).
     const key = `${envelope.epoch}:${envelope.seq}`
-    if (this.timeline.some(existing => `${existing.epoch}:${existing.seq}` === key)) {
+    if (this.seenEnvelopeKeys.has(key)) {
       return
     }
+    this.seenEnvelopeKeys.add(key)
     this.timeline.push(envelope)
 
     if (isChatTranscriptTimelineEnvelope(envelope)) {

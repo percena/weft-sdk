@@ -274,4 +274,27 @@ describe('discoverCodexModels', () => {
     const result = await discoverCodexModels({ codexDir, env: {}, fetchImpl: makeFetcher({}) })
     expect(result.source).toBe('none')
   })
+  it('never sends built-in OpenAI credentials to a custom gateway', async () => {
+    // A custom provider block whose env_key is unset (the default when the app
+    // is launched from the GUI) must NOT fall back to OPENAI_API_KEY /
+    // auth.json — that would disclose the user's OpenAI key to a third-party
+    // base_url. No token → no probe → config fallback.
+    const codexDir = withCodexHome({
+      'config.toml': `model_provider = "dashscope"\nmodel = "qwen3-max"\n\n[model_providers.dashscope]\nbase_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"\nenv_key = "DASHSCOPE_API_KEY"\n`,
+      'auth.json': JSON.stringify({ OPENAI_API_KEY: 'sk-openai-secret' }),
+    })
+    const probedUrls: string[] = []
+    const fetchImpl = async (url: string) => {
+      probedUrls.push(url)
+      return { ok: true, status: 200, json: async () => ({ data: [{ id: 'qwen3-max' }] }) }
+    }
+    const result = await discoverCodexModels({
+      codexDir,
+      env: { OPENAI_API_KEY: 'sk-openai-secret' },
+      fetchImpl,
+    })
+    expect(probedUrls).toEqual([])
+    expect(result.source).toBe('config')
+    expect(result.models).toEqual(['qwen3-max'])
+  })
 })

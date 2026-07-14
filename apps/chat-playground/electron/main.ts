@@ -10,7 +10,8 @@
  * the weft-node runtime directly, with the React chat UI in the renderer.
  */
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
-import { fileURLToPath } from 'node:url'
+import type { IpcMainInvokeEvent } from 'electron'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
 import { homedir } from 'node:os'
 import { readdirSync, statSync } from 'node:fs'
@@ -67,6 +68,29 @@ function createWindow(): void {
   // Dev: electron-vite serves the renderer from a Vite dev server.
   // Prod: load the built renderer from the packaged output directory.
   const devUrl = process.env['ELECTRON_RENDERER_URL']
+
+  // Deny every in-window navigation away from the app's own document.
+  // setWindowOpenHandler only covers window.open/target=_blank; without this,
+  // any other navigation (e.g. a link or HTML file dragged onto the window)
+  // would load foreign content into a renderer that holds the weftDesktop
+  // bridge — i.e. agent start/send with arbitrary cwd plus full-disk fs
+  // browsing. http(s) targets go to the system browser instead.
+  const appOrigin = devUrl ? new URL(devUrl).origin : null
+  const appFileUrl = pathToFileURL(join(__dirname, '..', 'renderer', 'index.html')).href
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    let allowed = false
+    try {
+      allowed = appOrigin
+        ? new URL(url).origin === appOrigin
+        : url.split(/[?#]/, 1)[0] === appFileUrl
+    } catch {
+      // unparsable target → deny
+    }
+    if (allowed) return
+    event.preventDefault()
+    if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
+  })
+
   if (devUrl) {
     void mainWindow.loadURL(devUrl)
   } else {
@@ -84,9 +108,45 @@ function createWindow(): void {
   mainWindow.on('closed', () => {
     mainWindow = null
     for (const id of [...runtimes.keys()]) {
-      void disconnect(id)
+      void enqueueSessionOp(id, () => disconnect(id))
     }
   })
+}
+
+/**
+ * Per-session serialization for start/disconnect. Two concurrent startSession
+ * calls for the same id could otherwise both pass the teardown await before
+ * either registers its runtime: the first runtime is overwritten in the map
+ * and its subprocess leaks unfindable by the closed/before-quit cleanup.
+ */
+const sessionOps = new Map<string, Promise<void>>()
+
+function enqueueSessionOp<T>(sessionId: string, op: () => Promise<T>): Promise<T> {
+  const tail = sessionOps.get(sessionId) ?? Promise.resolve()
+  const run = tail.then(op)
+  const settled = run.then(() => undefined, () => undefined)
+  sessionOps.set(sessionId, settled)
+  void settled.then(() => {
+    if (sessionOps.get(sessionId) === settled) sessionOps.delete(sessionId)
+  })
+  return run
+}
+
+/**
+ * Only the app window's own top frame may drive the runtime bridge. Should
+ * foreign content ever reach this renderer (or a child frame), its IPC must
+ * not gain agent start/send — that is arbitrary command execution via the
+ * agent — or full-disk fs browsing.
+ */
+function assertTrustedSender(event: IpcMainInvokeEvent): void {
+  if (
+    !mainWindow ||
+    mainWindow.isDestroyed() ||
+    event.sender !== mainWindow.webContents ||
+    event.senderFrame !== mainWindow.webContents.mainFrame
+  ) {
+    throw new Error('IPC rejected: untrusted sender')
+  }
 }
 
 function resolveProviderOptions(options: StartSessionOptions) {
@@ -207,10 +267,6 @@ async function disconnect(sessionId: string): Promise<void> {
   runtimes.delete(sessionId)
 }
 
-async function disconnectHandler(options: DisconnectOptions): Promise<void> {
-  await disconnect(options.sessionId)
-}
-
 /**
  * Discover the real model list for a provider's compatible API endpoint.
  *
@@ -266,21 +322,35 @@ async function fsBrowse(path?: string): Promise<FsBrowseResult> {
 }
 
 function registerIpc(): void {
-  ipcMain.handle(IPC.START_SESSION, (_event, options: StartSessionOptions) =>
-    startSession(options).catch((err: Error) => ({ ok: false, error: err.message })) as Promise<StartSessionResult>,
-  )
-  ipcMain.handle(IPC.SEND_MESSAGE, (_event, options: SendMessageOptions) =>
-    sendMessage(options))
-  ipcMain.handle(IPC.ABORT, (_event, options: AbortOptions) =>
-    abortTurn(options))
-  ipcMain.handle(IPC.RESPOND_PERMISSION, (_event, options: RespondPermissionOptions) =>
-    respondToPermission(options))
-  ipcMain.handle(IPC.DISCONNECT, (_event, options: DisconnectOptions) =>
-    disconnectHandler(options),
-  )
-  ipcMain.handle(IPC.FS_BROWSE, (_event, path?: string) => fsBrowse(path))
-  ipcMain.handle(IPC.LIST_MODELS, (_event, provider: LocalProvider) =>
-    listModels(provider))
+  ipcMain.handle(IPC.START_SESSION, (event, options: StartSessionOptions) => {
+    assertTrustedSender(event)
+    return enqueueSessionOp(options.sessionId, () => startSession(options))
+      .catch((err: Error) => ({ ok: false, error: err.message })) as Promise<StartSessionResult>
+  })
+  ipcMain.handle(IPC.SEND_MESSAGE, (event, options: SendMessageOptions) => {
+    assertTrustedSender(event)
+    return sendMessage(options)
+  })
+  ipcMain.handle(IPC.ABORT, (event, options: AbortOptions) => {
+    assertTrustedSender(event)
+    return abortTurn(options)
+  })
+  ipcMain.handle(IPC.RESPOND_PERMISSION, (event, options: RespondPermissionOptions) => {
+    assertTrustedSender(event)
+    return respondToPermission(options)
+  })
+  ipcMain.handle(IPC.DISCONNECT, (event, options: DisconnectOptions) => {
+    assertTrustedSender(event)
+    return enqueueSessionOp(options.sessionId, () => disconnect(options.sessionId))
+  })
+  ipcMain.handle(IPC.FS_BROWSE, (event, path?: string) => {
+    assertTrustedSender(event)
+    return fsBrowse(path)
+  })
+  ipcMain.handle(IPC.LIST_MODELS, (event, provider: LocalProvider) => {
+    assertTrustedSender(event)
+    return listModels(provider)
+  })
 }
 
 app.whenReady().then(() => {
@@ -300,6 +370,6 @@ app.on('window-all-closed', () => {
 // Best-effort cleanup of any live runtimes on quit.
 app.on('before-quit', () => {
   for (const id of [...runtimes.keys()]) {
-    void disconnect(id)
+    void enqueueSessionOp(id, () => disconnect(id))
   }
 })

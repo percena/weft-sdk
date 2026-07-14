@@ -89,8 +89,9 @@ export interface CodexModelDiscoveryOptions {
  * Discover the real model list for a Codex (OpenAI-compatible) endpoint.
  *
  * Resolves the active `[model_providers.X]` block's `base_url` + `env_key`,
- * then the API key (`env_key` → `OPENAI_API_KEY` → `~/.codex/auth.json`
- * `OPENAI_API_KEY` where `codex login` stores it for the built-in provider).
+ * then the API key: `env_key` first; `OPENAI_API_KEY` env / `~/.codex/auth.json`
+ * (where `codex login` stores it) only for the built-in OpenAI endpoint —
+ * never for a custom gateway, whose credential is exclusively its `env_key`.
  * No custom provider block means the built-in OpenAI provider — defaults to
  * the real `api.openai.com/v1` so an `OPENAI_API_KEY` user still gets the live
  * `/v1/models` catalog. Codex-CLI oauth login exposes no key → config fallback.
@@ -111,18 +112,25 @@ export async function discoverCodexModels(
 
   const defaultEffort = normalizeReasoningEffort(config.effort)
 
-  // Resolve the API key: provider env_key first, then OPENAI_API_KEY env,
-  // then ~/.codex/auth.json (where `codex login` stores it for the built-in
-  // OpenAI provider).
+  // Resolve the API key: the provider block's env_key first. The
+  // OPENAI_API_KEY / ~/.codex/auth.json fallbacks are the *built-in* OpenAI
+  // provider's credentials and apply only when the endpoint is api.openai.com
+  // (or no custom block exists): a custom [model_providers.X] base_url must
+  // only ever receive its own env_key credential — with that env var unset
+  // (the default for a GUI launch from Finder/Dock), falling through would
+  // send the user's OpenAI key to an unrelated third-party gateway.
+  const builtInBase = !config.baseUrl || /^https:\/\/api\.openai\.com(\/|$)/i.test(config.baseUrl)
   let token = ''
   if (config.envKey) token = env[config.envKey] || ''
-  if (!token) token = env['OPENAI_API_KEY'] || ''
-  if (!token) {
-    try {
-      const auth = JSON.parse(readFileSync(join(codexDir, 'auth.json'), 'utf-8')) as { OPENAI_API_KEY?: string }
-      token = auth.OPENAI_API_KEY ?? ''
-    } catch {
-      // ignore — no auth file
+  if (!token && builtInBase) {
+    token = env['OPENAI_API_KEY'] || ''
+    if (!token) {
+      try {
+        const auth = JSON.parse(readFileSync(join(codexDir, 'auth.json'), 'utf-8')) as { OPENAI_API_KEY?: string }
+        token = auth.OPENAI_API_KEY ?? ''
+      } catch {
+        // ignore — no auth file
+      }
     }
   }
 

@@ -1305,7 +1305,14 @@ export default function App() {
         })
       })
       .catch((err: Error) => {
-        runtimeClientRef.current = null
+        // Full teardown, not just dropping the ref: connect may have succeeded
+        // with only the first send failing, and without disconnect() the
+        // main-process runtime keeps running (burning provider credit) while
+        // the Disconnect button is gone. disconnect() also removes the stale
+        // client's ipcRenderer subscriptions so repeated failed attempts don't
+        // accumulate listeners.
+        client.disconnect()
+        if (runtimeClientRef.current === client) runtimeClientRef.current = null
         setLiveConnected(false)
         setLiveReconnecting(false)
         setLiveError(err.message)

@@ -7,7 +7,7 @@ Weft is an embeddable **agent chat runtime SDK**. Drop a streaming chat panel in
 Ships as two packages:
 
 - **`@percena/weft`** — browser. Production-ready. Powers the agentic-SaaS story below.
-- **`@percena/weft-node`** — desktop/VPS in-process host. Upcoming, not yet production-ready.
+- **`@percena/weft-node`** — desktop/VPS in-process host. Published on npm — see [Desktop with `@percena/weft-node`](#desktop-with-percenaweft-node).
 
 ```
 Your app  ──embed──▶  @percena/weft  ──▶  streaming agent chat panel
@@ -120,7 +120,7 @@ return <TimelineAgentChatPanel runtime={session.runtime} />
 | `@percena/weft/styles` | CSS theme (custom properties) |
 | `@percena/weft/providers/flitro` | Browser embed runtime — connects the chat panel to the hosted Weft control plane (`weftd`); the only runtime the demos ship today |
 
-> Building a desktop or VPS app? `@percena/weft-node` runs the agent in-process — see [Desktop with `@percena/weft-node`](#desktop-with-percenaweft-node) below. (Upcoming, not yet production-ready.)
+> Building a desktop or VPS app? `@percena/weft-node` runs the agent in-process — see [Desktop with `@percena/weft-node`](#desktop-with-percenaweft-node) below.
 
 > **Control-plane dependency.** The browser SDK ships the chat panel, the timeline, and the action-bridge. Its embed runtime (`@percena/weft/providers/flitro`) connects the panel to the **Weft control plane** (`weftd`) — a hosted service operated by Percena that provisions the agent app, mints scoped session tokens, and brokers the LLM run/timeline stream. The control plane (`weftd` / the agent runtime) runs as cloud hosted service; this repository ships the SDK, the two demos, and the `integrate-weft-kit` skill. To run the demos or any embed-runtime integration you register a tenant at the [Weft console](https://weft-kit.dev) — see each demo's `README.md` + `.env.example` for the credentials it expects. The SDK itself (types, timeline, runtime contract, UI, action-bridge) is MIT-licensed and usable independent of the hosted plane.
 
@@ -203,7 +203,31 @@ on the file's blob page.)
 
 For desktop and VPS apps — Electron, Tauri, or a local daemon — `@percena/weft-node` runs the agent in-process: the same chat panel and timeline, but driving Claude (Agent SDK + `claude -p` fallback) or Codex (app-server + `codex exec` fallback) natively, with provider-owned auth and the full extension plane (policy, sources, skills, automations).
 
-> **Upcoming** — not yet published to npm, not production-ready. The browser package (`@percena/weft`) is the production-ready path today. For the runtime contract and provider selection, see [Architecture](docs/ARCHITECTURE.md).
+```bash
+npm install @percena/weft-node react react-dom
+```
+
+`react` / `react-dom` are peer dependencies (React 18.2+ or 19). Add `@anthropic-ai/claude-agent-sdk` only when using the native Claude runtime (`@percena/weft-node/providers/claude/sdk`); Codex-only hosts and the `claude -p` CLI fallback do not require it.
+
+Mount the panel and plug in a local runtime that drives Claude or Codex directly:
+
+```tsx
+import { TimelineAgentChatPanel, useAgentSession } from '@percena/weft-node/chat'
+import { createHostAgentRuntime } from '@percena/weft-node/runtime'
+import '@percena/weft-node/styles'
+
+const { runtime } = createHostAgentRuntime({
+  provider: 'codex',                 // or 'claude'
+  cwd: '/path/to/your/project',
+  candidates: [{ kind: 'app-server', available: true }],
+  auth: { mode: 'provider-owned', configured: true, source: 'codex-app-server' },
+})
+
+const session = useAgentSession({ sessionId: runtime.sessionId, createRuntime: () => runtime })
+return <TimelineAgentChatPanel runtime={session.runtime} />
+```
+
+`@percena/weft-node` exposes the same subpaths as `@percena/weft` (`.`, `./chat`, `./styles`) plus the Node-only surfaces (`./runtime`, `./providers/claude`, `./providers/codex`, `./skills`, `./sources`, `./automations`, `./policy`, `./cli-runtime`). It is **not** browser-safe — it imports `node:child_process` and other Node built-ins; for browser/web apps use [`@percena/weft`](#quick-start) instead. For the runtime contract, provider selection, and auth detection, see [Architecture](docs/ARCHITECTURE.md) + [Getting started — Desktop / Node.js](docs/GETTING-STARTED.md#desktop--nodejs-claude--codex).
 
 ---
 
@@ -299,7 +323,7 @@ Open the local URL and click **Start** to replay canonical timeline fixtures (mo
 
 ## Current Status
 
-**All packages building** · Claude Agent SDK + Codex app-server verified · Hosted control plane operational · `@percena/weft` published on npm; `@percena/weft-node` in prerelease, not yet published
+**All packages building** · Claude Agent SDK + Codex app-server verified · Hosted control plane operational · `@percena/weft` + `@percena/weft-node` published on npm
 
 ### What's Built
 
@@ -315,7 +339,7 @@ Open the local URL and click **Start** to replay canonical timeline fixtures (mo
 - ✅ Two agentic-SaaS reference demos — `apps/online-store` (Node) + `apps/itsm` (Python/FastAPI): classic REST → skill-built agentic, e2e verified
 - ✅ Publishable agent skill `integrate-weft-kit` (`npx skills add percena/weft-sdk`) — turns a classic REST+OpenAPI app into an agentic one via a closed-loop contract
 - ✅ Host services: audit, artifacts, notifications, utility tools, privileged execution
-- ✅ `@percena/weft` (browser) published on npm; `@percena/weft-node` (desktop) in prerelease, not yet published
+- ✅ `@percena/weft` (browser) + `@percena/weft-node` (desktop) published on npm
 - ✅ Node.js runtime (Bun fully removed — `child_process`, `node:http`, `ws`)
 - ✅ pnpm workspace + vitest test suite + tsup build pipeline
 

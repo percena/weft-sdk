@@ -16,8 +16,7 @@ required).
 
 For Node.js / desktop runtimes (Claude Agent SDK, Codex app-server, skills,
 sources, automations), use the companion package `@percena/weft-node` (see
-[the repo](https://github.com/percena/weft-sdk#desktop-with-percenaweft-node)) — *upcoming,
-not yet published on npm; not production-ready*.
+[the repo](https://github.com/percena/weft-sdk#desktop-with-percenaweft-node)).
 
 > **Control-plane dependency.** The browser SDK ships the chat panel, the
 > timeline, and the action-bridge. Its embed runtime

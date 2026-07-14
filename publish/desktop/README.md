@@ -8,9 +8,10 @@ your state machine, and visually replay each call. `@percena/weft-node` is the
 **Node.js / desktop** entry of the [Weft](https://github.com/percena/weft-sdk)
 SDK.
 
-> **Upcoming — not yet production-ready.** The browser package
 > [`@percena/weft`](https://www.npmjs.com/package/@percena/weft) is the
-> production-ready path today.
+> browser-safe, production-ready entry for web apps; `@percena/weft-node` is the
+> Node.js/desktop entry and is **not** browser-safe (it imports `node:child_process`
+> and other Node built-ins).
 
 `@percena/weft-node` ships the same chat panel and timeline types as
 `@percena/weft`, plus the Node-only surfaces: the Claude and Codex provider

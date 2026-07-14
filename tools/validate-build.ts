@@ -3,7 +3,7 @@
  *
  * Verifies that all published packages produce correct dist output:
  * - @percena/weft (browser facade) is ESM-only: .js + .d.ts per entry (no
- *   .cjs/.d.cts since 0.5.0-next.0); @percena/weft-node (desktop facade) is
+ *   .cjs/.d.cts); @percena/weft-node (desktop facade) is
  *   ESM-only too (no .cjs/.d.cts); @weft/* internal packages still ship dual
  *   ESM (.js) + CJS (.cjs) + DTS (.d.ts, .d.cts)
  * - CSS copied for @weft/ui
@@ -70,7 +70,7 @@ const packages: PackageCheck[] = [
       'shared.js', 'shared.cjs', 'shared.d.ts', 'shared.d.cts',
     ] },
 
-  // Publish facades — both ESM-only since 0.5.0-next.0 (no .cjs/.d.cts).
+  // Publish facades — both ESM-only (no .cjs/.d.cts).
   { name: '@percena/weft', dir: 'publish/browser/dist',
     expectedFiles: [
       'index.js', 'index.d.ts',

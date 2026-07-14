@@ -20,8 +20,8 @@ export default defineConfig({
   sourcemap: false,
   // SDK-5: code-split the ESM output so shared @weft/* deps land in shared
   // chunks instead of being duplicated into each of the 11 entries. See
-  // publish/browser/tsup.config.ts for the full rationale. ESM-only since the
-  // 0.5.0-next track (matches @percena/weft): dropping CJS removes the duplicate
+  // publish/browser/tsup.config.ts for the full rationale. ESM-only
+  // (matches @percena/weft): dropping CJS removes the duplicate
   // standalone CJS entries entirely, and Node consumers already use `import`.
   splitting: true,
   noExternal: [/^@weft\//],

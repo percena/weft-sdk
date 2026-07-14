@@ -170,7 +170,7 @@ function ChatPane({ sessionId, createRuntime }) {
 
 ### Desktop / Node.js (Claude / Codex)
 
-> **Upcoming — not yet published.** `@percena/weft-node` is the desktop/VPS in-process host runtime (not on npm, not production-ready). The code below is the intended API for when it ships. For the production-ready browser path today, see [Browser (embed runtime)](#browser-embed-runtime) above.
+> `@percena/weft-node` is the desktop/VPS in-process host runtime, published on npm — install with `npm install @percena/weft-node react react-dom`. For the browser path, see [Browser (embed runtime)](#browser-embed-runtime) above.
 
 ```tsx
 import { useAgentSession, TimelineAgentChatPanel } from '@percena/weft-node/chat'
@@ -226,7 +226,7 @@ await client.sessions.respondToPermission(sessionId, requestId, true)
 
 ## Provider Authentication
 
-Weft uses a **Provider-Owned** authentication strategy — it detects and delegates, never injects third-party credentials. Auth detection is part of `@percena/weft-node` (Node.js only, upcoming — see the note in Pattern 1):
+Weft uses a **Provider-Owned** authentication strategy — it detects and delegates, never injects third-party credentials. Auth detection is part of `@percena/weft-node` (Node.js only — see Pattern 1):
 
 ```tsx
 import { readClaudeAuth, readCodexAuth } from '@percena/weft-node/runtime'

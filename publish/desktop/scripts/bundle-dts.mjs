@@ -3,7 +3,7 @@
  * bundle-dts.mjs
  *
  * Post-processes tsup-generated .d.ts files to inline all @weft/* type
- * declarations. ESM-only since the 0.5.0-next track: tsup emits .d.ts only
+ * declarations. ESM-only: tsup emits .d.ts only
  * (no .d.cts), so the matcher below is a no-op on CJS but kept permissive.
  */
 

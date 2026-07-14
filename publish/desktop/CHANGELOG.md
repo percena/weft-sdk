@@ -1,13 +1,13 @@
 # @percena/weft-node
 
-## 0.4.0
+## 0.1.1
 
 The desktop / Node.js facade — the browser package plus in-process Claude
 (Agent SDK + `claude -p` fallback) and Codex (app-server + `codex exec`
 fallback) providers, skills, sources, automations, and policy.
 
-> **Upcoming** — not yet published to npm, not production-ready. The browser
-> package (`@percena/weft`) is the production-ready path today.
+> **Published on npm** — `0.1.1` stable on the `latest` tag, `0.1.0-next.0`
+> on `next`.
 
 ### Minor
 

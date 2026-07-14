@@ -86,7 +86,7 @@
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.1",
     "@tailwindcss/typography": "^0.5.19",
-    "@types/node": "^22.0.0",
+    "@types/node": "^26.1.1",
     "@types/react": "^19.2.14",
     "@weft/chat": "workspace:*",
     "@weft/core": "workspace:*",
@@ -95,7 +95,7 @@
     "@weft/timeline": "workspace:*",
     "@weft/ui": "workspace:*",
     "dts-bundle-generator": "^9.5.1",
-    "katex": "^0.16.47",
+    "katex": "^0.17.0",
     "tsup": "^8.5.1"
   },
   "keywords": [

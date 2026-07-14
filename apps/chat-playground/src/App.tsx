@@ -20,6 +20,7 @@ import {
 import type { TimelineEnvelope } from '@percena/weft-node'
 import { RuntimeClient, } from './runtime-client'
 import { getDesktopApi } from '../shared/ipc-contract'
+import { getModelOverride } from './demo-overrides'
 import {
   AVAILABLE_LIVE_SOURCES,
   LIVE_FRAMEWORK_OPTIONS,
@@ -1060,9 +1061,12 @@ export default function App() {
     activeLiveSessionRef.current = activeLiveSession ?? null
   }, [activeLiveSession])
 
-  // Discover the real model list for the active provider's compatible API
-  // endpoint (the playground hardcodes no model ids — see electron/main.ts
-  // listModels). Refetched whenever the live session's provider changes.
+  // Resolve the model list + default effort for the active provider. A demo
+  // override (VITE_DEMO_MODELS_<PROVIDER> / VITE_DEMO_EFFORTS_<PROVIDER>) wins
+  // for the picker; otherwise the list falls back to SDK discovery
+  // (listModels → compatible gateway). SDK discovery is still fetched when an
+  // override is set, so the effort picker can default to the SDK-detected
+  // `defaultEffort`. Refetched whenever the live session's provider changes.
   useEffect(() => {
     if (mode !== 'live' || !activeLiveSession) return
     const provider = activeLiveSession.config.provider
@@ -1070,23 +1074,49 @@ export default function App() {
     void (async () => {
       const api = getDesktopApi()
       if (!api) return
+      const modelOverride = getModelOverride(provider)
+      // A demo override's list + default are known without SDK discovery, so
+      // apply them up front: the picker shows the curated list and the first
+      // turn uses the curated default even if discovery later fails. SDK
+      // discovery below only refines the effort default (and is the fallback
+      // when no override is set).
+      if (modelOverride) {
+        setLiveModelOptions(prev => ({ ...prev, [provider]: modelOverride.models }))
+        const current = activeLiveSessionRef.current
+        if (current && current.config.provider === provider) {
+          const currentModel = current.config.model ?? ''
+          const modelInvalid = !currentModel || !modelOverride.models.includes(currentModel)
+          const wantModel = modelInvalid ? (modelOverride.defaultModel ?? '') : currentModel
+          if (wantModel !== currentModel) {
+            setLiveStore(prev => updateLiveSession(prev, current.id, session => ({
+              ...session,
+              config: { ...session.config, model: wantModel },
+            })))
+          }
+        }
+      }
       try {
         const result = await api.listModels(provider)
         if (cancelled) return
-        setLiveModelOptions(prev => ({ ...prev, [provider]: result.models }))
+        // Picker list: demo override wins, else SDK-discovered models.
+        const pickerModels = modelOverride?.models ?? result.models
+        setLiveModelOptions(prev => ({ ...prev, [provider]: pickerModels }))
         // Default the picker to the user's currently-active model + effort
         // rather than a generic "Default". On first load (model/effort unset)
-        // or when a stale persisted model id isn't in the endpoint's real list,
-        // fall back to the provider's active default (ANTHROPIC_MODEL /
-        // config.toml `model` / CLAUDE_CODE_EFFORT_LEVEL / config effort).
+        // or when a stale persisted model id isn't in the picker list, fall
+        // back to the demo override default, else the SDK default model
+        // (ANTHROPIC_MODEL / config.toml `model` / CLAUDE_CODE_EFFORT_LEVEL /
+        // config effort). When an override is set this is idempotent — the
+        // override default was already applied above.
         const current = activeLiveSessionRef.current
         if (!current || current.config.provider !== provider) return
         const currentModel = current.config.model ?? ''
-        const modelInvalid = !currentModel || !result.models.includes(currentModel)
+        const modelInvalid = !currentModel || !pickerModels.includes(currentModel)
+        const fallbackModel = modelOverride?.defaultModel ?? result.defaultModel
         const wantModel = modelInvalid
-          ? (result.defaultModel && result.models.includes(result.defaultModel)
-            ? result.defaultModel
-            : (result.models[0] ?? ''))
+          ? (fallbackModel && pickerModels.includes(fallbackModel)
+            ? fallbackModel
+            : (pickerModels[0] ?? ''))
           : currentModel
         const currentEffort = current.config.reasoningEffort
         const wantEffort = (currentEffort == null && result.defaultEffort
@@ -1104,7 +1134,9 @@ export default function App() {
           })))
         }
       } catch {
-        // discovery failed — picker stays empty; turns still send the model
+        // discovery failed — the demo override (if set) was applied above and
+        // stays in the picker; otherwise the picker stays empty. Turns still
+        // send the active model.
       }
     })()
     return () => { cancelled = true }

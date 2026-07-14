@@ -3,6 +3,7 @@ import type { PermissionMode } from '@percena/weft-node'
 import type { TimelineEnvelope } from '@percena/weft-node'
 import { createRuntimeClientState } from './runtime-client'
 import { isChatTranscriptTimelineEnvelope } from './timeline-transcript'
+import { getEffortOverride } from './demo-overrides'
 
 export type LiveProvider = 'claude' | 'codex'
 export type ReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max'
@@ -61,11 +62,14 @@ export const AVAILABLE_LIVE_SOURCES: LiveSource[] = [
 ]
 
 /**
- * Model ids are NOT hardcoded: a compatible Anthropic/OpenAI endpoint serves
- * whatever the gateway exposes (e.g. glm-5.2, deepseek-v4-flash, qwen3-max),
- * not the official catalog. The picker is populated at runtime by
- * `window.weftDesktop.listModels(provider)` (see electron/main.ts); an empty
- * model string means "send no model — let the SDK use its configured default".
+ * Model ids are NOT hardcoded by default: a compatible Anthropic/OpenAI
+ * endpoint serves whatever the gateway exposes (e.g. glm-5.2,
+ * deepseek-v4-flash, qwen3-max), not the official catalog. The picker is
+ * populated at runtime by `window.weftDesktop.listModels(provider)` (see
+ * electron/main.ts); an empty model string means "send no model — let the SDK
+ * use its configured default". A fork may override the list per-provider via
+ * `VITE_DEMO_MODELS_<PROVIDER>` env (see demo-overrides.ts); when set, the
+ * override list is shown and SDK discovery is used only for the effort default.
  */
 export const REASONING_EFFORT_OPTIONS: Record<LiveProvider, Array<{ effort: ReasoningEffort; label: string }>> = {
   codex: [
@@ -92,8 +96,8 @@ export function getLiveFrameworkLabel(provider: LiveProvider): string {
   return LIVE_FRAMEWORK_OPTIONS.find(option => option.provider === provider)?.label ?? provider
 }
 
-export function getReasoningEffortOptions(provider: LiveProvider): Array<{ effort: ReasoningEffort; label: string }> {
-  return REASONING_EFFORT_OPTIONS[provider]
+export function getReasoningEffortOptions(provider: LiveProvider): Array<{ effort: string; label: string }> {
+  return getEffortOverride(provider) ?? REASONING_EFFORT_OPTIONS[provider]
 }
 
 export function defaultLiveSessionConfig(overrides: Partial<LiveSessionConfig> = {}): LiveSessionConfig {
@@ -102,7 +106,7 @@ export function defaultLiveSessionConfig(overrides: Partial<LiveSessionConfig> =
   // (App.tsx) with the user's currently-active model/effort for this provider's
   // compatible endpoint. Empty here just means "not yet discovered".
   const model = overrides.model ?? ''
-  const allowedEfforts = new Set(REASONING_EFFORT_OPTIONS[provider].map(option => option.effort))
+  const allowedEfforts = new Set(getReasoningEffortOptions(provider).map(option => option.effort))
   return {
     provider,
     model,

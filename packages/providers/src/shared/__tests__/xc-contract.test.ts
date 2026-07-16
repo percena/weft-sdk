@@ -308,7 +308,7 @@ describe('SDK-R-2 — replayed tool_suspended is re-fired on armReplay (the relo
     // Server restart (E2); the replay includes a tool_suspended with NO matching
     // tool_resumed/tool_result later in the replay. Pre-SDK-R-2, the replayed
     // tool_suspended is suppressed and never re-fired → the run wedges until
-    // Flitro's 2h sweeper.
+    // the server-side suspension timeout (~2h).
     const replay = [
       delta('E2', 1),
       toolSuspended('E2', 2, 'call-1'),

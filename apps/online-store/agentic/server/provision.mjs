@@ -27,7 +27,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
  * Formula: for every operationId across all paths/methods in the spec,
  *   `shop_${operationId}`.toLowerCase().
  *
- * flitro's toolVisibleForRun is fail-closed on an empty allowlist — the skill
+ * the runtime's tool visibility is fail-closed on an empty allowlist — the skill
  * must list these shop_* names for the named-toolset tools to be visible
  * to the LLM. plan_route is a runtime internal tool (always visible, no
  * listing).
@@ -138,7 +138,7 @@ export function createProvisioning({ weftdBase, apiKey, tenantId, shopPort, syst
     const appBase = `/v1/tenants/${tenantCtx.tenantId}/apps/${app.app_id}`
 
     // The named toolset provides the shop_* tools, but flitro's
-    // toolVisibleForRun is fail-closed on an empty allowlist — so the skill must
+    // tool visibility is fail-closed on an empty allowlist — so the skill must
     // list the shop_* names (derived from the spec's operationIds) for
     // them to be visible to the LLM. plan_route is a runtime internal tool
     // (always visible, no listing needed).

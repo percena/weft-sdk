@@ -70,7 +70,11 @@ export async function waitForHttp(url, { name = url, timeoutMs = 20000, interval
  */
 export function startShopStack({ shopPort, stdio = "drain", onExit } = {}) {
   const env = loadEnv();
-  const weftdBase = (env.WEFTD_BASE || process.env.WEFTD_BASE || "http://127.0.0.1:18095").replace(/\/$/, "");
+  const rawWeftdBase = env.WEFTD_BASE || process.env.WEFTD_BASE;
+  if (!rawWeftdBase) {
+    throw new Error("WEFTD_BASE is not set — point it at your weftd endpoint (see .env.example)");
+  }
+  const weftdBase = rawWeftdBase.replace(/\/$/, "");
   const apiKey = env.WEFT_API_KEY || process.env.WEFT_API_KEY || "online-store-key";
   const tenantId = env.WEFT_TENANT_ID || process.env.WEFT_TENANT_ID || "";
 

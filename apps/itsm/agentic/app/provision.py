@@ -28,7 +28,7 @@ _HTTP_METHODS = {"get", "post", "put", "patch", "delete", "head", "options"}
 def derive_tool_names(spec: dict, toolset: str) -> list[str]:
     """Fail-closed allowlist: ``<toolset>_<operationId>``.lower() per operationId.
 
-    flitro's toolVisibleForRun is fail-closed on an empty allowlist — these
+    the runtime's tool visibility is fail-closed on an empty allowlist — these
     ``<toolset>_*`` names must be listed for the named-toolset tools to be
     visible to the LLM. ``plan_route`` is runtime-internal, never listed.
     """

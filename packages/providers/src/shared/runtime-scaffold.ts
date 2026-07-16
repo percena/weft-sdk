@@ -163,7 +163,8 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
   // tool_resumed/tool_result later in the SAME replay. On `armReplay()` these
   // are re-fired via onToolSuspended so a page reload while a run sat in
   // Flitro's Suspended state still resumes the run (otherwise the replayed
-  // tool_suspended is suppressed and the run wedges until Flitro's 2h sweeper).
+  // tool_suspended is suppressed and the run wedges until the server-side
+  // suspension timeout, ~2h).
   // Keyed by callId; cleared by tool_resumed/tool_result with the same callId,
   // and reset wholesale on epoch rotation (a new replay batch starts fresh).
   const replaySuspended = new Map<string, Extract<TimelineItem, { type: 'tool_suspended' }>>()
@@ -501,7 +502,7 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
   // the replay that were never resolved by a matching tool_resumed/tool_result
   // later in the SAME replay. A page reload while a run sat in Flitro's
   // Suspended state replays the tool_suspended item; without this re-fire the
-  // run wedges until Flitro's 2h suspended_timeout sweeper. Idempotent on the
+  // run wedges until the server-side suspension timeout (~2h). Idempotent on the
   // Flitro side: submitToolOutputs for an already-resumed call is rejected
   // harmlessly. Also drain queued messages if the reconciled status is `ready`
   // and the queue is non-empty — a live turn_completed that arrived during the

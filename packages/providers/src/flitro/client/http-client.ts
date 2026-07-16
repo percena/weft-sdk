@@ -132,6 +132,33 @@ export interface WeftTimelineFetchResult {
   hasGap: boolean
 }
 
+/**
+ * Typed error for non-2xx weftd responses. `code` is weftd's stable
+ * machine-readable category when the error body carried one — branch on it
+ * instead of parsing `message` (which stays in the legacy
+ * `Weft HTTP <status>[: <detail>]` format for backward compatibility).
+ *
+ * Notable codes:
+ * - `llm_connection_unusable` (HTTP 409) — the tenant's LLM connection needs
+ *   attention in the console; terminal until the user fixes it (retrying the
+ *   run will keep failing).
+ * - `credential_refresh_required` (HTTP 401) — the session credential
+ *   expired; normally consumed by the built-in onTokenExpired retry.
+ */
+export class WeftHttpError extends Error {
+  readonly status: number
+  readonly code?: string
+  readonly detail?: string
+
+  constructor(status: number, message: string, opts: { code?: string; detail?: string } = {}) {
+    super(message)
+    this.name = 'WeftHttpError'
+    this.status = status
+    this.code = opts.code
+    this.detail = opts.detail
+  }
+}
+
 export class WeftHttpClient {
   private readonly baseUrl: string
   private readonly timeout: number
@@ -380,15 +407,33 @@ export class WeftHttpClient {
 
       if (!response.ok) {
         let errorMsg = `Weft HTTP ${response.status}`
+        let code: string | undefined
+        let detail: string | undefined
         try {
-          // weftd emits an RFC 9457-inspired nested error: {"error":{"type","message"}}
-          const errBody = await response.json() as { error?: string | { message?: string } }
-          const detail = typeof errBody.error === 'string' ? errBody.error : errBody.error?.message
-          if (detail) errorMsg = `${errorMsg}: ${detail}`
+          // weftd emits an RFC 9457-inspired nested error
+          // {"error":{"type","code","message"}} — `code` is the stable
+          // machine-readable category (e.g. `llm_connection_unusable`). One
+          // legacy shape stays FLAT: {"error":"credential_refresh_required",
+          // "message":...} — there the string error value IS the code.
+          const errBody = await response.json() as {
+            error?: string | { code?: string; message?: string }
+            message?: string
+          }
+          if (typeof errBody.error === 'string') {
+            code = errBody.error
+            detail = errBody.message
+          } else if (errBody.error) {
+            code = errBody.error.code
+            detail = errBody.error.message
+          }
+          // Message stays byte-compatible with the pre-WeftHttpError format
+          // (flat shape appends the code, nested appends the message).
+          const legacyDetail = typeof errBody.error === 'string' ? errBody.error : errBody.error?.message
+          if (legacyDetail) errorMsg = `${errorMsg}: ${legacyDetail}`
         } catch {
-          // ignore parse error
+          // non-JSON error body — no code/detail, status-only error
         }
-        throw new Error(errorMsg)
+        throw new WeftHttpError(response.status, errorMsg, { code, detail })
       }
 
       return response.json() as Promise<T>

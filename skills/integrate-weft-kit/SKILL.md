@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Requires @percena/weft ^1.0.1, a REST API with an OpenAPI/swagger spec, Node 20+ or Python 3.11+, and a Weft control-plane (weftd) tenant provisioned at https://weft-kit.dev."
 metadata:
   author: percena
-  version: "1.0.2"
+  version: "1.0.3"
   min-weft-sdk: "1.0.1"
   source: https://github.com/percena/weft-sdk/tree/main/skills/integrate-weft-kit
   changelog: https://github.com/percena/weft-sdk/blob/main/skills/integrate-weft-kit/CHANGELOG.md
@@ -167,7 +167,7 @@ For a **Python/FastAPI** backend, use `templates/python/` instead of the Node `.
 - **`run.mjs` conflates `vite build` + serve.** For Python, `run.py` does `assert_weftd_creds` + `uvicorn` ONLY (the frontend build is a separate step; chain both in your start script).
 - **The Node listener-wrap DISSOLVES on a router-based backend.** `wireSessionRoutes` wraps `server.listeners('request')[0]` (a Node http artifact). On FastAPI (or any router framework), session routes are an `APIRouter` included via `app.include_router` — no listener surgery, no per-route CORS (the app-level `CORSMiddleware` covers it).
 - **FastAPI's auto-openapi has NO `servers` field.** flitro rejects the toolset PUT ("no base URL in spec or config") if neither the spec's `servers` nor the toolset `base_url` is non-empty. Set `servers=[{"url": "http://127.0.0.1:<port>"}]` in the `FastAPI()` constructor (cosmetic for `execution:client` — `base_url:""` is used for resolution; it just needs to exist).
-- **The analyzer's shared-field edges can cycle.** On a rich-schema API, the analyzer may infer edges on every shared field (`status`/`assignee`/`title`/…) → hundreds of edges → data-flow cycles → flitro's graph VALIDATION rejects them. **Fix:** provisioning gracefully skips the graph on validate-failure (fail-open — the agent uses the system prompt + the reactive 409, not the graph).
+- **The analyzer's shared-field edges can cycle.** On a rich-schema API, the analyzer may infer edges on every shared field (`status`/`assignee`/`title`/…) → hundreds of edges → data-flow cycles → the graph publish validation rejects them. **Fix:** provisioning gracefully skips the graph on validate-failure (fail-open — the agent uses the system prompt + the reactive 409, not the graph).
 - **The analyzer matches path params to response fields by NAME.** Prefer `{id}` path params when practical, or accept that the graph may be sparse (fail-open makes this non-blocking — the agent still works).
 - **Per-page `ActionReplayLayer` + multi-tab UX.** On a multi-tab app, a per-page `ActionReplayLayer` + a scoped `toActionEvent` means cross-tab events are **ignored**. Prefer a global listener in the shell that **auto-switches to the event's tab** on agent events (so the automated live cursor shows on the correct board).
 - **Python `CORSMiddleware` `["*"]` + `allow_credentials=True` reflects any origin with credentials.** Fixed pattern: empty allowlist → `["*"]` WITHOUT credentials; set → explicit allowlist WITH credentials. NEVER combine `["*"]` + `allow_credentials=True`.
@@ -229,6 +229,7 @@ Classic bug: the analyzer marks all create→mutate edges `required:true`, so th
 - **Proactive token timers** → refresh is 401-triggered via `onTokenExpired`; wire it to `/api/chat/session/:id/token`.
 - **Shipping `WEFT_API_KEY` to the browser** → all tenant-key calls are server-side only.
 - **`EADDRINUSE: address already in use`** → a prior server left an orphaned process. Free the port, then restart.
+- **`Weft HTTP 409` with code `llm_connection_unusable`** → the tenant's LLM connection (BYOK key / subscription) exists but is unusable — it must be fixed in the Weft console (re-connect the subscription or replace the key). Terminal until the user acts: retrying the run keeps failing with the same 409. The SDK surfaces this as a `WeftHttpError` with `code === 'llm_connection_unusable'` — branch on the code, not the message.
 - **`Weft HTTP 502: weftd proxy failed: …socket disconnected before secure TLS connection was established`** → known transient reverse-proxy TLS-handshake drop. NOT usually application code. Reload/resend; if frequent, check reverse-proxy keepalive/load.
 - **`/v1` proxy hangs / chat shows "Not connected" (but the run still works via polling)** → the SDK may fall back to polling when the SSE stream fails, so a **broken SSE proxy can still pass a green functional loop**. Assert the status-bar reads **"Connected"** as part of Cat 1. Concrete proxy bugs: (1) Node `http`/`https` can't reach an h2-over-ALPN edge — use `fetch` (undici); (2) `res.writeHead` without `res.flushHeaders()` buffers headers on idle SSE — call `flushHeaders()`; (3) forwarding upstream `transfer-encoding`/`connection`/`content-length` breaks framing — forward only a safe header subset and force `accept-encoding: identity`; (4) retry must be narrowed to pre-handshake cause codes, not a blanket `TypeError: fetch failed` (mid-stream retry re-sends non-idempotent POSTs).
 - **Chat prompts on every write tool** → the panel defaults to permission mode `ask`. For unattended/e2e runs set `Auto`/execute (or approve prompts) so writes proceed.

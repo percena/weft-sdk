@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { afterEach, describe, expect, test } from 'vitest'
 
-import { WeftHttpClient } from './http-client.ts'
+import { WeftHttpClient, WeftHttpError } from './http-client.ts'
 
 const servers: Array<ReturnType<typeof createServer>> = []
 
@@ -88,7 +88,69 @@ describe('WeftHttpClient', () => {
     expect(result.defaultModel).toBe('glm-5.2')
     expect(result.defaultEffort).toBe('high')
   })
+
+  test('throws WeftHttpError with the stable code from the nested error envelope (409 llm_connection_unusable)', async () => {
+    const server = createServer((_req, res) => {
+      writeJson(res, 409, {
+        error: {
+          type: 'error',
+          code: 'llm_connection_unusable',
+          message: 'connection "Claude Max" is unusable — re-connect it in the console',
+        },
+      })
+    })
+    servers.push(server)
+    const baseUrl = await listen(server)
+    const client = new WeftHttpClient({ baseUrl })
+
+    const error = await client.createRun('session-1', 'hi').catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(WeftHttpError)
+    const weftError = error as WeftHttpError
+    expect(weftError.status).toBe(409)
+    expect(weftError.code).toBe('llm_connection_unusable')
+    expect(weftError.detail).toContain('re-connect it in the console')
+    // Message format stays backward compatible for string-matching consumers.
+    expect(weftError.message).toBe('Weft HTTP 409: connection "Claude Max" is unusable — re-connect it in the console')
+  })
+
+  test('parses the flat legacy shape (error string IS the code)', async () => {
+    const server = createServer((_req, res) => {
+      writeJson(res, 401, {
+        error: 'credential_refresh_required',
+        message: 'session credential has expired; refresh the embed token with a new credential',
+      })
+    })
+    servers.push(server)
+    const baseUrl = await listen(server)
+    const client = new WeftHttpClient({ baseUrl })
+
+    const error = await client.createRun('session-1', 'hi').catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(WeftHttpError)
+    const weftError = error as WeftHttpError
+    expect(weftError.status).toBe(401)
+    expect(weftError.code).toBe('credential_refresh_required')
+    expect(weftError.detail).toContain('refresh the embed token')
+    expect(weftError.message).toBe('Weft HTTP 401: credential_refresh_required')
+  })
+
+  test('falls back to a status-only WeftHttpError on a non-JSON error body', async () => {
+    const server = createServer((_req, res) => {
+      res.writeHead(502, { 'Content-Type': 'text/plain' })
+      res.end('bad gateway')
+    })
+    servers.push(server)
+    const baseUrl = await listen(server)
+    const client = new WeftHttpClient({ baseUrl })
+
+    const error = await client.createRun('session-1', 'hi').catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(WeftHttpError)
+    const weftError = error as WeftHttpError
+    expect(weftError.status).toBe(502)
+    expect(weftError.code).toBeUndefined()
+    expect(weftError.message).toBe('Weft HTTP 502')
+  })
 })
+
 
 async function listen(server: ReturnType<typeof createServer>): Promise<string> {
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))

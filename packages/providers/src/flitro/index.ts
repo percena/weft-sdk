@@ -53,6 +53,7 @@ import { createTimelineStream } from './client/index.ts'
 export {
   WeftClient,
   WeftHttpClient,
+  WeftHttpError,
   // session contract: WeftSseTimelineStream (bearer-token-in-URL constructor) is
   // intentionally NOT re-exported — instantiating it directly bakes the session
   // token into a URL (logs/proxies leak it). The public path is WeftClient.subscribe

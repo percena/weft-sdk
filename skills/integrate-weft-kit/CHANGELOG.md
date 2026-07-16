@@ -5,6 +5,18 @@ The skill follows [semantic versioning](https://semver.org/) independently of th
 `@percena/weft` SDK; `metadata.min-weft-sdk` (in `SKILL.md` frontmatter) declares the
 minimum SDK version assumed.
 
+## [1.0.3] — 2026-07-16
+
+### Added
+- **Common Mistakes**: `Weft HTTP 409` with code `llm_connection_unusable` — the tenant's LLM connection needs attention in the Weft console; terminal until the user acts (retrying keeps failing). The SDK now raises a typed `WeftHttpError` with a stable `code` field — branch on the code, not the message.
+
+### Changed
+- Backend behavior wording is now expressed as integrator-observable behavior ("the runtime's tool visibility is fail-closed on an empty allowlist", "the graph publish validation rejects data-flow cycles") instead of internal implementation attribution. No contract change.
+- `apps/online-store` demo: `WEFTD_BASE` no longer has a hardcoded local fallback — unset now fails fast with a clear error (matches the README, which already documented it as required).
+
+### Notes
+- Contract (§1-9) + placeholder set unchanged → patch bump.
+
 ## [1.0.2] — 2026-07-14
 
 ### Added

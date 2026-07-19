@@ -119,7 +119,7 @@ describe('runtime-scaffold — epoch rotation on restart (C6)', () => {
     await scaffold.preflight()
     const capBefore = scaffold.timeline.find(e => e.item.type === 'runtime_capability_report')
     expect(capBefore).toBeTruthy()
-    expect(capBefore!.seq).toBe(0)
+    expect(capBefore?.seq).toBe(0)
 
     scaffold.appendEnvelope(serverEnvelope('flitro-s1-boot1', 1))
     scaffold.appendEnvelope(serverEnvelope('flitro-s1-boot1', 2))
@@ -317,7 +317,62 @@ describe('runtime-scaffold — session contract send_message from failed', () =>
     expect(scaffold.getState().lastError).toBe(thrown.message)
     const failure = scaffold.timeline.find(e => e.item.type === 'turn_failed')
     expect(failure).toBeTruthy()
-    expect(failure!.item).toMatchObject({
+    expect(failure?.item).toMatchObject({
+      type: 'turn_failed',
+      error: {
+        message: thrown.message,
+        code: 'llm_connection_unusable',
+        status: 409,
+      },
+    })
+  })
+
+  it('deferred: a locally queued send resolves before drain and reports a later typed failure through the timeline', async () => {
+    const thrown = Object.assign(
+      new Error('Weft HTTP 409: connection "Claude Max" is unusable — re-connect it in the console'),
+      { code: 'llm_connection_unusable', status: 409 },
+    )
+    const onMessageDrained = vi.fn(async (input: { message: string }) => {
+      if (input.message === 'second') throw thrown
+    })
+    const scaffold = createProviderRuntimeScaffold({
+      provider: 'flitro',
+      sessionId: 's1',
+      epoch: 'e1',
+      report,
+      completion: 'deferred',
+      dedup: true,
+      getDriver: () => ({ sendMessage: vi.fn(async () => {}) }),
+      onMessageDrained,
+    })
+    scaffold.dispatch({ type: 'preflight_ok' })
+
+    await scaffold.commands.sendMessage('first')
+    await expect(scaffold.commands.sendMessage('second')).resolves.toBeUndefined()
+
+    // The second message was accepted into the local queue, not sent yet.
+    expect(onMessageDrained).toHaveBeenCalledTimes(1)
+    expect(scaffold.getState()).toMatchObject({
+      status: 'running',
+      queuedMessages: ['second'],
+    })
+
+    // Completing the active turn drains the queued send. Its public promise is
+    // already settled, so the later server-accept failure belongs to timeline
+    // + state rather than an unhandled rejection.
+    scaffold.appendEnvelope({
+      sessionId: 's1',
+      provider: 'flitro',
+      seq: 1,
+      epoch: 'e1',
+      timestamp: 0,
+      item: { type: 'turn_completed', turnId: 'turn-1' },
+    })
+
+    await vi.waitFor(() => expect(onMessageDrained).toHaveBeenCalledTimes(2))
+    expect(scaffold.getState().status).toBe('failed')
+    const failure = scaffold.timeline.find(e => e.item.type === 'turn_failed')
+    expect(failure?.item).toMatchObject({
       type: 'turn_failed',
       error: {
         message: thrown.message,

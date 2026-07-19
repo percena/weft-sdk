@@ -8,7 +8,6 @@
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": [
-    "@percena/weft-node",
     "@weft/e2e-tests",
     "@weft/core",
     "@weft/timeline",

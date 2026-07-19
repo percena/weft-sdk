@@ -378,7 +378,9 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
 
   function drainOnCompletion(): void {
     // `complete` advances a queued message to accepted + running (if any), then
-    // we actually send it. Fire-and-forget — the host's send owns error surfacing.
+    // we actually send it. The original sendMessage promise resolved when the
+    // runtime accepted it into the local queue, so a later drain failure is
+    // surfaced through runtime state + the turn_failed timeline item.
     dispatch({ type: 'complete' })
     if (state.status === 'failed' || state.status === 'disposed') return
     const next = pendingQueue.shift()
@@ -388,8 +390,9 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
   /** A2: eager-mode queue drain. The caller has already dispatched `complete`
    *  (which promoted the queued message to accepted + running in the reducer);
    *  this sends the parked input and chains the next drain on resolve.
-   *  Fire-and-forget relative to the original `sendMessage` promise — each
-   *  send's promise semantics stay "resolves when its own turn completes".
+   *  Fire-and-forget relative to the original `sendMessage` promise: an input
+   *  accepted into this local queue already resolved at enqueue time, while an
+   *  immediately-started eager send resolves when its own turn completes.
    *  Stops draining on failure (state is `failed`; the user must retry). */
   function drainEagerQueue(): void {
     const next = pendingQueue.shift()
@@ -482,10 +485,11 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
    * Drain one deferred-mode input to the driver. On failure, always update
    * state + append a turn_failed (with structured code/status when present).
    *
-   * `rethrow: true` (the public `sendMessage` path) propagates the original
-   * error so host try/catch can branch on typed fields (e.g. WeftHttpError.code).
-   * Fire-and-forget drains (queue follow-ups) leave `rethrow` off so a rejected
-   * promise does not become an unhandled rejection.
+   * `rethrow: true` (the immediately-drained public `sendMessage` path)
+   * propagates the original error so host try/catch can branch on typed fields
+   * (e.g. WeftHttpError.code). Fire-and-forget queue drains leave `rethrow` off:
+   * their public promise already resolved on local queue acceptance, so later
+   * failures are reported through state + timeline instead.
    */
   async function sendDrained(
     input: ProviderRuntimeDriverInput,
@@ -596,9 +600,9 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
             pendingQueue.push(input)
             return
           }
-          // Rethrow so host try/catch (chat panel setError, integrator handlers)
-          // receives the original error object — including WeftHttpError.code —
-          // rather than only the string lastError/turn_failed message.
+          // This message is draining immediately (not entering pendingQueue), so
+          // rethrow for host try/catch (chat panel setError, integrator handlers)
+          // to receive the original error object, including WeftHttpError.code.
           await sendDrained(input, { rethrow: true })
           return
         }

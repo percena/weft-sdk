@@ -25,6 +25,19 @@ _APP_ROOT = _HERE.parent  # apps/itsm/agentic/
 _HTTP_METHODS = {"get", "post", "put", "patch", "delete", "head", "options"}
 
 
+class WeftdApiError(RuntimeError):
+    """weftd HTTP error. ``code`` carries the stable machine-readable category
+    when the error envelope had one (e.g. ``llm_connection_unusable``) —
+    branch on it instead of parsing the message. Mirrors the Node template's
+    ``err.code`` / ``err.status``. Subclasses ``RuntimeError`` so existing
+    ``except RuntimeError`` handling keeps working."""
+
+    def __init__(self, message: str, *, code: str | None = None, status: int | None = None):
+        super().__init__(message)
+        self.code = code
+        self.status = status
+
+
 def derive_tool_names(spec: dict, toolset: str) -> list[str]:
     """Fail-closed allowlist: ``<toolset>_<operationId>``.lower() per operationId.
 
@@ -76,24 +89,29 @@ class Provisioning:
         def _do() -> dict:
             resp = self._client.request(method, f"{self.weftd_base}{path}", json=body)
             if resp.status_code >= 400:
+                code = None
                 try:
                     # Named err_body (not body) so we don't shadow the request
                     # payload param — assigning to `body` would make it local for
                     # the whole _do and UnboundLocalError on json=body above.
                     err_body = resp.json()
                     err = err_body.get("error")
-                    # Nested: {"error":{"type","code","message"}} — prefer message.
+                    # Nested: {"error":{"type","code","message"}} — prefer message,
+                    # keep code for branching.
                     # Flat legacy: {"error":"<code>","message":"…"} (string error IS the code).
                     # Never str() a dict (→ "{'code': …}" noise / unmatchable text).
                     if isinstance(err, dict):
-                        msg = err.get("message") or err.get("code") or f"HTTP {resp.status_code}"
+                        raw_code = err.get("code")
+                        code = raw_code if isinstance(raw_code, str) else None
+                        msg = err.get("message") or raw_code or f"HTTP {resp.status_code}"
                     elif isinstance(err, str):
+                        code = err
                         msg = err_body.get("message") or err
                     else:
                         msg = err_body.get("message") or f"HTTP {resp.status_code}"
                 except Exception:
                     msg = f"HTTP {resp.status_code}"
-                raise RuntimeError(f"{msg} ({method} {path})")
+                raise WeftdApiError(f"{msg} ({method} {path})", code=code, status=resp.status_code)
             return resp.json() if resp.content else {}
         try:
             return _do()

@@ -14,6 +14,7 @@ minimum SDK version assumed.
 - Backend behavior wording is now expressed as integrator-observable behavior ("the runtime's tool visibility is fail-closed on an empty allowlist", "the graph publish validation rejects data-flow cycles") instead of internal implementation attribution. No contract change.
 - `apps/online-store` demo: `WEFTD_BASE` no longer has a hardcoded local fallback — unset now fails fast with a clear error (matches the README, which already documented it as required).
 - Provisioning `weftdAPI` / `weftd_api` unwraps nested weftd `{error:{code,message}}` envelopes (and the flat legacy string-error shape) so logs no longer collapse to `[object Object]` / dict-repr.
+- Python `weftd_api` now raises `WeftdApiError` (a `RuntimeError` subclass) carrying `code` / `status`, matching the Node template's `err.code` / `err.status` — both language templates expose the stable weftd code for branching.
 
 ### Notes
 - Contract (§1-9) + placeholder set unchanged → patch bump.

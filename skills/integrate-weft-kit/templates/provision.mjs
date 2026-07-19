@@ -91,9 +91,25 @@ export function createProvisioning({ weftdBase, apiKey, tenantId, shopPort, syst
       }).then(async (res) => {
         if (!res.ok) {
           let msg = `HTTP ${res.status}`
-          try { const e = await res.json(); if (e.error) msg = e.error } catch {}
+          let code
+          try {
+            // weftd nested: {"error":{"type","code","message"}} — prefer message,
+            // keep code for logs. Flat legacy: {"error":"<code>","message":"…"}
+            // (string error IS the code). Never assign an object to msg (→ "[object Object]").
+            const e = await res.json()
+            if (typeof e?.error === 'string') {
+              code = e.error
+              msg = e.message || e.error
+            } else if (e?.error && typeof e.error === 'object') {
+              code = typeof e.error.code === 'string' ? e.error.code : undefined
+              msg = e.error.message || code || msg
+            } else if (typeof e?.message === 'string') {
+              msg = e.message
+            }
+          } catch {}
           const err = new Error(msg)
           err.status = res.status
+          if (code) err.code = code
           throw err
         }
         return res.json()
@@ -129,7 +145,7 @@ export function createProvisioning({ weftdBase, apiKey, tenantId, shopPort, syst
     tenantCtx.appId = app.app_id
     const appBase = `/v1/tenants/${tenantCtx.tenantId}/apps/${app.app_id}`
 
-    // The named toolset provides the {{toolset}}_* tools, but flitro's
+    // The named toolset provides the {{toolset}}_* tools, but the runtime's
     // tool visibility is fail-closed on an empty allowlist — so the skill must
     // list the {{toolset}}_* names (derived from the spec's operationIds) for
     // them to be visible to the LLM. plan_route is a runtime internal tool
@@ -137,7 +153,7 @@ export function createProvisioning({ weftdBase, apiKey, tenantId, shopPort, syst
     const specText = await readFile(join(__dirname, '..', '{{specPath}}'), 'utf8')
     const toolsetSpec = JSON.parse(specText)
     // Fail-closed tool_names allowlist: every {{toolset}}_<operationId>.toLowerCase()
-    // derived from the spec. flitro hides tools not listed here.
+    // derived from the spec. tools not listed here stay hidden.
     const toolNames = deriveToolNames(toolsetSpec)
     const skillPayload = {
       tool_names: toolNames,

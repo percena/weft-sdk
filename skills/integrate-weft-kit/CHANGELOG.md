@@ -8,11 +8,12 @@ minimum SDK version assumed.
 ## [1.0.3] — 2026-07-16
 
 ### Added
-- **Common Mistakes**: `Weft HTTP 409` with code `llm_connection_unusable` — the tenant's LLM connection needs attention in the Weft console; terminal until the user acts (retrying keeps failing). The SDK now raises a typed `WeftHttpError` with a stable `code` field — branch on the code, not the message.
+- **Common Mistakes**: `Weft HTTP 409` / `llm_connection_unusable` — the tenant's LLM connection needs attention in the Weft console; terminal until the user acts (retrying keeps failing). Match the message substring on published SDKs; when the SDK exports `WeftHttpError`, prefer `error.code` (or `turn_failed.error.code`).
 
 ### Changed
 - Backend behavior wording is now expressed as integrator-observable behavior ("the runtime's tool visibility is fail-closed on an empty allowlist", "the graph publish validation rejects data-flow cycles") instead of internal implementation attribution. No contract change.
 - `apps/online-store` demo: `WEFTD_BASE` no longer has a hardcoded local fallback — unset now fails fast with a clear error (matches the README, which already documented it as required).
+- Provisioning `weftdAPI` / `weftd_api` unwraps nested weftd `{error:{code,message}}` envelopes (and the flat legacy string-error shape) so logs no longer collapse to `[object Object]` / dict-repr.
 
 ### Notes
 - Contract (§1-9) + placeholder set unchanged → patch bump.

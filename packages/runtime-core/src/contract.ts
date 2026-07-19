@@ -485,8 +485,11 @@ export interface AgentCommandSink {
    * PROMISE SEMANTICS (contract): the returned promise resolves when the
    * message has been ACCEPTED by the runtime — not necessarily when the turn
    * finishes. Concretely:
-   * - Deferred (replica) runtimes (e.g. Flitro SSE) resolve on enqueue/accept;
-   *   turn completion is observable via the `turn_completed` timeline item.
+   * - Deferred (replica) runtimes (e.g. Flitro SSE) resolve once the message is
+   *   accepted by the server (create-run / enqueue). They REJECT if accept
+   *   itself fails (e.g. HTTP 409 `llm_connection_unusable`) so hosts can
+   *   branch on typed errors; turn completion is still observable via the
+   *   `turn_completed` / `turn_failed` timeline items, not the promise.
    * - Eager (local-producer) runtimes (claude native SDK, codex app-server,
    *   CLI fallback) currently resolve when the WHOLE TURN completes — awaiting
    *   the promise can take minutes. If a turn is already running, the message

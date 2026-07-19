@@ -144,6 +144,12 @@ export interface WeftTimelineFetchResult {
  *   run will keep failing).
  * - `credential_refresh_required` (HTTP 401) — the session credential
  *   expired; normally consumed by the built-in onTokenExpired retry.
+ *
+ * Propagation: `createFlitroEmbedRuntime` / deferred `sendMessage` rethrows the
+ * original `WeftHttpError` from the public `commands.sendMessage` promise, and
+ * the scaffold's synthetic `turn_failed` item carries `{message, code?, status?}`.
+ * Hosts should prefer `error instanceof WeftHttpError && error.code === '…'`
+ * (or `turn_failed.error.code`) over message parsing.
  */
 export class WeftHttpError extends Error {
   readonly status: number

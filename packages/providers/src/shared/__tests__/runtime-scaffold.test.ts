@@ -277,6 +277,56 @@ describe('runtime-scaffold — session contract send_message from failed', () =>
     )
   })
 
+  it('deferred: rethrows the original error so hosts can branch on typed fields (e.g. WeftHttpError.code)', async () => {
+    // Mirrors WeftHttpError: message for display, code/status for machine branching.
+    class StructuredSendError extends Error {
+      readonly code: string
+      readonly status: number
+      constructor(message: string, code: string, status: number) {
+        super(message)
+        this.name = 'StructuredSendError'
+        this.code = code
+        this.status = status
+      }
+    }
+    const thrown = new StructuredSendError(
+      'Weft HTTP 409: connection "Claude Max" is unusable — re-connect it in the console',
+      'llm_connection_unusable',
+      409,
+    )
+    const onMessageDrained = vi.fn(async () => {
+      throw thrown
+    })
+    const scaffold = createProviderRuntimeScaffold({
+      provider: 'flitro',
+      sessionId: 's1',
+      epoch: 'e1',
+      report,
+      completion: 'deferred',
+      dedup: true,
+      getDriver: () => ({ sendMessage: vi.fn(async () => {}) }),
+      onMessageDrained,
+    })
+    scaffold.dispatch({ type: 'preflight_ok' })
+
+    // Public sendMessage must reject with the ORIGINAL error (not a string-only wrap).
+    await expect(scaffold.commands.sendMessage('hi')).rejects.toBe(thrown)
+
+    // State + timeline still surface the failure for UI/lastError consumers.
+    expect(scaffold.getState().status).toBe('failed')
+    expect(scaffold.getState().lastError).toBe(thrown.message)
+    const failure = scaffold.timeline.find(e => e.item.type === 'turn_failed')
+    expect(failure).toBeTruthy()
+    expect(failure!.item).toMatchObject({
+      type: 'turn_failed',
+      error: {
+        message: thrown.message,
+        code: 'llm_connection_unusable',
+        status: 409,
+      },
+    })
+  })
+
   it('eager: send from a non-failed state does NOT dispatch a spurious abort', async () => {
     // Verify the abort is conditional — a normal send from `ready` must not
     // dispatch abort (which would clobber a non-failed state unnecessarily).

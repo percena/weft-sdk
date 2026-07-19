@@ -77,7 +77,20 @@ class Provisioning:
             resp = self._client.request(method, f"{self.weftd_base}{path}", json=body)
             if resp.status_code >= 400:
                 try:
-                    msg = resp.json().get("error", f"HTTP {resp.status_code}")
+                    # Named err_body (not body) so we don't shadow the request
+                    # payload param — assigning to `body` would make it local for
+                    # the whole _do and UnboundLocalError on json=body above.
+                    err_body = resp.json()
+                    err = err_body.get("error")
+                    # Nested: {"error":{"type","code","message"}} — prefer message.
+                    # Flat legacy: {"error":"<code>","message":"…"} (string error IS the code).
+                    # Never str() a dict (→ "{'code': …}" noise / unmatchable text).
+                    if isinstance(err, dict):
+                        msg = err.get("message") or err.get("code") or f"HTTP {resp.status_code}"
+                    elif isinstance(err, str):
+                        msg = err_body.get("message") or err
+                    else:
+                        msg = err_body.get("message") or f"HTTP {resp.status_code}"
                 except Exception:
                     msg = f"HTTP {resp.status_code}"
                 raise RuntimeError(f"{msg} ({method} {path})")

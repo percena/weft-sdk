@@ -401,10 +401,10 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
         await driver.sendMessage(next, sequencer)
         dispatch({ type: 'complete' })
       } catch (err) {
-        const error = err instanceof Error ? err.message : String(err)
+        const fields = extractErrorFields(err)
         const alreadyFailed = state.status === 'failed'
-        dispatch({ type: 'error', error })
-        if (!alreadyFailed) appendFailure(error)
+        dispatch({ type: 'error', error: fields.message })
+        if (!alreadyFailed) appendFailure(fields.message, fields)
         pendingQueue.length = 0
         return
       }
@@ -441,11 +441,18 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
     },
   }
 
-  function appendFailure(message: string): void {
+  function appendFailure(message: string, extra?: { code?: string; status?: number }): void {
     sequencer.append({
       type: 'turn_failed',
       turnId: 'provider-runtime',
-      error: { message },
+      // Carry stable machine-readable fields when the thrower provided them
+      // (e.g. WeftHttpError.code/status). Timeline error is `unknown`, so hosts
+      // that inspect the turn_failed item can branch without re-parsing message.
+      error: {
+        message,
+        ...(extra?.code ? { code: extra.code } : {}),
+        ...(extra?.status !== undefined ? { status: extra.status } : {}),
+      },
     })
   }
 
@@ -471,7 +478,19 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
     }
   }
 
-  async function sendDrained(input: ProviderRuntimeDriverInput): Promise<void> {
+  /**
+   * Drain one deferred-mode input to the driver. On failure, always update
+   * state + append a turn_failed (with structured code/status when present).
+   *
+   * `rethrow: true` (the public `sendMessage` path) propagates the original
+   * error so host try/catch can branch on typed fields (e.g. WeftHttpError.code).
+   * Fire-and-forget drains (queue follow-ups) leave `rethrow` off so a rejected
+   * promise does not become an unhandled rejection.
+   */
+  async function sendDrained(
+    input: ProviderRuntimeDriverInput,
+    opts: { rethrow?: boolean } = {},
+  ): Promise<void> {
     try {
       if (config.onMessageDrained) {
         await config.onMessageDrained(input, sequencer)
@@ -480,14 +499,15 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
         await driver?.sendMessage(input, sequencer)
       }
     } catch (err) {
-      const error = err instanceof Error ? err.message : String(err)
+      const fields = extractErrorFields(err)
       // If the send failed before the server reported a structured turn_failed,
       // surface a generic failure. Don't clobber an already-failed state set by
       // a structured turn_failed item.
       const alreadyFailed = state.status === 'failed'
-      dispatch({ type: 'error', error })
-      if (!alreadyFailed) appendFailure(error)
+      dispatch({ type: 'error', error: fields.message })
+      if (!alreadyFailed) appendFailure(fields.message, fields)
       pendingQueue.length = 0
+      if (opts.rethrow) throw err
     }
   }
 
@@ -576,7 +596,10 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
             pendingQueue.push(input)
             return
           }
-          await sendDrained(input)
+          // Rethrow so host try/catch (chat panel setError, integrator handlers)
+          // receives the original error object — including WeftHttpError.code —
+          // rather than only the string lastError/turn_failed message.
+          await sendDrained(input, { rethrow: true })
           return
         }
 
@@ -616,14 +639,14 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
           dispatch({ type: 'complete' })
           drainEagerQueue()
         } catch (err) {
-          const error = err instanceof Error ? err.message : String(err)
+          const fields = extractErrorFields(err)
           // If the driver already reported a structured turn_failed, state is
           // already `failed` and a `turn_failed` item already exists — don't
           // append a duplicate generic one. Capture pre-dispatch state so a
           // driver that throws without reporting still gets a turn_failed item.
           const alreadyFailed = state.status === 'failed'
-          dispatch({ type: 'error', error })
-          if (!alreadyFailed) appendFailure(error)
+          dispatch({ type: 'error', error: fields.message })
+          if (!alreadyFailed) appendFailure(fields.message, fields)
           throw err
         }
       },
@@ -722,4 +745,27 @@ function turnFailedErrorMessage(error: unknown): string {
     if (typeof message === 'string' && message) return message
   }
   return 'turn failed'
+}
+
+/**
+ * Pull a display message + optional stable machine-readable fields off a thrown
+ * value. Duck-typed so provider-specific error classes (WeftHttpError,
+ * CodexTurnFailureError, …) don't need to be imported into the shared scaffold
+ * — any Error-like object with `code?: string` / `status?: number` is preserved
+ * onto the turn_failed item and (when rethrown) the host catch.
+ */
+function extractErrorFields(err: unknown): { message: string; code?: string; status?: number } {
+  const message = err instanceof Error ? err.message : String(err)
+  if (!err || typeof err !== 'object') return { message }
+  const code = 'code' in err && typeof (err as { code: unknown }).code === 'string'
+    ? (err as { code: string }).code
+    : undefined
+  const status = 'status' in err && typeof (err as { status: unknown }).status === 'number'
+    ? (err as { status: number }).status
+    : undefined
+  return {
+    message,
+    ...(code ? { code } : {}),
+    ...(status !== undefined ? { status } : {}),
+  }
 }

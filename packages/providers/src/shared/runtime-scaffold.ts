@@ -14,6 +14,7 @@ import {
 import {
   createTimelineCursor,
   fetchTimeline,
+  readTurnFailedError,
   type TimelineEnvelope,
   type TimelineFetchRequest,
   type TimelineFetchResult,
@@ -105,7 +106,7 @@ export interface ProviderRuntimeScaffold extends AgentRuntime {
   readonly timeline: TimelineEnvelope[]
   readonly stream: PushTimelineStream
   dispatch(action: RuntimeAction): void
-  appendFailure(message: string): void
+  appendFailure(message: string, extra?: { code?: string; status?: number }): void
   /** Ingest a pre-built envelope verbatim (replica mode — e.g. an envelope
    *  streamed from a remote server, whose `seq`/`epoch` must be preserved).
    *  Shares the dedup set + state sync + buffer with {@link sequencer.append}. */
@@ -404,10 +405,7 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
         await driver.sendMessage(next, sequencer)
         dispatch({ type: 'complete' })
       } catch (err) {
-        const fields = extractErrorFields(err)
-        const alreadyFailed = state.status === 'failed'
-        dispatch({ type: 'error', error: fields.message })
-        if (!alreadyFailed) appendFailure(fields.message, fields)
+        reportSendFailure(err)
         pendingQueue.length = 0
         return
       }
@@ -442,6 +440,17 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
       ingest(envelope)
       return envelope
     },
+  }
+
+  /** Shared failure tail for every send path: fold the thrown value into
+   *  runtime state and — unless a structured turn_failed from the driver
+   *  already set `failed` — append a turn_failed carrying any structured
+   *  code/status the thrower provided. */
+  function reportSendFailure(err: unknown): void {
+    const fields = extractErrorFields(err)
+    const alreadyFailed = state.status === 'failed'
+    dispatch({ type: 'error', error: fields.message })
+    if (!alreadyFailed) appendFailure(fields.message, fields)
   }
 
   function appendFailure(message: string, extra?: { code?: string; status?: number }): void {
@@ -503,13 +512,10 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
         await driver?.sendMessage(input, sequencer)
       }
     } catch (err) {
-      const fields = extractErrorFields(err)
       // If the send failed before the server reported a structured turn_failed,
       // surface a generic failure. Don't clobber an already-failed state set by
       // a structured turn_failed item.
-      const alreadyFailed = state.status === 'failed'
-      dispatch({ type: 'error', error: fields.message })
-      if (!alreadyFailed) appendFailure(fields.message, fields)
+      reportSendFailure(err)
       pendingQueue.length = 0
       if (opts.rethrow) throw err
     }
@@ -643,14 +649,11 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
           dispatch({ type: 'complete' })
           drainEagerQueue()
         } catch (err) {
-          const fields = extractErrorFields(err)
           // If the driver already reported a structured turn_failed, state is
           // already `failed` and a `turn_failed` item already exists — don't
-          // append a duplicate generic one. Capture pre-dispatch state so a
-          // driver that throws without reporting still gets a turn_failed item.
-          const alreadyFailed = state.status === 'failed'
-          dispatch({ type: 'error', error: fields.message })
-          if (!alreadyFailed) appendFailure(fields.message, fields)
+          // append a duplicate generic one (reportSendFailure captures
+          // pre-dispatch state for exactly that reason).
+          reportSendFailure(err)
           throw err
         }
       },
@@ -744,11 +747,7 @@ export function createProviderRuntimeScaffold(config: RuntimeScaffoldConfig): Pr
 }
 
 function turnFailedErrorMessage(error: unknown): string {
-  if (error && typeof error === 'object' && 'message' in error) {
-    const message = (error as { message?: unknown }).message
-    if (typeof message === 'string' && message) return message
-  }
-  return 'turn failed'
+  return readTurnFailedError(error).message
 }
 
 /**
@@ -757,10 +756,21 @@ function turnFailedErrorMessage(error: unknown): string {
  * CodexTurnFailureError, …) don't need to be imported into the shared scaffold
  * — any Error-like object with `code?: string` / `status?: number` is preserved
  * onto the turn_failed item and (when rethrown) the host catch.
+ *
+ * `code` is whatever string code the thrower carried — for WeftHttpError that
+ * is weftd's stable category, but a runtime/transport error's code (e.g.
+ * Node's `ENOENT`) passes through unchanged; hosts branching on specific
+ * weftd codes should match exact values, not mere code presence.
  */
 function extractErrorFields(err: unknown): { message: string; code?: string; status?: number } {
-  const message = err instanceof Error ? err.message : String(err)
-  if (!err || typeof err !== 'object') return { message }
+  if (!err || typeof err !== 'object') return { message: String(err) }
+  // Same duck-typing as the code/status fields below: a non-Error rejection
+  // with a string `message` (a plain-object failure payload) must surface that
+  // message, not String(err) → '[object Object]'.
+  const objMessage = 'message' in err && typeof (err as { message: unknown }).message === 'string'
+    ? (err as { message: string }).message
+    : undefined
+  const message = err instanceof Error ? err.message : objMessage ?? String(err)
   const code = 'code' in err && typeof (err as { code: unknown }).code === 'string'
     ? (err as { code: string }).code
     : undefined

@@ -151,7 +151,8 @@ export interface WeftTimelineFetchResult {
  * if its later drain fails, the scaffold's synthetic `turn_failed` item carries
  * `{message, code?, status?}`. Hosts should prefer
  * `error instanceof WeftHttpError && error.code === '…'` for immediate sends,
- * and inspect `turn_failed.error.code` for a path that also covers queued sends.
+ * and read queued-send failures off the timeline via `readTurnFailedError`
+ * (from `@weft/timeline`) rather than casting `turn_failed.error`.
  */
 export class WeftHttpError extends Error {
   readonly status: number
@@ -427,17 +428,17 @@ export class WeftHttpClient {
             error?: string | { code?: string; message?: string }
             message?: string
           }
+          // Message stays byte-compatible with the pre-WeftHttpError format:
+          // the flat shape appends the code, the nested one the message.
           if (typeof errBody.error === 'string') {
             code = errBody.error
             detail = errBody.message
+            if (code) errorMsg = `${errorMsg}: ${code}`
           } else if (errBody.error) {
             code = errBody.error.code
             detail = errBody.error.message
+            if (detail) errorMsg = `${errorMsg}: ${detail}`
           }
-          // Message stays byte-compatible with the pre-WeftHttpError format
-          // (flat shape appends the code, nested appends the message).
-          const legacyDetail = typeof errBody.error === 'string' ? errBody.error : errBody.error?.message
-          if (legacyDetail) errorMsg = `${errorMsg}: ${legacyDetail}`
         } catch {
           // non-JSON error body — no code/detail, status-only error
         }

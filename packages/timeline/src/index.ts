@@ -119,6 +119,10 @@ export type TimelineItem =
       /** Provenance of the result message (SDK `origin`). */
       origin?: unknown
     }
+  /** `error` stays `unknown` on the wire: producers emit provider-specific
+   * shapes (native SDK result payloads, codex app-server errors, the runtime
+   * scaffold's `{message, code?, status?}`). Consume it through
+   * {@link readTurnFailedError} instead of casting. */
   | { type: 'turn_failed'; turnId: string; error: unknown }
   | { type: 'turn_interrupted'; turnId: string }
   | { type: 'session_status'; status: string }
@@ -463,4 +467,36 @@ export function sortTimeline(timeline: TimelineEnvelope[]): TimelineEnvelope[] {
 
 function timelineKey(item: TimelineEnvelope): string {
   return `${item.epoch}:${item.seq}`
+}
+
+/**
+ * Structured fields a `turn_failed` item's `error` may carry. The SDK's
+ * runtime scaffold emits `{message, code?, status?}` for synthetic failures
+ * (e.g. a rejected send): `code` is the thrower's stable machine-readable
+ * category when it provided one — weftd codes like `llm_connection_unusable`
+ * via `WeftHttpError` — and `status` the HTTP status. Other producers emit
+ * different shapes, so `error` stays `unknown` on the wire and
+ * {@link readTurnFailedError} is the supported way to consume it.
+ */
+export interface TurnFailedErrorInfo {
+  message: string
+  code?: string
+  status?: number
+}
+
+/**
+ * Safely read a `turn_failed` item's `error` into {@link TurnFailedErrorInfo}.
+ * Duck-types the scaffold's `{message, code?, status?}` shape; for any other
+ * producer shape it still yields a usable `message` (falling back to
+ * `'turn failed'`) with `code`/`status` set only when present and well-typed.
+ */
+export function readTurnFailedError(error: unknown): TurnFailedErrorInfo {
+  if (typeof error === 'string' && error) return { message: error }
+  if (!error || typeof error !== 'object') return { message: 'turn failed' }
+  const { message, code, status } = error as { message?: unknown; code?: unknown; status?: unknown }
+  return {
+    message: typeof message === 'string' && message ? message : 'turn failed',
+    ...(typeof code === 'string' && code ? { code } : {}),
+    ...(typeof status === 'number' ? { status } : {}),
+  }
 }

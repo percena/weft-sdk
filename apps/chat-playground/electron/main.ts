@@ -41,6 +41,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 /** Active runtimes keyed by the UI session id (seeded into the runtime). */
 const runtimes = new Map<string, HostAgentRuntimeResult & { disposed: boolean }>()
 
+/**
+ * True once a quit has begun. START / send / abort / permission are rejected
+ * while held so a Connect during before-quit's preventDefault wait cannot
+ * spawn a runtime the one-shot teardown snapshot never sees.
+ */
+let quitting = false
+
 let mainWindow: BrowserWindow | null = null
 
 function createWindow(): void {
@@ -341,26 +348,35 @@ async function fsBrowse(path?: string): Promise<FsBrowseResult> {
   }
 }
 
+function rejectIfQuitting(): void {
+  if (quitting) throw new Error('App is quitting')
+}
+
 function registerIpc(): void {
   ipcMain.handle(IPC.START_SESSION, (event, options: StartSessionOptions) => {
     assertTrustedSender(event)
+    rejectIfQuitting()
     return enqueueSessionOp(options.sessionId, () => startSession(options))
       .catch((err: Error) => ({ ok: false, error: err.message })) as Promise<StartSessionResult>
   })
   ipcMain.handle(IPC.SEND_MESSAGE, (event, options: SendMessageOptions) => {
     assertTrustedSender(event)
+    rejectIfQuitting()
     return sendMessage(options)
   })
   ipcMain.handle(IPC.ABORT, (event, options: AbortOptions) => {
     assertTrustedSender(event)
+    rejectIfQuitting()
     return abortTurn(options)
   })
   ipcMain.handle(IPC.RESPOND_PERMISSION, (event, options: RespondPermissionOptions) => {
     assertTrustedSender(event)
+    rejectIfQuitting()
     return respondToPermission(options)
   })
   ipcMain.handle(IPC.DISCONNECT, (event, options: DisconnectOptions) => {
     assertTrustedSender(event)
+    // Disconnect during quit is the teardown path itself — still allowed.
     return enqueueSessionOp(options.sessionId, () => disconnect(options.sessionId))
   })
   ipcMain.handle(IPC.FS_BROWSE, (event, path?: string) => {
@@ -392,16 +408,27 @@ app.on('window-all-closed', () => {
 // letting the process exit immediately would skip dispose() (the subprocess
 // kill) and orphan the provider CLI past app exit. Capped so a wedged start
 // can't hold the quit hostage.
+//
+// While quit is held the window stays open, so assertTrustedSender would still
+// pass — `quitting` rejects START (and other session ops) so a Connect during
+// the wait cannot spawn a runtime that the one-shot snapshot never tears down.
+// A final re-scan after the wait covers any op that slipped in before the flag
+// flipped (or a same-id START that re-registered after its disconnect).
 let teardownBeforeQuit = true
 app.on('before-quit', (event) => {
   if (!teardownBeforeQuit) return
+  quitting = true
   const ids = sessionIdsToTearDown()
   if (ids.size === 0) return
   teardownBeforeQuit = false
   event.preventDefault()
-  const teardown = Promise.allSettled(
-    [...ids].map(id => enqueueSessionOp(id, () => disconnect(id))),
-  )
+  const disconnectAll = (sessionIds: Iterable<string>) =>
+    Promise.allSettled(
+      [...sessionIds].map(id => enqueueSessionOp(id, () => disconnect(id))),
+    )
+  const teardown = disconnectAll(ids)
   const cap = new Promise<void>(resolveCap => setTimeout(resolveCap, 5000))
-  void Promise.race([teardown, cap]).then(() => app.quit())
+  void Promise.race([teardown, cap])
+    .then(() => disconnectAll(sessionIdsToTearDown()))
+    .then(() => app.quit())
 })

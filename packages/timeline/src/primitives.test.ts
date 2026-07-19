@@ -3,6 +3,7 @@ import {
   fetchTimeline,
   mergeTimeline,
   mergeTimelineIncremental,
+  readTurnFailedError,
   sortTimeline,
   type TimelineEnvelope,
   type TimelineItem,
@@ -252,5 +253,28 @@ describe('mergeTimelineIncremental — equivalence with mergeTimeline', () => {
     // Order preserved: existing prefix untouched, incoming tail appended.
     expect(result[499]?.seq).toBe(500)
     expect(result[500]?.seq).toBe(501)
+  })
+})
+
+describe('readTurnFailedError', () => {
+  it('collapses empty message to the turn failed fallback', () => {
+    expect(readTurnFailedError({ message: '' })).toEqual({ message: 'turn failed' })
+    expect(readTurnFailedError(new Error(''))).toEqual({ message: 'turn failed' })
+  })
+
+  it('preserves non-empty message and typed code/status', () => {
+    expect(readTurnFailedError({
+      message: 'Weft HTTP 409: unusable',
+      code: 'llm_connection_unusable',
+      status: 409,
+    })).toEqual({
+      message: 'Weft HTTP 409: unusable',
+      code: 'llm_connection_unusable',
+      status: 409,
+    })
+  })
+
+  it('accepts a bare non-empty string error', () => {
+    expect(readTurnFailedError('boom')).toEqual({ message: 'boom' })
   })
 })

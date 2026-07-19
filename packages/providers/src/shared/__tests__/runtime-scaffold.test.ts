@@ -277,6 +277,34 @@ describe('runtime-scaffold — session contract send_message from failed', () =>
     )
   })
 
+  it('empty-message rejections surface the same fallback on lastError and turn_failed.error', async () => {
+    // Producer (extractErrorFields) and public consumer (readTurnFailedError)
+    // must agree: a blank Error.message must not yield lastError='' while
+    // hosts reading the synthetic turn_failed see 'turn failed'.
+    const onMessageDrained = vi.fn(async () => {
+      throw new Error('')
+    })
+    const scaffold = createProviderRuntimeScaffold({
+      provider: 'flitro',
+      sessionId: 's1',
+      epoch: 'e1',
+      report,
+      completion: 'deferred',
+      dedup: true,
+      getDriver: () => ({ sendMessage: vi.fn(async () => {}) }),
+      onMessageDrained,
+    })
+    scaffold.dispatch({ type: 'preflight_ok' })
+
+    await expect(scaffold.commands.sendMessage('hi')).rejects.toBeInstanceOf(Error)
+    expect(scaffold.getState().lastError).toBe('turn failed')
+    const failure = scaffold.timeline.find(e => e.item.type === 'turn_failed')
+    expect(failure?.item).toMatchObject({
+      type: 'turn_failed',
+      error: { message: 'turn failed' },
+    })
+  })
+
   it('deferred: rethrows the original error so hosts can branch on typed fields (e.g. WeftHttpError.code)', async () => {
     // Mirrors WeftHttpError: message for display, code/status for machine branching.
     class StructuredSendError extends Error {

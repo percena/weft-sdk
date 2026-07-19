@@ -1007,6 +1007,21 @@ function LiveComposer({
   )
 }
 
+/** Display string for a Live-mode rejection (never blank). */
+function liveErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message
+  if (typeof err === 'string' && err) return err
+  if (err && typeof err === 'object' && 'message' in err) {
+    const message = (err as { message?: unknown }).message
+    if (typeof message === 'string' && message) return message
+  }
+  if (err !== null && err !== undefined) {
+    const s = String(err)
+    if (s && s !== '[object Object]') return s
+  }
+  return 'turn failed'
+}
+
 export default function App() {
   const [mode, setMode] = useState<Mode>('fixture')
 
@@ -1287,6 +1302,13 @@ export default function App() {
         // through so the user's first ↑ click both connects AND sends — without
         // this, the typed text would be silently dropped (the agent would show
         // "connected" with no turn, looking like Live mode is broken).
+        //
+        // Stale guard before ANY shared mutation: a Disconnect or a newer
+        // Connect may have replaced this client while startSession awaited.
+        // Without the check we would clear the composer, stamp `running` on a
+        // session that no longer owns this client, and IPC-send into a runtime
+        // that a newer start may have just registered under the same id.
+        if (runtimeClientRef.current !== client) return
         if (!pendingMessage) return
         setLiveInput('')
         setLiveStore(prev => updateLiveSession(prev, localSessionId, current => ({
@@ -1310,8 +1332,11 @@ export default function App() {
           // plain resend), exactly like a failure on any later message in
           // sendLiveMessage. Tearing the runtime down here would force a full
           // reconnect for a transient provider error.
+          // RuntimeClient mirrors the rejection (and turn_failed envelopes)
+          // into state.error so the subsequent onStateChange cannot wipe this
+          // banner with a null error.
           if (runtimeClientRef.current !== client) return
-          const message = (sendErr as Error).message
+          const message = liveErrorMessage(sendErr)
           setLiveError(message)
           setLiveStore(prev => updateLiveSession(prev, localSessionId, current => ({
             ...current,
@@ -1321,7 +1346,7 @@ export default function App() {
           })))
         }
       })
-      .catch((err: Error) => {
+      .catch((err: unknown) => {
         // A stale attempt (a newer connect or an explicit disconnect replaced
         // this client) must not touch shared state: its listeners were already
         // removed by that replacement, and issuing another IPC DISCONNECT for
@@ -1337,11 +1362,12 @@ export default function App() {
         runtimeClientRef.current = null
         setLiveConnected(false)
         setLiveReconnecting(false)
-        setLiveError(err.message)
+        const message = liveErrorMessage(err)
+        setLiveError(message)
         setLiveStore(prev => updateLiveSession(prev, localSessionId, current => ({
           ...current,
           status: 'error',
-          lastError: err.message,
+          lastError: message,
           updatedAt: Date.now(),
         })))
       })
@@ -1378,19 +1404,24 @@ export default function App() {
       lastError: undefined,
       updatedAt: Date.now(),
     })))
-    runtimeClientRef.current.sendMessage(message, {
+    const client = runtimeClientRef.current
+    client.sendMessage(message, {
       model: session.config.model,
       reasoningEffort: session.config.reasoningEffort,
       permissionMode: session.config.permissionMode,
       cwd: session.config.cwd,
       sourceSlugs: session.config.selectedSourceSlugs,
       attachments: session.config.attachments.map(({ path, name }) => ({ path, name })),
-    }).catch((err: Error) => {
-      setLiveError((err as Error).message)
+    }).catch((err: unknown) => {
+      // Same keep-connected turn-failure path as the first-send catch: do not
+      // stamp error chrome onto a session whose client was replaced mid-send.
+      if (runtimeClientRef.current !== client) return
+      const text = liveErrorMessage(err)
+      setLiveError(text)
       setLiveStore(prev => updateLiveSession(prev, session.id, current => ({
         ...current,
         status: 'error',
-        lastError: (err as Error).message,
+        lastError: text,
         updatedAt: Date.now(),
       })))
     })

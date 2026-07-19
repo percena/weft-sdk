@@ -763,14 +763,23 @@ function turnFailedErrorMessage(error: unknown): string {
  * weftd codes should match exact values, not mere code presence.
  */
 function extractErrorFields(err: unknown): { message: string; code?: string; status?: number } {
-  if (!err || typeof err !== 'object') return { message: String(err) }
+  // Empty-message policy matches {@link readTurnFailedError}: a blank display
+  // string is useless to hosts, so both lastError and synthetic turn_failed.error
+  // collapse to the same fallback rather than diverging ('' vs 'turn failed').
+  const fallback = 'turn failed'
+  if (!err || typeof err !== 'object') {
+    if (typeof err === 'string' && err) return { message: err }
+    if (err !== null && err !== undefined) return { message: String(err) || fallback }
+    return { message: fallback }
+  }
   // Same duck-typing as the code/status fields below: a non-Error rejection
   // with a string `message` (a plain-object failure payload) must surface that
   // message, not String(err) → '[object Object]'.
   const objMessage = 'message' in err && typeof (err as { message: unknown }).message === 'string'
     ? (err as { message: string }).message
     : undefined
-  const message = err instanceof Error ? err.message : objMessage ?? String(err)
+  const raw = err instanceof Error ? err.message : objMessage ?? String(err)
+  const message = raw || fallback
   const code = 'code' in err && typeof (err as { code: unknown }).code === 'string'
     ? (err as { code: string }).code
     : undefined

@@ -157,15 +157,31 @@ export class RuntimeClient {
     if (!this.api) {
       throw new Error('Desktop runtime bridge is not available.')
     }
+    // Clear sticky error from a previous turn so a retry's onStateChange does
+    // not re-paint the old banner over a fresh send (App sets lastError from
+    // state.error on every envelope).
+    this._error = null
     // The local runtime echoes a `user_message` envelope on accept, so the
     // user bubble renders from the timeline — no optimistic local append.
-    await this.api.sendMessage({
-      sessionId: this.sessionId,
-      message,
-      ...(options.model ? { model: options.model } : {}),
-      ...(options.reasoningEffort ? { reasoningEffort: options.reasoningEffort } : {}),
-      ...(options.permissionMode ? { permissionMode: options.permissionMode } : {}),
-    })
+    try {
+      await this.api.sendMessage({
+        sessionId: this.sessionId,
+        message,
+        ...(options.model ? { model: options.model } : {}),
+        ...(options.reasoningEffort ? { reasoningEffort: options.reasoningEffort } : {}),
+        ...(options.permissionMode ? { permissionMode: options.permissionMode } : {}),
+      })
+    } catch (err) {
+      // Mirror the rejection into state.error so App's onStateChange
+      // (`setLiveError(state.error)`) cannot wipe a sticky banner when a
+      // later envelope arrives with no _error. turn_failed envelopes also
+      // set _error below; this covers pre-timeline failures (e.g. session
+      // not running) and races where the promise rejects before the
+      // envelope is applied.
+      this._error = errorMessageFromUnknown(err)
+      this.emitState()
+      throw err
+    }
   }
 
   async abort(reason?: string): Promise<void> {
@@ -247,6 +263,13 @@ export class RuntimeClient {
       const event: ChatEvent = mapTimelineEnvelopeToProcessorEvent(envelope)
       const result = processEvent(this.sessionState, event)
       this.sessionState = result.state
+      // Sticky transport/turn error for App onStateChange. Without this,
+      // processEvent only mutates session messages and emitState keeps
+      // `_error: null` — App's `setLiveError(state.error)` then clears any
+      // banner the send catch just set (first-send keep-connected path).
+      if (event.type === 'error' && event.error) {
+        this._error = event.error
+      }
     }
 
     this.emitState()
@@ -257,4 +280,19 @@ export class RuntimeClient {
       this._onStateChange(this.getState())
     }
   }
+}
+
+/** Display string from a rejection (Error / string / plain object). */
+function errorMessageFromUnknown(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message
+  if (typeof err === 'string' && err) return err
+  if (err && typeof err === 'object' && 'message' in err) {
+    const message = (err as { message?: unknown }).message
+    if (typeof message === 'string' && message) return message
+  }
+  if (err !== null && err !== undefined) {
+    const s = String(err)
+    if (s && s !== '[object Object]') return s
+  }
+  return 'turn failed'
 }

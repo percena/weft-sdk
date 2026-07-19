@@ -1295,24 +1295,46 @@ export default function App() {
           lastError: undefined,
           updatedAt: Date.now(),
         })))
-        await client.sendMessage(pendingMessage, {
-          model: session.config.model,
-          reasoningEffort: session.config.reasoningEffort,
-          permissionMode: session.config.permissionMode,
-          cwd: session.config.cwd,
-          sourceSlugs: session.config.selectedSourceSlugs,
-          attachments: session.config.attachments.map(({ path, name }) => ({ path, name })),
-        })
+        try {
+          await client.sendMessage(pendingMessage, {
+            model: session.config.model,
+            reasoningEffort: session.config.reasoningEffort,
+            permissionMode: session.config.permissionMode,
+            cwd: session.config.cwd,
+            sourceSlugs: session.config.selectedSourceSlugs,
+            attachments: session.config.attachments.map(({ path, name }) => ({ path, name })),
+          })
+        } catch (sendErr) {
+          // Connect succeeded — this is a TURN failure, not a connect failure.
+          // Keep the session connected (Disconnect stays available, retry is a
+          // plain resend), exactly like a failure on any later message in
+          // sendLiveMessage. Tearing the runtime down here would force a full
+          // reconnect for a transient provider error.
+          if (runtimeClientRef.current !== client) return
+          const message = (sendErr as Error).message
+          setLiveError(message)
+          setLiveStore(prev => updateLiveSession(prev, localSessionId, current => ({
+            ...current,
+            status: 'error',
+            lastError: message,
+            updatedAt: Date.now(),
+          })))
+        }
       })
       .catch((err: Error) => {
-        // Full teardown, not just dropping the ref: connect may have succeeded
-        // with only the first send failing, and without disconnect() the
-        // main-process runtime keeps running (burning provider credit) while
-        // the Disconnect button is gone. disconnect() also removes the stale
-        // client's ipcRenderer subscriptions so repeated failed attempts don't
-        // accumulate listeners.
+        // A stale attempt (a newer connect or an explicit disconnect replaced
+        // this client) must not touch shared state: its listeners were already
+        // removed by that replacement, and issuing another IPC DISCONNECT for
+        // the shared session id would be queued AFTER the newer runtime's
+        // START and dispose it.
+        if (runtimeClientRef.current !== client) return
+        // Full teardown of the failed connect, not just dropping the ref:
+        // without disconnect() the main-process runtime could keep running
+        // (burning provider credit) while the Disconnect button is gone.
+        // disconnect() also removes the client's ipcRenderer subscriptions so
+        // repeated failed attempts don't accumulate listeners.
         client.disconnect()
-        if (runtimeClientRef.current === client) runtimeClientRef.current = null
+        runtimeClientRef.current = null
         setLiveConnected(false)
         setLiveReconnecting(false)
         setLiveError(err.message)

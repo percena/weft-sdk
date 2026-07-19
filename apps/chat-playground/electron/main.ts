@@ -61,7 +61,7 @@ function createWindow(): void {
 
   // Open external links in the system browser, not inside the demo window.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url)
+    openExternalIfHttp(url)
     return { action: 'deny' }
   })
 
@@ -88,7 +88,7 @@ function createWindow(): void {
     }
     if (allowed) return
     event.preventDefault()
-    if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
+    openExternalIfHttp(url)
   })
 
   if (devUrl) {
@@ -107,10 +107,30 @@ function createWindow(): void {
   // on mainWindow.isDestroyed(), so teardown is race-free against the stream.
   mainWindow.on('closed', () => {
     mainWindow = null
-    for (const id of [...runtimes.keys()]) {
+    for (const id of sessionIdsToTearDown()) {
       void enqueueSessionOp(id, () => disconnect(id))
     }
   })
+}
+
+/**
+ * Every session that may own (or be about to own) a runtime: registered
+ * runtimes PLUS sessions with a queued/in-flight op. A startSession only
+ * registers into `runtimes` after its detection awaits, so iterating
+ * `runtimes.keys()` alone misses a start in progress — its runtime would be
+ * created after cleanup ran and leak headless.
+ */
+function sessionIdsToTearDown(): Set<string> {
+  return new Set([...runtimes.keys(), ...sessionOps.keys()])
+}
+
+/**
+ * Only http(s) targets may leave the app for the system browser. Anything
+ * else (file://, custom protocol handlers) reaching shell.openExternal would
+ * launch the OS handler — the same escape the navigation guards deny.
+ */
+function openExternalIfHttp(url: string): void {
+  if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
 }
 
 /**
@@ -367,9 +387,21 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 
-// Best-effort cleanup of any live runtimes on quit.
-app.on('before-quit', () => {
-  for (const id of [...runtimes.keys()]) {
-    void enqueueSessionOp(id, () => disconnect(id))
-  }
+// Cleanup of any live runtimes on quit. The queued disconnects run behind any
+// in-flight startSession for the same id, so the quit must WAIT for them:
+// letting the process exit immediately would skip dispose() (the subprocess
+// kill) and orphan the provider CLI past app exit. Capped so a wedged start
+// can't hold the quit hostage.
+let teardownBeforeQuit = true
+app.on('before-quit', (event) => {
+  if (!teardownBeforeQuit) return
+  const ids = sessionIdsToTearDown()
+  if (ids.size === 0) return
+  teardownBeforeQuit = false
+  event.preventDefault()
+  const teardown = Promise.allSettled(
+    [...ids].map(id => enqueueSessionOp(id, () => disconnect(id))),
+  )
+  const cap = new Promise<void>(resolveCap => setTimeout(resolveCap, 5000))
+  void Promise.race([teardown, cap]).then(() => app.quit())
 })

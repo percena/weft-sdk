@@ -119,7 +119,7 @@ export async function discoverCodexModels(
   // only ever receive its own env_key credential — with that env var unset
   // (the default for a GUI launch from Finder/Dock), falling through would
   // send the user's OpenAI key to an unrelated third-party gateway.
-  const builtInBase = !config.baseUrl || /^https:\/\/api\.openai\.com(\/|$)/i.test(config.baseUrl)
+  const builtInBase = !config.baseUrl || isBuiltInOpenAiBase(config.baseUrl)
   let token = ''
   if (config.envKey) token = env[config.envKey] || ''
   if (!token && builtInBase) {
@@ -162,6 +162,22 @@ export async function discoverCodexModels(
     defaultModel: config.model,
     defaultEffort,
     baseUrl: base,
+  }
+}
+
+/**
+ * Whether a `base_url` is the built-in OpenAI endpoint — the only endpoint
+ * that may receive the OPENAI_API_KEY / auth.json fallback credentials.
+ * Parsed (not prefix-matched) so equivalent spellings like an explicit `:443`
+ * classify correctly, while lookalike hosts, other schemes, and userinfo
+ * tricks all fail closed to "custom gateway".
+ */
+function isBuiltInOpenAiBase(base: string): boolean {
+  try {
+    const url = new URL(base)
+    return url.protocol === 'https:' && url.hostname.toLowerCase() === 'api.openai.com'
+  } catch {
+    return false
   }
 }
 

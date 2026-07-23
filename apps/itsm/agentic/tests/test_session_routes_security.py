@@ -41,12 +41,14 @@ except ImportError:  # standalone (skill verification) — run from this dir
 # ─── mock provisioning (the integrator-backend side is fully testable without weftd)
 class MockProvisioning:
     weftd_base = "http://127.0.0.1:9"  # closed port (any forwarded /v1 errors; the denylist + body-cap fire first)
+    last_create_session_body = None
 
     def ensure_app(self):  # sync — the template awaits run_in_threadpool(ensure_app)
         return {"tenant_id": "tid", "app_id": "aid"}
 
     def weftd_api(self, method, path, body=None):  # sync
         if method == "POST" and path == "/v1/sessions":
+            MockProvisioning.last_create_session_body = body
             return {"session_id": "sid-alice-1", "token": "tok", "base_url": "http://x", "expires_at": 0}
         if method == "POST" and path.startswith("/v1/sessions/") and path.endswith("/token"):
             return {"session_id": "sid-alice-1", "token": "tok-refreshed", "base_url": "http://x", "expires_at": 0}
@@ -137,9 +139,13 @@ def test_unauth_session_create_401():
 def test_auth_session_create_201():
     sessions = {}
     client = TestClient(_build_app(sessions))
+    MockProvisioning.last_create_session_body = None
     r = client.post("/api/chat/session", json={}, headers={"cookie": _cookie(sessions, "alice")})
     assert r.status_code == 201
     assert r.json()["session_id"] == "sid-alice-1"
+    # Host-seal auto so embed panel Auto is not demoted by weftd fenced autonomy.
+    body = MockProvisioning.last_create_session_body or {}
+    assert (body.get("config") or {}).get("permission_mode") == "auto"
 
 
 def test_non_owner_token_403_owner_200():

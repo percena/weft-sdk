@@ -199,6 +199,7 @@ Open `http://127.0.0.1:19745`, log in, set the chat permission mode to `Auto`,
 and tell the agent e.g. "buy 2 mechanical keyboards and pay" — it drives the
 store's REST API through the named `shop_*` tools, the action-bridge automated live cursor
 replays each tool call on the storefront, and the order lands in `/api/state`.
+(The host already seals `permission_mode: auto` at createSession so panel Auto is not demoted by weftd's embed authority gate.)
 
 ## The skill
 

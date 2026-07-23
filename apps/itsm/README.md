@@ -109,6 +109,7 @@ pnpm start             # vite build + uvicorn on http://127.0.0.1:19755 + provis
 Open the URL, log in (alice/bob/carol/dave), set the chat permission `Auto`,
 and tell the agent what to do — it drives the `itsm_*` tools, the action-bridge
 automated live cursor replays each on the console, and the result lands in `/api/state`.
+(The host already seals `permission_mode: auto` at createSession so panel Auto is not demoted by weftd's embed authority gate.)
 
 ## Manual testing the agentic
 

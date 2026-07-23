@@ -25,8 +25,11 @@ import {
 } from './session-routes.mjs'
 
 // ─── mock weftdAPI (the integrator-backend side is fully testable without weftd)
+/** Last POST /v1/sessions body — assert host-seal permission_mode for Auto. */
+let lastCreateSessionBody = null
 const mockWeftdAPI = async (method, path, body) => {
   if (method === 'POST' && path === '/v1/sessions') {
+    lastCreateSessionBody = body
     return { session_id: 'sid-alice-1', token: 'tok-alice', base_url: 'http://weftd.local', expires_at: 0 }
   }
   if (method === 'POST' && /\/v1\/sessions\/[^/]+\/token$/.test(path)) {
@@ -217,10 +220,13 @@ test('§3: authenticated POST /api/chat/session → 201 (end_user_id from cookie
   const { server, base } = await startServer({ sessions })
   try {
     const cookie = aliceCookie(sessions)
+    lastCreateSessionBody = null
     const r = await req(base, 'POST', '/api/chat/session', { body: {}, cookie })
     assert.equal(r.status, 201)
     assert.equal(r.data.session_id, 'sid-alice-1')   // minted by mock weftdAPI
     assert.ok(r.data.base_url.startsWith('http://127.0.0.1:')) // host-derived
+    // Host-seal auto so embed panel Auto is not demoted by weftd fenced autonomy.
+    assert.equal(lastCreateSessionBody?.config?.permission_mode, 'auto')
   } finally { await close(server) }
 })
 

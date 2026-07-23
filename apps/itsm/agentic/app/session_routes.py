@@ -176,6 +176,11 @@ def create_session_router(provisioning, *, toolset: str, app_name: str,
             return JSONResponse({"error": "authentication required"}, status_code=401)
         try:
             ctx = await run_in_threadpool(provisioning.ensure_app)
+            # Host-seal permission_mode=auto (this call uses WEFT_API_KEY, not
+            # the browser embed JWT). weftd's fenced-autonomy gate refuses
+            # untrusted embed elevate ask→auto, so the panel's Auto selector
+            # only works when the host sealed auto at createSession. The
+            # per-message selector can still tighten to ask/explore.
             session = await run_in_threadpool(
                 provisioning.weftd_api, "POST", "/v1/sessions",
                 {
@@ -186,6 +191,7 @@ def create_session_router(provisioning, *, toolset: str, app_name: str,
                     "toolset": toolset,
                     "title": f"{app_name} — {eu}",
                     "credential": {"token": f"{toolset}-cred-{eu}-{int(time.time())}", "scheme": "bearer"},
+                    "config": {"permission_mode": "auto"},
                 },
             )
             if isinstance(session, dict) and session.get("session_id"):

@@ -5,6 +5,15 @@ The skill follows [semantic versioning](https://semver.org/) independently of th
 `@percena/weft` SDK; `metadata.min-weft-sdk` (in `SKILL.md` frontmatter) declares the
 minimum SDK version assumed.
 
+## [1.0.4] — 2026-07-23
+
+### Fixed
+- **Embed Auto mode**: `POST /v1/sessions` now host-seals `config.permission_mode: "auto"` (developer API key path) in Node + Python `session-routes` templates. weftd fenced autonomy refuses untrusted embed elevate ask→auto; without the seal, panel Auto behaved like Ask (every write tool prompted). Docs (Common Mistakes, security-contract) and security guards assert the seal.
+
+### Notes
+- Demo/e2e default only — production should seal `ask` (or omit → ask) + a real policy hook.
+- Contract Tier 1 security invariants unchanged → patch bump.
+
 ## [1.0.3] — 2026-07-16
 
 ### Added

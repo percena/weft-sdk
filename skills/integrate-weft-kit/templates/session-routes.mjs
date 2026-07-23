@@ -478,8 +478,13 @@ export function wireSessionRoutes(server, {
             toolset: '{{toolset}}',
             title: `{{appName}} — ${endUserId}`,
             credential: { token: `{{toolset}}-cred-${endUserId}-${Date.now()}`, scheme: 'bearer' },
-            // No sealed approval_policy: the chat panel's per-message
-            // permission_mode (explore/ask/auto) controls each run's policy.
+            // Host-seal permission_mode=auto (this call uses WEFT_API_KEY, not
+            // the browser embed JWT). weftd's fenced-autonomy gate refuses
+            // untrusted embed elevate ask→auto, so the panel's Auto selector
+            // only works when the host sealed auto at createSession. The
+            // per-message selector can still tighten to ask/explore.
+            // Demo/e2e default — production should seal ask (or omit → ask) + policy.
+            config: { permission_mode: 'auto' },
           })
           sessionOwners.set(session.session_id, endUserId)
           return writeJSON(res, 201, { ...session, base_url: publicBaseURL(req) })

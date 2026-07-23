@@ -45,6 +45,7 @@ dependent CIs, assign + escalate"* — it drives the `itsm_*` tools
 `itsm_assignincident` → `itsm_escalateincident`), the action-bridge automated live
 cursor replays each on the incident row, and the incident lands in
 `/api/state`.
+(The host already seals `permission_mode: auto` at createSession so panel Auto is not demoted by weftd's embed authority gate.)
 
 ## The findings (fed back to the skill)
 

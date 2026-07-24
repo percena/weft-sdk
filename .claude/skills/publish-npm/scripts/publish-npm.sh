@@ -80,6 +80,17 @@ if [[ "$MODE" == "exact" && -z "$EXACT_VERSION" ]]; then
   echo "publish-npm: --version required with --mode exact" >&2
   exit 2
 fi
+# Independent version lines — a single --version cannot safely apply to both.
+if [[ "$MODE" == "exact" && "$PACKAGES" == "both" ]]; then
+  echo "publish-npm: refuse --mode exact with --packages both (version lines are independent)." >&2
+  echo "  Run twice with --packages weft and --packages weft-node, each with its own --version." >&2
+  exit 2
+fi
+# --dry-run is a hard no-registry-write. Confirm never overrides it.
+if [[ "$DRY_RUN" -eq 1 && "$CONFIRM_PUBLISH" -eq 1 ]]; then
+  echo "publish-npm: WARN --dry-run wins over --i-confirm-publish (no real publish)"
+  CONFIRM_PUBLISH=0
+fi
 
 pkg_keys=()
 case "$PACKAGES" in
@@ -185,31 +196,63 @@ else
   echo "== skip tests (operator) =="
 fi
 
-# Set versions in package.json (so tarball version matches plan)
-if [[ "$DO_SET_VERSION" -eq 1 ]]; then
-  for json in "${RESOLVED_JSON[@]}"; do
-    path=$(node -e 'const j=JSON.parse(process.argv[1]); process.stdout.write(j.path)' "$json")
-    to=$(node -e 'const j=JSON.parse(process.argv[1]); process.stdout.write(j.to)' "$json")
-    node "$SCRIPT_DIR/set-version.mjs" "$path" "$to"
-  done
-fi
+# Version + provenance restore. Versions are restored on any path that does
+# NOT successfully complete a real publish (dry-run, plan-adjacent exits,
+# publish failure). Provenance always restores to true.
+VERSIONS_MUTATED=0
+PUBLISH_SUCCEEDED=0
+PROVENANCE_RESTORED=0
+VERSIONS_RESTORED=0
 
-# Provenance restore trap
-RESTORED=0
-restore_provenance() {
-  if [[ "$RESTORED" -eq 1 ]]; then
+restore_versions() {
+  if [[ "$VERSIONS_MUTATED" -ne 1 || "$VERSIONS_RESTORED" -eq 1 ]]; then
     return 0
   fi
-  RESTORED=1
+  # Keep bumped versions only after a successful real publish.
+  if [[ "$PUBLISH_SUCCEEDED" -eq 1 ]]; then
+    VERSIONS_RESTORED=1
+    return 0
+  fi
+  VERSIONS_RESTORED=1
+  for json in "${RESOLVED_JSON[@]}"; do
+    path=$(node -e 'const j=JSON.parse(process.argv[1]); process.stdout.write(j.path)' "$json")
+    from=$(node -e 'const j=JSON.parse(process.argv[1]); process.stdout.write(j.fromLocal)' "$json")
+    node "$SCRIPT_DIR/set-version.mjs" "$path" "$from" >/dev/null || true
+  done
+  echo "publish-npm: package versions restored to pre-run values"
+}
+
+restore_provenance() {
+  if [[ "$PROVENANCE_RESTORED" -eq 1 ]]; then
+    return 0
+  fi
+  PROVENANCE_RESTORED=1
   for key in "${pkg_keys[@]}"; do
     dir=$(pkg_dir "$key")
     node "$SCRIPT_DIR/provenance-toggle.mjs" "$dir/package.json" true >/dev/null || true
   done
   echo "publish-npm: provenance restored to true"
 }
-trap restore_provenance EXIT
+
+cleanup_on_exit() {
+  restore_versions
+  restore_provenance
+}
+trap cleanup_on_exit EXIT
+
+# Temporarily set planned versions so dry-run / real pack reflect the target.
+# Restored on EXIT unless real publish succeeds (see restore_versions).
+if [[ "$DO_SET_VERSION" -eq 1 ]]; then
+  for json in "${RESOLVED_JSON[@]}"; do
+    path=$(node -e 'const j=JSON.parse(process.argv[1]); process.stdout.write(j.path)' "$json")
+    to=$(node -e 'const j=JSON.parse(process.argv[1]); process.stdout.write(j.to)' "$json")
+    node "$SCRIPT_DIR/set-version.mjs" "$path" "$to"
+  done
+  VERSIONS_MUTATED=1
+fi
 
 # Dry-run does not need provenance off; real publish does.
+# --dry-run always stops here (CONFIRM cannot override).
 if [[ "$DRY_RUN" -eq 1 || "$CONFIRM_PUBLISH" -ne 1 ]]; then
   echo "== dry-run publish =="
   for json in "${RESOLVED_JSON[@]}"; do
@@ -221,13 +264,11 @@ if [[ "$DRY_RUN" -eq 1 || "$CONFIRM_PUBLISH" -ne 1 ]]; then
       pnpm publish --filter "$name" --dry-run --no-git-checks
     fi
   done
-  if [[ "$CONFIRM_PUBLISH" -ne 1 ]]; then
-    echo "publish-npm: stopping after dry-run (pass --i-confirm-publish after operator yes for real publish)"
-    exit 0
-  fi
+  echo "publish-npm: stopping after dry-run (pass --i-confirm-publish without --dry-run for real publish)"
+  exit 0
 fi
 
-# Real publish path
+# Real publish path (CONFIRM_PUBLISH=1 and DRY_RUN=0)
 echo "== real publish (confirmed) =="
 for key in "${pkg_keys[@]}"; do
   dir=$(pkg_dir "$key")
@@ -256,7 +297,12 @@ for json in "${RESOLVED_JSON[@]}"; do
   npm view "$name" dist-tags --json || true
 done
 
+PUBLISH_SUCCEEDED=1
 restore_provenance
+# Keep trap for restore_versions no-op after success; clear full cleanup now that
+# provenance is restored and versions should stay bumped.
+PROVENANCE_RESTORED=1
+VERSIONS_RESTORED=1
 trap - EXIT
 
 # Apps align (stable only)

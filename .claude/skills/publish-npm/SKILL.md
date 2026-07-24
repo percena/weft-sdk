@@ -39,10 +39,10 @@ This skill encodes that path so operators do not re-derive gotchas from memory.
 | --- | --- | --- |
 | `CHANNEL` | `next` \| `latest` | ask; "test/next" → `next`; "release/stable" → `latest` |
 | `VERSION_MODE` | `auto` \| `exact` \| `bump` | **`auto`** (顺延) |
-| `VERSION` | full semver | required when `VERSION_MODE=exact` |
+| `VERSION` | full semver | required when `VERSION_MODE=exact` (single package only) |
 | `BUMP` | `patch` \| `minor` \| `major` | `patch` when mode is `bump` or stable `auto` |
-| `PACKAGES` | `weft` \| `weft-node` \| `both` | **ask** each run |
-| `DRY_RUN` / `--plan` | `1` | `0` — plan only, no registry write |
+| `PACKAGES` | `weft` \| `weft-node` \| `both` | **ask** each run; **`exact` + `both` is refused** |
+| `DRY_RUN` / `--plan` | `1` | `0` — plan/dry-run only; **`--dry-run` always wins over confirm** (no registry write) |
 | `SKIP_TESTS` | `1` | `0` — require explicit reason if set |
 | `SKIP_PUSH_CONFIRM` | — | push is **never** default; second confirm only |
 | `ALLOW_NON_MAIN` | `1` | `0` — refuse non-`main` unless set + confirmed |
@@ -81,6 +81,10 @@ Full tables: `references/version-policy.md`. Summary:
 `0.1.1`). When `PACKAGES=both`, apply the **same channel + mode** but run
 auto-math **per package**. Do not force them onto one version string.
 
+**Refuse** `VERSION_MODE=exact` with `PACKAGES=both` — a single `--version`
+cannot map onto two independent lines. Run twice (once per package) with the
+matching exact version each time.
+
 ## Hard gates (order is fixed)
 
 1. **cwd** = weft-sdk repo root (or worktree root with workspace `package.json`).
@@ -89,7 +93,7 @@ auto-math **per package**. Do not force them onto one version string.
    after operator confirm. Release commits belong on main
    (`release-on-main-merge-first`).
 4. **Plan resolve:** for each selected package, compute `{name, path, from, to, tag}`
-   via `scripts/resolve-version.sh` (or inline equivalent). Print the plan table.
+   via `scripts/resolve-version.mjs` (or inline equivalent). Print the plan table.
 5. **Tombstone / exists check:** `npm view <name>@<to> version` → if present, refuse
    and ask for a new exact version. If publish later returns E400 "previously
    published" while view 404s → tombstone; bump or re-ask (do not wait).
@@ -111,7 +115,7 @@ auto-math **per package**. Do not force them onto one version string.
    pnpm publish --filter <name> --dry-run --no-git-checks [--tag next]
    ```
 10. **Confirm** via `AskUserQuestion`: packages, from→to, tag, dry-run result OK?
-11. **Real publish** (only after confirm; skip if `DRY_RUN=1`):
+11. **Real publish** (only after confirm **and** `DRY_RUN=0`; `--dry-run` always exits before this step even if confirm was also passed):
     ```bash
     # next:
     pnpm publish --filter <name> --tag next --no-git-checks
@@ -120,7 +124,7 @@ auto-math **per package**. Do not force them onto one version string.
     ```
     **Never** `pnpm run release` / `changeset publish` as the default — those
     can publish both facades without the interactive matrix.
-12. **Restore provenance** (trap + explicit verify `jq`/node read-back).
+12. **Restore provenance** (trap + explicit verify).
 13. **Verify registry:**
     ```bash
     npm view <name> dist-tags --json
@@ -129,11 +133,17 @@ auto-math **per package**. Do not force them onto one version string.
 
 ## Version file write
 
-Before publish (after plan confirm, before or as part of pack):
+For dry-run **and** real pack, temporarily write planned `version` into
+`publish/*/package.json` so the tarball metadata matches the plan.
 
-1. Write `version` in `publish/browser/package.json` and/or `publish/desktop/package.json`.
-2. Optionally prepend a short section to that package's `CHANGELOG.md`.
-3. Do **not** commit yet — commit is post-publish only if registry write succeeded.
+1. Snapshot `fromLocal` before mutate.
+2. Write planned version via `scripts/set-version.mjs`.
+3. On **any** exit that is not a successful real publish (including pure
+   `--dry-run`, missing confirm, or publish failure): **restore** prior
+   versions (EXIT trap). Provenance also restores to `true`.
+4. On successful real publish: **keep** bumped versions for the post-publish
+   commit; optionally prepend CHANGELOG.
+5. Do **not** commit until registry write succeeded.
 
 Helper: `scripts/set-version.mjs <package-json> <version>`.
 
@@ -159,28 +169,30 @@ On **successful** registry write:
 
 ## Plan / dry-run mode
 
-`--plan` or `DRY_RUN=1`:
+`--plan` or `--dry-run` / `DRY_RUN=1`:
 
-- Resolve versions, print plan table, optionally rebuild + dry-run pack
-- **Must not** leave `provenance: false` on disk (toggle only inside a
-  subshell/trap around dry-run if dry-run needs it; prefer dry-run without
-  mutating when possible — note: `pnpm publish --dry-run` does not need
-  provenance off; only real publish does)
-- **Must not** `npm publish` for real, **must not** commit/push
+- Resolve versions, print plan table; dry-run may rebuild + pack dry-run
+- Temporary version write for accurate dry-run metadata is **restored** on exit
+- **Must not** leave `provenance: false` on disk (only real publish toggles it;
+  EXIT trap restores `true`)
+- **Must not** `npm publish` for real — `--dry-run` **overrides**
+  `--i-confirm-publish` if both are passed
+- **Must not** commit/push
 
 ## Operator flow (checklist)
 
 ```text
 1. Parse args / AskUserQuestion (channel, mode, packages)
-2. scripts/resolve-version.sh → plan table
-3. Gate: whoami, branch, exists/tombstone
+2. scripts/resolve-version.mjs → plan table
+3. Gate: whoami, branch, exists/tombstone; refuse exact+both
 4. AskUserQuestion confirm plan
 5. Rebuild L0→publish; check/validate/test
-6. If DRY_RUN: dry-run publish; stop with plan report
-7. Provenance false (trap restore)
-8. pnpm publish --filter … [--tag next] --no-git-checks
-9. Restore provenance; npm view verify
-10. Apps align (latest); git commit; ask push
+6. Temp set-version (trap restores unless real publish succeeds)
+7. If DRY_RUN or no confirm: dry-run publish; stop (versions restored)
+8. Provenance false (trap restore)
+9. pnpm publish --filter … [--tag next] --no-git-checks
+10. Restore provenance; keep versions; npm view verify
+11. Apps align (latest); git commit; ask push
 ```
 
 Prefer running the scripted path:

@@ -45,6 +45,8 @@ Inputs per package: registry dist-tags, registry versions list, local
 - Still run exists/tombstone checks
 - Warn if CHANNEL=next and version has no prerelease
 - Warn if CHANNEL=latest and version has prerelease
+- **Refuse** when resolving for `PACKAGES=both` in `publish-npm.sh` — run per
+  package with its own `--version`
 
 ## Exists / tombstone preflight
 

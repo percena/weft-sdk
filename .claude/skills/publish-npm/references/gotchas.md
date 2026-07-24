@@ -47,6 +47,18 @@ Do **not** wait for the tombstone to clear. Bump to a new version string
   `pnpm publish --filter @percena/weft …` and/or
   `pnpm publish --filter @percena/weft-node …`
 - Version lines are **independent** (`weft` 1.x vs `weft-node` 0.1.x).
+- **`exact` + `both` is refused** — one `--version` cannot apply to both lines.
+  Publish each package with its own exact version.
+
+## 4b. Dry-run must not stick version bumps or publish
+
+- `--dry-run` (and the default no-confirm path) may temporarily write the
+  planned version into `package.json` so pack metadata matches the plan, then
+  **restores** prior versions on EXIT.
+- `--dry-run` **always wins** over `--i-confirm-publish` — never real-publish
+  when dry-run was requested.
+- Only a successful real publish keeps the bumped version for the post-publish
+  commit.
 
 ## 5. Rebuild L0→L4→publish from HEAD before pack
 

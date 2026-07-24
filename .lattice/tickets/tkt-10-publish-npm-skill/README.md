@@ -27,14 +27,14 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** Skill invokable as `/publish-npm` (`.claude/skills/publish-npm/SKILL.md`)
-- [ ] **A2** Channels next/latest + modes auto|exact|bump; auto-next never burns patch solely to iterate
-- [ ] **A3** Interactive package select (weft / weft-node / both); independent version lines
-- [ ] **A4** Gate order: main → rebuild → validate/test → provenance toggle → dry-run → confirm → publish → restore
-- [ ] **A5** `--filter` only; never unfiltered `pnpm run release`
-- [ ] **A6** Version commit + apps align; push only on second confirm
-- [ ] **A7** Gotchas documented + enforced in runbook/script
-- [ ] **A8** Plan/dry-run mode without unrestored provenance mutation
+- [x] **A1** Skill invokable as `/publish-npm` (`.claude/skills/publish-npm/SKILL.md`)
+- [x] **A2** Channels next/latest + modes auto|exact|bump; auto-next never burns patch solely to iterate
+- [x] **A3** Interactive package select (weft / weft-node / both); independent version lines
+- [x] **A4** Gate order: main → rebuild → validate/test → provenance toggle → dry-run → confirm → publish → restore
+- [x] **A5** `--filter` only; never unfiltered `pnpm run release`
+- [x] **A6** Version commit + apps align; push only on second confirm
+- [x] **A7** Gotchas documented + enforced in runbook/script
+- [x] **A8** Plan/dry-run mode without unrestored provenance mutation
 
 ## Notes
 

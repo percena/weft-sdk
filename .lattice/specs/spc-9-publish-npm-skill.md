@@ -69,14 +69,14 @@ Local `npm publish` is the established release path for this monorepo: `.github/
 
 ## Acceptance
 
-- [ ] **A1** Skill is installed for weft-sdk Claude sessions as `/publish-npm` (project skill path under `.claude/skills/publish-npm/SKILL.md` with frontmatter `name: publish-npm`).
-- [ ] **A2** Supports channels `next` and `latest`, and version modes `auto` (default), `exact`, and `bump(patch|minor|major)`; auto on next never burns a new patch solely to iterate a test build.
-- [ ] **A3** Package selection is interactive (weft / weft-node / both) or overridable by args; each package’s version line is independent.
-- [ ] **A4** Pre-publish gates run in order: main-branch check → rebuild → validate/test (or explicit skip) → provenance toggle → dry-run → user confirm → real publish → restore provenance.
-- [ ] **A5** Real publish uses `--filter` on the chosen facade(s) only; never `pnpm run release` / unfiltered changeset publish.
-- [ ] **A6** On success: version files committed locally; agentic apps dep ranges aligned for stable releases; push only after separate confirm (default no push).
-- [ ] **A7** Skill documents and enforces the known gotchas (provenance, next suffix, tombstone detect/skip, dual package, rebuild, main-only).
-- [ ] **A8** Dry-run / plan mode available that prints the full action plan without registry write or provenance mutation that is left unrestored.
+- [x] **A1** Skill is installed for weft-sdk Claude sessions as `/publish-npm` (project skill path under `.claude/skills/publish-npm/SKILL.md` with frontmatter `name: publish-npm`).
+- [x] **A2** Supports channels `next` and `latest`, and version modes `auto` (default), `exact`, and `bump(patch|minor|major)`; auto on next never burns a new patch solely to iterate a test build.
+- [x] **A3** Package selection is interactive (weft / weft-node / both) or overridable by args; each package’s version line is independent.
+- [x] **A4** Pre-publish gates run in order: main-branch check → rebuild → validate/test (or explicit skip) → provenance toggle → dry-run → user confirm → real publish → restore provenance.
+- [x] **A5** Real publish uses `--filter` on the chosen facade(s) only; never `pnpm run release` / unfiltered changeset publish.
+- [x] **A6** On success: version files committed locally; agentic apps dep ranges aligned for stable releases; push only after separate confirm (default no push).
+- [x] **A7** Skill documents and enforces the known gotchas (provenance, next suffix, tombstone detect/skip, dual package, rebuild, main-only).
+- [x] **A8** Dry-run / plan mode available that prints the full action plan without registry write or provenance mutation that is left unrestored.
 
 ## Non-goals
 

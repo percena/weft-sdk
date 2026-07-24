@@ -2,7 +2,7 @@
 
 > **TL;DR:** Deliver `/publish-npm` project skill with next/latest channels, auto|exact|bump versions, dual-package filters, and safe local-publish gates.
 > **Kind:** feat · **Status:** open · **Priority:** P2
-> **Path:** spc-9 → tkt-10 → (pr-…)
+> **Path:** spc-9 → tkt-10 → pr-11
 
 | Field | Value |
 | --- | --- |
@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `spc-9-publish-npm-skill` |
 | worktree | sibling `…/weft-sdk.worktrees/spc-9-publish-npm-skill/` |
-| prs | (none) |
+| prs | pr-11 — https://github.com/percena/weft-sdk/pull/11 |
 
 ## Acceptance (this slice)
 
@@ -56,7 +56,7 @@ Single delivery ticket under spc-9. Ship as one-PR with lattice `.gitignore` ini
 - Blocked by: (none)
 - Parallel group: serial
 - Worktree bind: `spc-9-publish-npm-skill`
-- Child PRs: (none)
+- Child PRs: pr-11 — https://github.com/percena/weft-sdk/pull/11
 
 ## Assets
 

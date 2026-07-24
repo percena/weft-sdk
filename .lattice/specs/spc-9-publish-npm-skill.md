@@ -10,7 +10,7 @@ summary: "Operator skill for local npm publish: next/latest channels, auto/exact
 created: 2026-07-24
 updated: 2026-07-24
 tickets: [tkt-10]
-prs: []
+prs: [pr-11]
 reviews: []
 supersedes: []
 superseded_by: null
@@ -20,7 +20,7 @@ superseded_by: null
 
 > **TL;DR:** Ship a weft-sdk project skill `/publish-npm` that codifies the established local release path for `@percena/weft` and `@percena/weft-node` (channels, version modes, provenance toggle, dual-package filters, post-publish commit without auto-push).
 > **Kind:** feat · **Status:** locked · **Mode:** M · **Priority:** P2
-> **Path:** spc-9 → tkt-10 → pr-…
+> **Path:** spc-9 → tkt-10 → pr-11
 
 ## Why
 
@@ -119,6 +119,6 @@ Local `npm publish` is the established release path for this monorepo: `.github/
 ## Links / bloodline (L0)
 
 - Tickets: `tkt-10` → https://github.com/percena/weft-sdk/issues/10
-- PRs: (none)
+- PRs: `pr-11` → https://github.com/percena/weft-sdk/pull/11
 - Reviews: (none)
 - Primary issue: https://github.com/percena/weft-sdk/issues/9

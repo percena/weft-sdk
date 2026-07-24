@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | feat, P2 |
 | github | https://github.com/percena/weft-sdk/issues/10 |
-| status | open |
+| status | done |
 | adopted | false |
 | summary | /publish-npm skill for @percena/weft + weft-node local release |
 | spec | spc-9 — publish-npm skill (path: ../../specs/spc-9-publish-npm-skill.md) |
@@ -64,4 +64,5 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+- pr-11 merged: 2026-07-24 — https://github.com/percena/weft-sdk/pull/11
+- issue #10 closed: 2026-07-24 — https://github.com/percena/weft-sdk/issues/10

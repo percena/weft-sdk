@@ -3,7 +3,7 @@ id: spc-9
 slug: publish-npm-skill
 title: "/publish-npm skill for @percena/weft + weft-node local release"
 kind: feat
-status: locked
+status: done
 mode: M
 priority: P2
 summary: "Operator skill for local npm publish: next/latest channels, auto/exact/bump versions, dual packages, safe gates."
@@ -19,7 +19,7 @@ superseded_by: null
 # Spec: /publish-npm skill for @percena/weft + weft-node local release
 
 > **TL;DR:** Ship a weft-sdk project skill `/publish-npm` that codifies the established local release path for `@percena/weft` and `@percena/weft-node` (channels, version modes, provenance toggle, dual-package filters, post-publish commit without auto-push).
-> **Kind:** feat · **Status:** locked · **Mode:** M · **Priority:** P2
+> **Kind:** feat · **Status:** done · **Mode:** M · **Priority:** P2
 > **Path:** spc-9 → tkt-10 → pr-11
 
 ## Why

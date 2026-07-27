@@ -98,8 +98,8 @@ importers:
   apps/itsm/agentic:
     dependencies:
       '@percena/weft':
-        specifier: ^1.0.1
-        version: 1.0.1(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+        specifier: latest
+        version: 1.0.2(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       i18next:
         specifier: ^23.0.0
         version: 23.16.8
@@ -169,8 +169,8 @@ importers:
   apps/online-store/agentic:
     dependencies:
       '@percena/weft':
-        specifier: ^1.0.1
-        version: 1.0.1(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+        specifier: latest
+        version: 1.0.2(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       i18next:
         specifier: ^23.0.0
         version: 23.16.8
@@ -1378,8 +1378,8 @@ packages:
     resolution: {integrity: sha512-dfUnCxiN9H4ap84DvD2ubjw+3vUNpstxa0TneY/Paat8a3R4uQZDLSvWjmznAY/DoahqTHl9V46HF/Zs3F29pg==}
     engines: {node: '>= 10.0.0'}
 
-  '@percena/weft@1.0.1':
-    resolution: {integrity: sha512-wqqE647izpMSWYV0z6QIabo76p+3ahLm6ONYHTJ0cf51Qwb/XhkLXLOr/dm79XF/QJ59PqUnHqLn3xhqY/KlXQ==}
+  '@percena/weft@1.0.2':
+    resolution: {integrity: sha512-Z7l3SS1mdc2VROJP9BpdJy4CdvAP1YeT+CWPKI7l3qO7++wQoG0+NrBHhzHXo9psfAvyTbjTC7TIzqDQbmUMqQ==}
     engines: {node: '>=18'}
     hasBin: true
     peerDependencies:
@@ -4184,7 +4184,7 @@ snapshots:
       '@parcel/watcher-win32-ia32': 2.5.1
       '@parcel/watcher-win32-x64': 2.5.1
 
-  '@percena/weft@1.0.1(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)':
+  '@percena/weft@1.0.2(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)':
     dependencies:
       '@shikijs/core': 3.23.0
       '@shikijs/engine-javascript': 3.23.0

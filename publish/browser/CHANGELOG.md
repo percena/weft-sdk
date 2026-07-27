@@ -1,5 +1,16 @@
 # @percena/weft
 
+## 1.0.2
+
+### Minor
+
+- Export `WeftHttpError` from the browser Flitro provider entry with stable
+  weftd error codes.
+- Preserve structured error fields on synthetic `turn_failed` timeline items.
+- Export `readTurnFailedError` / `TurnFailedErrorInfo` from the root entry as
+  the supported way to consume `turn_failed.error` (no more casting `unknown`).
+- Reject immediately-drained deferred sends with the original typed error.
+
 ## 1.0.0
 
 First stable, production-ready release of the browser-safe Weft Agentic Chat

@@ -1,6 +1,6 @@
 {
   "name": "@percena/weft",
-  "version": "1.0.2-next.1",
+  "version": "1.0.2",
   "license": "MIT",
   "author": "Percena <info@percena.co>",
   "description": "Weft — embeddable agent chat runtime SDK (browser, production-ready). Streaming chat panel + timeline + action-bridge: an agent drives your REST API through named tools, respects your state machine, and visually replays each call.",

@@ -7,10 +7,21 @@
 import { build } from 'vite'
 import { loadEnv } from './lib/proc.mjs'
 import { createAppServer } from './server/app-server.mjs'
+import { Agent, setGlobalDispatcher } from 'undici'
 
 // Populate process.env from .env BEFORE the build so provisioning reads live
 // creds (WEFTD_BASE / WEFT_API_KEY / WEFT_TENANT_ID / OPENAI_MODEL).
 Object.assign(process.env, loadEnv())
+
+// Stale keep-alive avoidance: the reverse proxy in front of weftd silently
+// closes idle keep-alive connections, and undici's default pool (4s idle
+// timeout) sometimes reuses a half-closed socket → the fetch stalls until its
+// own TTFB timeout. A long-running server process is hit hardest (it pools
+// connections across requests; a short-lived script is unaffected). Drop idle
+// connections aggressively so reuse always hits a fresh socket. Combined with
+// the per-fetch TTFB timeout + retry in provision.mjs / session-routes.mjs,
+// this makes provisioning + the run/timeline proxy resilient to the stall.
+setGlobalDispatcher(new Agent({ keepAliveTimeout: 500, keepAliveMaxTimeout: 500, headersTimeout: 20000 }))
 
 /**
  * Fail fast on missing weftd creds. Exported so a direct-run server entrypoint

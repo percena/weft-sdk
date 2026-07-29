@@ -342,18 +342,20 @@ export function wireSessionRoutes(server, { weftdBase, apiKey, tenantId, ensureA
         // default is fail-safe = NO retry (surface as 502). The client-disconnect
         // abort also lands here — bail, don't retry.
         if (abortCtrl.signal.aborted) return;
-        // A TTFB-timeout abort is treated as a pre-handshake stall: for
-        // createRun the empty timeline proves weftd never received the body, so
-        // a retry is safe; for idempotent GETs (timeline SSE) it is trivially
-        // safe. Mid-stream socket drops (which WOULD risk duplicates) are not
-        // AbortErrors — they're TypeErrors with a socket cause, caught above by
-        // isPreHandshakeFetchError's narrow allowlist (default no-retry).
+        // Pre-handshake errors fire BEFORE any body bytes are sent, so retrying
+        // is safe for ALL methods (weftd never received the body → no duplicate).
+        // A TTFB-timeout abort fires AFTER the body was sent — weftd MAY have
+        // received it + created the run, so retrying a non-idempotent POST/PUT/
+        // DELETE risks duplication. Retry TTFB-timeouts ONLY for idempotent
+        // methods (GET/HEAD); for everything else fail-closed (504) so the
+        // caller surfaces the error rather than double-issuing createRun.
         const isTtfbTimeout = ttfbCtrl.signal.aborted;
-        if (retriesLeft > 0 && !res.headersSent && (isPreHandshakeFetchError(error) || isTtfbTimeout)) {
+        const idempotent = req.method === 'GET' || req.method === 'HEAD';
+        if (retriesLeft > 0 && !res.headersSent && (isPreHandshakeFetchError(error) || (isTtfbTimeout && idempotent))) {
           setTimeout(() => attempt(retriesLeft - 1), 250);
           return;
         }
-        if (!res.headersSent) writeJSON(res, 502, { error: `weftd proxy failed: ${error.message}` });
+        if (!res.headersSent) writeJSON(res, isTtfbTimeout ? 504 : 502, { error: `weftd proxy failed: ${error.message}` });
         else if (!res.destroyed) res.destroy();
         return;
       }

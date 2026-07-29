@@ -5,6 +5,21 @@ The skill follows [semantic versioning](https://semver.org/) independently of th
 `@percena/weft` SDK; `metadata.min-weft-sdk` (in `SKILL.md` frontmatter) declares the
 minimum SDK version assumed.
 
+## [1.0.5] — 2026-07-29
+
+### Fixed
+- **Stale keep-alive + no-timeout hang**: a long-running server scaffolded from this skill hung indefinitely ("Connecting to chat…" / run-POST 30s timeout) because fetches to the weftd control plane intermittently stalled on stale keep-alive sockets, and the templates' fetches had no per-request timeout. A short-lived script was unaffected (fresh sockets). Root cause confirmed via instrumented trace (the stall is reverse-proxy-side; client-side resilience is the fix layer here).
+  - `run.mjs` (JS): `setGlobalDispatcher(new Agent({ keepAliveTimeout: 500, keepAliveMaxTimeout: 500, headersTimeout: 20000 }))` — drop stale idle sockets before reuse (core fix).
+  - `provision.mjs` (JS) `weftdAPI`: `AbortSignal.timeout(20s)` + retry (≤3, backoff) on `TypeError`/`AbortError`/`TimeoutError`.
+  - `session-routes.mjs` (JS) `proxyToWeftd`: TTFB timeout (20s, cleared on headers so the timeline SSE is never killed) + retry (≤3). Tightened: pre-handshake errors retry for all methods; TTFB-timeout retries ONLY idempotent GET/HEAD (fires after body sent → weftd may have created the run → non-idempotent POST/PUT/DELETE fail-closed 504, no duplicate createRun).
+  - `provision.py` (Python): `httpx.Client` `keepalive_expiry=0.5` + retry on `ReadTimeout` (idempotent chain).
+  - `session_routes.py` (Python): per-method `httpx.Timeout` (GET/HEAD timeline SSE `read=None`; POST/PUT/DELETE `read=30` catches the stall) + tightened retry (pre-handshake all; `ReadTimeout` only idempotent; non-idempotent fail-closed 504).
+  - Demo instances `apps/online-store/agentic` (JS) + `apps/itsm/agentic` (Python) synced.
+
+### Notes
+- Demo/e2e only — production should still fix the reverse-proxy keep-alive idle timeout on the control-plane side (tracked separately). The keepAlive dispatcher is load-bearing; the timeout/retry is defense-in-depth.
+- Contract Tier 1 security invariants unchanged → patch bump.
+
 ## [1.0.4] — 2026-07-23
 
 ### Fixed

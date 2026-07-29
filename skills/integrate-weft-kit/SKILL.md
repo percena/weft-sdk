@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Requires @percena/weft ^1.0.1, a REST API with an OpenAPI/swagger spec, Node 20+ or Python 3.11+, and a Weft control-plane (weftd) tenant provisioned at https://weft-kit.dev."
 metadata:
   author: percena
-  version: "1.0.4"
+  version: "1.0.5"
   min-weft-sdk: "1.0.1"
   source: https://github.com/percena/weft-sdk/tree/main/skills/integrate-weft-kit
   changelog: https://github.com/percena/weft-sdk/blob/main/skills/integrate-weft-kit/CHANGELOG.md

@@ -2,7 +2,7 @@
 name: integrate-weft-kit
 description: Use when integrating the @percena/weft SDK into an existing REST API project that has an OpenAPI/swagger spec to make it agentic (embed a Weft chat panel whose LLM agent drives the project's REST API); or when modeling, generating, reviewing, or repairing the per-resource state machine and API dependency graph (DAG) for such an integration. Symptoms include an agent that "can't" operate a pre-existing or cross-session resource and mints a duplicate instead.
 license: MIT
-compatibility: "Requires @percena/weft ^1.0.1, a REST API with an OpenAPI/swagger spec, Node 20+ or Python 3.11+, and a Weft control-plane (weftd) tenant provisioned at https://weft-kit.dev."
+compatibility: "Requires @percena/weft ^1.0.1, a REST API with an OpenAPI/swagger spec, Node 20.3+ (uses AbortSignal.any, added in 20.3) or Python 3.11+, and a Weft control-plane (weftd) tenant provisioned at https://weft-kit.dev."
 metadata:
   author: percena
   version: "1.0.5"

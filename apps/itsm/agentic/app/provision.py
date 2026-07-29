@@ -119,12 +119,13 @@ class Provisioning:
             return resp.json() if resp.content else {}
         try:
             return _do()
-        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout):
-            # Retry ONCE on a transient pre-handshake TLS/connect drop OR a
-            # mid-stream ReadTimeout stall (the reverse proxy intermittently
-            # stalls connections). The provisioning chain is idempotent
-            # (find-or-create + draft/validate/publish/bind; duplicate-key 500s
-            # are swallowed), so a single retry is safe. HTTP 4xx/5xx already
+        except (httpx.ConnectError, httpx.TimeoutException):
+            # Retry ONCE on a transient pre-handshake TLS/connect drop OR any
+            # timeout (Connect/Read/Write/Pool) stall — the reverse proxy
+            # intermittently stalls connections. The provisioning chain is
+            # idempotent (find-or-create + draft/validate/publish/bind;
+            # duplicate-key 500s are swallowed), so a single retry is safe
+            # even for a post-body Read/Write timeout. HTTP 4xx/5xx already
             # raised above (not retried).
             return _do()
 

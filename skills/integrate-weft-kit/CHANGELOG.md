@@ -12,12 +12,13 @@ minimum SDK version assumed.
   - `run.mjs` (JS): `setGlobalDispatcher(new Agent({ keepAliveTimeout: 500, keepAliveMaxTimeout: 500, headersTimeout: 20000 }))` — drop stale idle sockets before reuse (core fix).
   - `provision.mjs` (JS) `weftdAPI`: `AbortSignal.timeout(20s)` + retry (≤3, backoff) on `TypeError`/`AbortError`/`TimeoutError`.
   - `session-routes.mjs` (JS) `proxyToWeftd`: TTFB timeout (20s, cleared on headers so the timeline SSE is never killed) + retry (≤3). Tightened: pre-handshake errors retry for all methods; TTFB-timeout retries ONLY idempotent GET/HEAD (fires after body sent → weftd may have created the run → non-idempotent POST/PUT/DELETE fail-closed 504, no duplicate createRun).
-  - `provision.py` (Python): `httpx.Client` `keepalive_expiry=0.5` + retry on `ReadTimeout` (idempotent chain).
-  - `session_routes.py` (Python): per-method `httpx.Timeout` (GET/HEAD timeline SSE `read=None`; POST/PUT/DELETE `read=30` catches the stall) + tightened retry (pre-handshake all; `ReadTimeout` only idempotent; non-idempotent fail-closed 504).
+  - `provision.py` (Python): `httpx.Client` `keepalive_expiry=0.5` + retry on `httpx.TimeoutException` (parent of Connect/Read/Write/Pool timeout) — catches WriteTimeout too (a stalled body write), which the narrow `ConnectError/ConnectTimeout/ReadTimeout` tuple missed.
+  - `session_routes.py` (Python): per-method `httpx.Timeout` (GET/HEAD timeline SSE `read=None`; POST/PUT/DELETE `read=30` catches the stall; `write=20`/`connect=5`/`pool=5` bounded) + split retry — `httpx.TimeoutException` split into pre-handshake (Connect/Pool timeout → retry all methods, 502) vs post-body (Read/Write timeout → retry only idempotent GET/HEAD, else fail-closed 504, no duplicate createRun); `httpx.ConnectError` (non-timeout) separately as pre-handshake. `client.aclose()` on every terminal path.
   - Demo instances `apps/online-store/agentic` (JS) + `apps/itsm/agentic` (Python) synced.
 
 ### Notes
 - Demo/e2e only — production should still fix the reverse-proxy keep-alive idle timeout on the control-plane side (tracked separately). The keepAlive dispatcher is load-bearing; the timeout/retry is defense-in-depth.
+- `compatibility` bumped to **Node 20.3+** (the JS templates use `AbortSignal.any`, added in Node 20.3.0; `AbortSignal.timeout` is Node 17.3+). Python unchanged (3.11+).
 - Contract Tier 1 security invariants unchanged → patch bump.
 
 ## [1.0.4] — 2026-07-23

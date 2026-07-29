@@ -310,6 +310,15 @@ export function wireSessionRoutes(server, { weftdBase, apiKey, tenantId, ensureA
       // or a prior attempt already finished) before this retry runs — bail
       // instead of writing into a dead stream.
       if (res.writableEnded || res.destroyed) return;
+      // TTFB timeout: the VPS reverse proxy in front of weftd intermittently
+      // stalls a connection (notably keep-alive reuse from a long-running
+      // server process). Without a headers-timeout the fetch hangs until the
+      // browser SDK's own 30s timeout — and for createRun the run is never
+      // created (the stall is pre-handshake, so a retry is non-duplicative).
+      // The timeout is cleared the moment response HEADERS arrive, so the
+      // long-lived timeline SSE stream is never killed by it.
+      const ttfbCtrl = new AbortController();
+      const ttfbTimer = setTimeout(() => ttfbCtrl.abort(), 20000);
       let response;
       try {
         response = await fetch(upstreamUrl, {
@@ -317,9 +326,11 @@ export function wireSessionRoutes(server, { weftdBase, apiKey, tenantId, ensureA
           headers: upHeaders,
           body: body.length ? body : undefined,
           redirect: 'manual',
-          signal: abortCtrl.signal,
+          signal: AbortSignal.any([abortCtrl.signal, ttfbCtrl.signal]),
         });
+        clearTimeout(ttfbTimer);
       } catch (error) {
+        clearTimeout(ttfbTimer);
         // A pre-handshake / connection-establishment failure surfaces as a
         // `TypeError: fetch failed` (undici wraps the underlying cause). BUT
         // undici sends the full request body BEFORE awaiting response headers, so
@@ -331,7 +342,14 @@ export function wireSessionRoutes(server, { weftdBase, apiKey, tenantId, ensureA
         // default is fail-safe = NO retry (surface as 502). The client-disconnect
         // abort also lands here — bail, don't retry.
         if (abortCtrl.signal.aborted) return;
-        if (retriesLeft > 0 && !res.headersSent && isPreHandshakeFetchError(error)) {
+        // A TTFB-timeout abort is treated as a pre-handshake stall: for
+        // createRun the empty timeline proves weftd never received the body, so
+        // a retry is safe; for idempotent GETs (timeline SSE) it is trivially
+        // safe. Mid-stream socket drops (which WOULD risk duplicates) are not
+        // AbortErrors — they're TypeErrors with a socket cause, caught above by
+        // isPreHandshakeFetchError's narrow allowlist (default no-retry).
+        const isTtfbTimeout = ttfbCtrl.signal.aborted;
+        if (retriesLeft > 0 && !res.headersSent && (isPreHandshakeFetchError(error) || isTtfbTimeout)) {
           setTimeout(() => attempt(retriesLeft - 1), 250);
           return;
         }
@@ -388,7 +406,7 @@ export function wireSessionRoutes(server, { weftdBase, apiKey, tenantId, ensureA
         res.end()
       }
     };
-    attempt(1); // one retry on connection-establishment errors
+    attempt(3); // up to 3 retries on connection-establishment / TTFB-timeout stalls
   };
   // === end fetch-transport block ===
 

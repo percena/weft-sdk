@@ -18,6 +18,7 @@ a new app the skill substitutes them.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import posixpath
@@ -252,18 +253,54 @@ def create_session_router(provisioning, *, toolset: str, app_name: str,
         if weftd_host:
             headers["host"] = weftd_host
 
-        client = httpx.AsyncClient(timeout=httpx.Timeout(None), follow_redirects=False)
+        # Per-method timeout: the reverse proxy in front of weftd intermittently
+        # stalls a connection, and a no-timeout fetch would hang forever (the
+        # run-POST stall → browser SDK 30s timeout). GET/HEAD carry the
+        # long-lived timeline SSE → read=None (a read timeout would kill the
+        # idle stream — weftd sends no keepalive bytes between events); a
+        # post-connect pre-headers stall on GET therefore relies on the
+        # connection-drop surfacing (RemoteProtocolError → 502) rather than a
+        # headers timeout. This is an accepted asymmetry vs the JS proxy's
+        # TTFB-timeout: Python uses a fresh per-request AsyncClient (no
+        # keep-alive reuse across requests), so the stale-socket stall that
+        # hit the long-running JS process does not apply here. POST/PUT/DELETE
+        # are short JSON → read=30 catches a mid-stream/headers stall.
+        # connect/pool/write are bounded for all (write=20 catches a stalled
+        # body write — handled below as a post-body timeout).
+        is_idempotent = request.method in ("GET", "HEAD")
+        proxy_timeout = httpx.Timeout(connect=5.0, read=None if is_idempotent else 30.0, write=20.0, pool=5.0)
+        client = httpx.AsyncClient(timeout=proxy_timeout, follow_redirects=False)
         req = client.build_request(
             request.method, upstream_url, headers=headers, content=body if body else None,
         )
         resp = None
-        for attempt in range(2):
+        # Up to 3 retries. TimeoutException (parent of Connect/Read/Write/Pool
+        # timeout) is split: Connect/Pool timeout fire BEFORE any body bytes
+        # are sent → safe for ALL methods (retry, 502 on exhaust). Read/Write
+        # timeout fire AFTER the body was sent (weftd MAY have received it +
+        # created the run) → retry ONLY idempotent GET/HEAD; for POST/PUT/DELETE
+        # fail-closed (504) so the caller surfaces the error rather than
+        # double-issuing createRun. ConnectError (non-timeout) is also
+        # pre-handshake → safe for all. httpx.TimeoutException is the parent of
+        # ConnectTimeout/PoolTimeout/ReadTimeout/WriteTimeout (verified MRO);
+        # ConnectError is a separate NetworkError branch (no overlap).
+        pre_handshake_timeout = (httpx.ConnectTimeout, httpx.PoolTimeout)
+        for attempt in range(4):
             try:
                 resp = await client.send(req, stream=True)
                 break
-            except (httpx.ConnectError, httpx.ConnectTimeout) as e:
-                if attempt == 0:
-                    continue  # one pre-handshake retry (a reverse-proxy TLS-handshake drop)
+            except httpx.TimeoutException as e:
+                is_pre = isinstance(e, pre_handshake_timeout)
+                if (is_pre or is_idempotent) and attempt < 3:
+                    await asyncio.sleep(0.25 * (attempt + 1))
+                    continue
+                await client.aclose()
+                return JSONResponse({"error": f"weftd proxy failed: {e}"}, status_code=502 if is_pre else 504)
+            except httpx.ConnectError as e:
+                # Non-timeout connect failure → pre-handshake (body never sent).
+                if attempt < 3:
+                    await asyncio.sleep(0.25 * (attempt + 1))
+                    continue
                 await client.aclose()
                 return JSONResponse({"error": f"weftd proxy failed: {e}"}, status_code=502)
 

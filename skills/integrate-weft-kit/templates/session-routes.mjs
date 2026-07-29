@@ -323,6 +323,14 @@ export function wireSessionRoutes(server, {
       // or a prior attempt already finished) before this retry runs — bail
       // instead of writing into a dead stream.
       if (res.writableEnded || res.destroyed) return;
+      // TTFB timeout: the reverse proxy in front of weftd intermittently
+      // stalls a connection (notably keep-alive reuse from a long-running
+      // server process). Without a headers-timeout the fetch hangs until the
+      // browser SDK's own 30s timeout. The timeout is cleared the moment
+      // response HEADERS arrive, so the long-lived timeline SSE stream is
+      // never killed by it.
+      const ttfbCtrl = new AbortController();
+      const ttfbTimer = setTimeout(() => ttfbCtrl.abort(), 20000);
       let response;
       try {
         response = await fetch(upstreamUrl, {
@@ -330,9 +338,11 @@ export function wireSessionRoutes(server, {
           headers: upHeaders,
           body: body.length ? body : undefined,
           redirect: 'manual',
-          signal: abortCtrl.signal,
+          signal: AbortSignal.any([abortCtrl.signal, ttfbCtrl.signal]),
         });
+        clearTimeout(ttfbTimer);
       } catch (error) {
+        clearTimeout(ttfbTimer);
         // A pre-handshake / connection-establishment failure surfaces as a
         // `TypeError: fetch failed` (undici wraps the underlying cause). BUT
         // undici sends the full request body BEFORE awaiting response headers, so
@@ -344,11 +354,20 @@ export function wireSessionRoutes(server, {
         // default is fail-safe = NO retry (surface as 502). The client-disconnect
         // abort also lands here — bail, don't retry.
         if (abortCtrl.signal.aborted) return;
-        if (retriesLeft > 0 && !res.headersSent && isPreHandshakeFetchError(error)) {
+        // Pre-handshake errors fire BEFORE any body bytes are sent, so retrying
+        // is safe for ALL methods (weftd never received the body → no duplicate).
+        // A TTFB-timeout abort, however, fires AFTER the body was sent — weftd
+        // MAY have received it + created the run, so retrying a non-idempotent
+        // POST/PUT/DELETE risks duplication. Retry TTFB-timeouts ONLY for
+        // idempotent methods (GET/HEAD); for everything else fail-closed (504)
+        // so the caller surfaces the error rather than double-issuing createRun.
+        const isTtfbTimeout = ttfbCtrl.signal.aborted;
+        const idempotent = req.method === 'GET' || req.method === 'HEAD';
+        if (retriesLeft > 0 && !res.headersSent && (isPreHandshakeFetchError(error) || (isTtfbTimeout && idempotent))) {
           setTimeout(() => attempt(retriesLeft - 1), 250);
           return;
         }
-        if (!res.headersSent) writeJSON(res, 502, { error: `weftd proxy failed: ${error.message}` });
+        if (!res.headersSent) writeJSON(res, isTtfbTimeout ? 504 : 502, { error: `weftd proxy failed: ${error.message}` });
         else if (!res.destroyed) res.destroy();
         return;
       }
@@ -401,7 +420,7 @@ export function wireSessionRoutes(server, {
         res.end()
       }
     };
-    attempt(1); // one retry on connection-establishment errors
+    attempt(3); // up to 3 retries on connection-establishment (all methods) / TTFB-timeout (idempotent only) stalls
   };
   // === end fetch-transport block ===
 

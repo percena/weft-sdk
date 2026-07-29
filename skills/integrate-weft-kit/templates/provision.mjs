@@ -77,17 +77,22 @@ export function createProvisioning({ weftdBase, apiKey, tenantId, shopPort, syst
       'content-type': 'application/json',
       authorization: `Bearer ${apiKey}`,
     }
-    // Retries ONCE on a transient pre-handshake TLS/connect error (a
-    // reverse-proxy TLS-handshake drop — undici surfaces it as a `TypeError: fetch failed`),
-    // mirroring the /v1 proxy's retry in session-routes.mjs. HTTP 4xx/5xx are
-    // NOT retried — the provisioning chain is idempotent (find-or-create +
+    // Retries on a transient pre-handshake TLS/connect error OR a mid-stream
+    // stall (the reverse proxy in front of weftd intermittently drops the
+    // TLS handshake / stalls mid-body — surfacing as `TypeError: fetch failed`
+    // or an AbortError when the per-request timeout below fires). HTTP 4xx/5xx
+    // are NOT retried — the provisioning chain is idempotent (find-or-create +
     // draft/validate/publish/bind), so a re-run after a mid-chain failure is
     // safe, but a single HTTP error is a real problem, not a transient one.
-    const doFetch = () =>
+    // The 20s timeout is essential: WITHOUT it, a stalled fetch hangs
+    // provisionApp forever → ensureApp() never settles → the chat bootstrap
+    // (`POST /api/chat/session`) hangs indefinitely ("Connecting to chat…").
+    const doFetch = (attempt = 0) =>
       fetch(`${weftdBase}${path}`, {
         method,
         headers,
         body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(20000),
       }).then(async (res) => {
         if (!res.ok) {
           let msg = `HTTP ${res.status}`
@@ -113,11 +118,22 @@ export function createProvisioning({ weftdBase, apiKey, tenantId, shopPort, syst
           throw err
         }
         return res.json()
+      }).catch((err) => {
+        // Retry on a transient connection error: a pre-handshake drop
+        // (TypeError: fetch failed) OR a mid-stream stall that the 20s timeout
+        // surfaced as AbortError/TimeoutError. The reverse proxy in front of
+        // weftd intermittently stalls connections (notably for keep-alive reuse
+        // from a long-running server process — a fresh short-lived process is
+        // unaffected); a retry with a fresh connection almost always succeeds.
+        // The provisioning chain is idempotent, so up to 3 retries (with backoff)
+        // is safe. HTTP 4xx/5xx already threw above (not retried).
+        const transient = err instanceof TypeError || err.name === 'TimeoutError' || err.name === 'AbortError'
+        if (transient && attempt < 3) {
+          return new Promise((resolve) => setTimeout(() => resolve(doFetch(attempt + 1)), 250 * (attempt + 1)))
+        }
+        throw err
       })
-    return doFetch().catch((err) => {
-      if (err instanceof TypeError) return doFetch() // one retry on a reverse-proxy TLS-handshake drop
-      throw err
-    })
+    return doFetch()
   }
 
   async function provisionApp() {

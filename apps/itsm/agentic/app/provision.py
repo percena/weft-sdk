@@ -73,7 +73,11 @@ class Provisioning:
         self.spec_path = spec if spec.is_absolute() else _APP_ROOT / spec
         self._ctx: dict | None = None
         self._lock = threading.Lock()
-        self._client = httpx.Client(timeout=60.0, headers={
+        # keepalive_expiry=0.5: the reverse proxy in front of weftd silently
+        # closes idle keep-alive connections; httpx's default 5s window sometimes
+        # reuses a half-closed socket → the request stalls until its 60s timeout.
+        # Drop idle connections aggressively so reuse always hits a fresh socket.
+        self._client = httpx.Client(timeout=60.0, limits=httpx.Limits(keepalive_expiry=0.5, max_connections=10), headers={
             "content-type": "application/json",
             "authorization": f"Bearer {api_key}",
         })
@@ -115,8 +119,15 @@ class Provisioning:
             return resp.json() if resp.content else {}
         try:
             return _do()
-        except (httpx.ConnectError, httpx.ConnectTimeout):
-            return _do()  # one retry on a reverse-proxy TLS-handshake drop
+        except (httpx.ConnectError, httpx.TimeoutException):
+            # Retry ONCE on a transient pre-handshake TLS/connect drop OR any
+            # timeout (Connect/Read/Write/Pool) stall — the reverse proxy
+            # intermittently stalls connections. The provisioning chain is
+            # idempotent (find-or-create + draft/validate/publish/bind;
+            # duplicate-key 500s are swallowed), so a single retry is safe
+            # even for a post-body Read/Write timeout. HTTP 4xx/5xx already
+            # raised above (not retried).
+            return _do()
 
     def _provision_app(self) -> dict:
         # tenant is pre-provisioned via the Weft console (WEFT_TENANT_ID).

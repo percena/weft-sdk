@@ -8,7 +8,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/weft-sdk/issues/12 |
-| status | in_progress |
+| status | done |
 | summary | demo chat bootstrap/run-POST indefinite hang from stale keep-alive + no fetch timeout; fix re-targeted to the integrate-weft-kit skill templates (JS+Python) + both demo apps |
 | spec | none (ticket-only) |
 | covers | KeepAlive, ProvisionTimeout, ProxyTTFB |
@@ -19,7 +19,7 @@
 | **primary_ticket** | tkt-11 (this issue) |
 | **related_tickets** | (none — client-side resilience; the control-plane ingress + metering root causes are tracked separately on the closed-source side) |
 | **worktree_bind** | `tkt-11-demo-provisioning-keepalive-hang` |
-| prs | (pending) |
+| prs | pr-13 (squash-merged to dev 2026-07-29 — https://github.com/percena/weft-sdk/pull/13); issue #12 closed |
 
 ## Acceptance
 

@@ -80,7 +80,7 @@ export function createProvisioning({ weftdBase, apiKey, tenantId, shopPort, syst
       authorization: `Bearer ${apiKey}`,
     }
     // Retries ONCE on a transient pre-handshake TLS/connect error OR a mid-stream
-    // stall (the VPS reverse proxy in front of weftd intermittently drops the
+    // stall (the reverse proxy in front of weftd intermittently drops the
     // TLS handshake / stalls mid-body — surfacing as `TypeError: fetch failed`
     // or an AbortError when the per-request timeout below fires). HTTP 4xx/5xx
     // are NOT retried — the provisioning chain is idempotent (find-or-create +
@@ -123,7 +123,7 @@ export function createProvisioning({ weftdBase, apiKey, tenantId, shopPort, syst
       }).catch((err) => {
         // Retry on a transient connection error: a pre-handshake drop
         // (TypeError: fetch failed) OR a mid-stream stall that the 20s timeout
-        // surfaced as AbortError/TimeoutError. The VPS reverse proxy in front
+        // surfaced as AbortError/TimeoutError. The reverse proxy in front
         // of weftd intermittently stalls connections (notably for keep-alive
         // reuse from a long-running server process — a fresh short-lived
         // process is unaffected); a retry with a fresh connection almost

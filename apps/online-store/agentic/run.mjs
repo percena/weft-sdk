@@ -14,7 +14,7 @@ import { Agent, setGlobalDispatcher } from 'undici'
 // creds (WEFTD_BASE / WEFT_API_KEY / WEFT_TENANT_ID / OPENAI_MODEL).
 Object.assign(process.env, loadEnv())
 
-// Stale keep-alive avoidance: the VPS reverse proxy in front of weftd silently
+// Stale keep-alive avoidance: the reverse proxy in front of weftd silently
 // closes idle keep-alive connections, and undici's default pool (4s idle
 // timeout) sometimes reuses a half-closed socket → the fetch stalls until its
 // own TTFB timeout. A long-running server process is hit hardest (it pools

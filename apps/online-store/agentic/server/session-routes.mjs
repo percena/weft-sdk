@@ -310,7 +310,7 @@ export function wireSessionRoutes(server, { weftdBase, apiKey, tenantId, ensureA
       // or a prior attempt already finished) before this retry runs — bail
       // instead of writing into a dead stream.
       if (res.writableEnded || res.destroyed) return;
-      // TTFB timeout: the VPS reverse proxy in front of weftd intermittently
+      // TTFB timeout: the reverse proxy in front of weftd intermittently
       // stalls a connection (notably keep-alive reuse from a long-running
       // server process). Without a headers-timeout the fetch hangs until the
       // browser SDK's own 30s timeout — and for createRun the run is never

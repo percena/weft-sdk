@@ -160,6 +160,16 @@ export interface WeftTimelineFetchResult {
  * `'WeftParseError'` (original parse error on `cause`). Branch on
  * `error.name` — the classes are plain Errors for compatibility.
  *
+ * Runtime requirement (rev-20260731 F12): the stable `WeftTimeoutError` name
+ * depends on the runtime surfacing `controller.signal.reason` (not a bare
+ * `AbortError` DOMException) when `fetch` / `response.json()` is aborted by the
+ * timeout. This holds on Node >= 18.17 and modern browsers (Chrome 103+ /
+ * Firefox 103+ / Safari 16+, per the Fetch standard). On older runtimes the
+ * abort may surface as `error.name === 'AbortError'` instead; the SDK targets
+ * Node >= 18 / React 19 peers (modern browsers), so this is out of scope in
+ * practice — document it for integrators on edge runtimes. The timeout still
+ * fires on every runtime; only the error's `name` is environment-dependent.
+ *
  * Propagation: an immediately-drained `createFlitroEmbedRuntime` /
  * deferred `sendMessage` rethrows the original `WeftHttpError` from the public
  * promise. A send accepted into the runtime's local queue has already resolved;

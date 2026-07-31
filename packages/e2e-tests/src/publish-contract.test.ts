@@ -52,6 +52,19 @@ describe('@percena/weft publish contract', () => {
     expect(root.invokeSessionTool).toBeUndefined()
   })
 
+  test('typed-error surface is exported at runtime (WeftHttpError + readTurnFailedError)', async () => {
+    // The documented error-handling contract: hosts branch on
+    // `error instanceof WeftHttpError && error.code === '…'` for immediate
+    // sends, and read queued-send failures via `readTurnFailedError`. A
+    // bundling change that drops either silently breaks every integrator's
+    // error path, so assert them at runtime, not just in the d.ts.
+    const flitro = await import(pathToFileURL(publishDistPath('providers-flitro.js')).href)
+    expect(typeof flitro.WeftHttpError).toBe('function')
+    expect(typeof flitro.readTurnFailedError).toBe('function')
+    const root = await import(pathToFileURL(publishDistPath('index.js')).href)
+    expect(typeof root.readTurnFailedError).toBe('function')
+  })
+
   test('root entry is browser-safe — no node: imports', () => {
     const output = readFileSync(publishDistPath('index.js'), 'utf8')
     expect(output).not.toMatch(/from ["']node:/)

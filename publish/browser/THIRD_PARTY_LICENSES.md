@@ -50,5 +50,6 @@ update this file. The full per-package LICENSE texts are preserved in
 `node_modules/`; a future hardening step is to bundle the full license texts
 into `dist/` alongside this inventory.
 
-`publishConfig.provenance` (SLSA) is enabled in source; it takes effect only
-when publishing from CI with npm OIDC provenance (see `SECURITY.md`).
+npm provenance (SLSA) attestations are minted only when a release is published
+through the CI OIDC release workflow (see `SECURITY.md`); releases published
+through the local break-glass path carry no attestations.

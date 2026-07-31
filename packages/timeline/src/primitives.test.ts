@@ -93,7 +93,7 @@ describe('fetchTimeline + hasGap (session contract)', () => {
     const timeline = [env('E1', 1), env('E1', 2), env('E1', 4), env('E1', 5)]
     const result = fetchTimeline(timeline, { cursor: { epoch: 'E1', afterSeq: 0 } })
     expect(result.hasGap).toBe(true)
-    // Mirrors flitro's handlers_session_extras.go:242-252 contiguity walk.
+    // Matches the server's canonical contiguity-walk contract.
   })
 
   it('reports no gap for a contiguous full page', () => {

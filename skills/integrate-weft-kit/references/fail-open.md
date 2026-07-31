@@ -25,7 +25,7 @@ The test the reviewer applies, per-edge: *"is the consumed value freshly produce
 
 ### Why referential edges MUST be `required:false`
 
-If a referential edge is marked `required:true`, the veto treats "operate on resource X" as if X *must* have been created by `createResource` **in the current session's `RunDataBindings`**. An id that the user supplied directly, that came from a list call, or that originated in a *prior* session is **not** in the current run's lineage — so a `required:true` referential edge hard-denies every legitimate cross-session or user-supplied reference. The agent, blocked from the resource it was asked to operate on, "solves" the veto by minting a duplicate.
+If a referential edge is marked `required:true`, the veto treats "operate on resource X" as if X *must* have been created by `createResource` **in the current session's data lineage**. An id that the user supplied directly, that came from a list call, or that originated in a *prior* session is **not** in the current run's lineage — so a `required:true` referential edge hard-denies every legitimate cross-session or user-supplied reference. The agent, blocked from the resource it was asked to operate on, "solves" the veto by minting a duplicate.
 
 Under analyzer v2 the draft already defaults every inferred data edge to `required:false` (fail-open default), so the demotion is the default — the reviewer opts *into* `required:true` with evidence, never the reverse.
 
@@ -37,7 +37,7 @@ Cause → symptom → fix:
 - **Symptom:** the veto hard-denied operating on any resource not created in the current session. Asked to operate on a known id across a session boundary, the agent was blocked and minted a duplicate so that `createResource` would populate the lineage.
 - **Fix:** set `required:false`, keep `verified:true`. The edge stays in the graph (it still informs review and the truth-table), but it is dropped from `plan_route` and is no longer a hard-veto surface. Cross-session reference is permitted; the reactive `409 + allowed_actions` layer backstops genuinely illegal operations.
 
-This is why the cross-session reference test (create a resource in session A; in a *fresh* session — empty `RunDataBindings` — operate on it by id) is the fail-open regression test: if a duplicate appears, a referential edge is still `required:true`.
+This is why the cross-session reference test (create a resource in session A; in a *fresh* session — empty data lineage — operate on it by id) is the fail-open regression test: if a duplicate appears, a referential edge is still `required:true`.
 
 ## The veto truth-table
 
@@ -54,7 +54,7 @@ The deny payload should mirror your API's `409 + allowed_actions` so the LLM's r
 
 ## v1 lineage limitation (why user-supplied values aren't in the table)
 
-The veto requires consumed values to be present in `RunDataBindings` — i.e. produced by a tracked graph producer *in this run*. A value the user supplies directly, or that came from a non-graph tool / a prior session, is NOT in the lineage. With a `required:true` edge that would be a false veto; with the fail-open default (`required:false` for referential edges) it is simply not a veto surface, and the reactive `409`/`404` layer backstops the rare user-supplied case.
+The veto requires consumed values to be present in the session's data lineage — i.e. produced by a tracked graph producer *in this run*. A value the user supplies directly, or that came from a non-graph tool / a prior session, is NOT in the lineage. With a `required:true` edge that would be a false veto; with the fail-open default (`required:false` for referential edges) it is simply not a veto surface, and the reactive `409`/`404` layer backstops the rare user-supplied case.
 
 ## The layered safety guarantee
 

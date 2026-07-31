@@ -28,7 +28,7 @@ const report = { selected: 'app-server' } as unknown as RuntimeCapabilityReport
 // Mock flitro state: the server's current epoch + its buffered durable history
 // + a capture of fetch requests (so transport contract's "the fetch carries epoch" is
 // verifiable). flitro's fetch handler resets afterSeq=0 when reqEpoch !=
-// SessionEpoch (handlers_session_extras.go:217) — the mock mirrors that.
+// its current epoch — the mock mirrors that server contract.
 let mockEpoch: string
 let mockBuffered: TimelineEnvelope[]
 let fetchRequests: Array<{ afterSeq: number; epoch?: string }>
@@ -146,7 +146,7 @@ function makeScaffold(
         afterSeq: request.cursor?.afterSeq ?? 0,
         epoch: request.cursor?.epoch,
       })
-      // Mirror flitro's fetch handler (handlers_session_extras.go:217): a
+      // Mirror the server's fetch contract: a
       // cursor epoch that doesn't match this process's epoch → afterSeq = 0
       // (replay durable history from 0). With transport contract the SDK sends its last-seen
       // epoch; without the epoch send it sends none → reqEpoch is undefined → no reset →

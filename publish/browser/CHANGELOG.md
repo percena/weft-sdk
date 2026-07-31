@@ -1,5 +1,18 @@
 # @percena/weft
 
+## 1.0.3
+
+### Patch
+
+- Version-only republish of 1.0.2 — the package contents (`dist`, styles,
+  types) are identical to 1.0.2 except for the `version` field. The release
+  was cut to advance the `latest` line alongside repo-side updates to the
+  `integrate-weft-kit` skill templates and demo apps, which are not part of
+  this npm package.
+- Retroactive entry (added 2026-07-31): 1.0.3 originally shipped without a
+  changeset or CHANGELOG entry. The publish tooling now refuses a `latest`
+  publish whose version has no CHANGELOG entry, so this cannot recur.
+
 ## 1.0.2
 
 ### Minor

@@ -297,4 +297,68 @@ describe('discoverCodexModels', () => {
     expect(result.source).toBe('config')
     expect(result.models).toEqual(['qwen3-max'])
   })
+
+  describe('built-in OpenAI endpoint classification (credential routing)', () => {
+    // The OPENAI_API_KEY / auth.json fallback may flow ONLY to the genuine
+    // https://api.openai.com host. Classification parses the URL (never
+    // prefix/substring matching), so lookalike hosts, userinfo tricks,
+    // path/query embedding, and scheme downgrades all fail closed to
+    // "custom gateway" — with no env_key on the provider block that means no
+    // token, hence no request carrying credentials at all.
+    async function discoverWithBase(base: string) {
+      const codexDir = withCodexHome({
+        // Custom provider block with NO env_key (the GUI-launch default):
+        // the only credential candidates are the built-in OpenAI fallbacks.
+        'config.toml': `model_provider = "custom"\nmodel = "gpt-4o"\n\n[model_providers.custom]\nbase_url = "${base}"\n`,
+        'auth.json': JSON.stringify({ OPENAI_API_KEY: 'sk-openai-secret' }),
+      })
+      const probedUrls: string[] = []
+      const fetchImpl = async (url: string) => {
+        probedUrls.push(url)
+        return { ok: true, status: 200, json: async () => ({ data: [{ id: 'gpt-4o' }] }) }
+      }
+      const result = await discoverCodexModels({
+        codexDir,
+        env: { OPENAI_API_KEY: 'sk-openai-secret' },
+        fetchImpl,
+      })
+      return { result, probedUrls }
+    }
+
+    it.each([
+      ['lookalike subdomain host', 'https://api.openai.com.evil.com/v1'],
+      ['lookalike host with explicit port', 'https://api.openai.com.evil.com:443/v1'],
+      ['userinfo trick (api.openai.com as username)', 'https://api.openai.com@evil.com/v1'],
+      ['userinfo trick with credentials', 'https://api.openai.com:pass@evil.com/v1'],
+      ['host embedded in the path', 'https://evil.com/api.openai.com'],
+      ['host embedded in the query', 'https://evil.com/?u=api.openai.com'],
+      ['plain-http scheme downgrade', 'http://api.openai.com/v1'],
+      ['non-http scheme', 'ftp://api.openai.com/v1'],
+      ['unparseable base', 'not a url'],
+    ])('does NOT route credentials to %s (%s)', async (_label, base) => {
+      const { result, probedUrls } = await discoverWithBase(base)
+      // Fail closed: no token resolved for a non-built-in base → zero
+      // outbound requests, so the credential cannot leak in any header.
+      expect(probedUrls).toEqual([])
+      expect(result.source).toBe('config')
+    })
+
+    it.each([
+      ['exact built-in base', 'https://api.openai.com/v1'],
+      ['built-in base with a different path', 'https://api.openai.com/beta/v1'],
+      ['built-in base with explicit default port', 'https://api.openai.com:443/v1'],
+      // A non-default port still targets the GENUINE host (TLS certificate
+      // must match api.openai.com), so host authenticity — the property that
+      // gates the credential — holds.
+      ['built-in base with a non-default port', 'https://api.openai.com:8443/v1'],
+      ['uppercase spelling (URL-normalized)', 'HTTPS://API.OPENAI.COM/v1'],
+    ])('routes credentials to the genuine host for %s (%s)', async (_label, base) => {
+      const { result, probedUrls } = await discoverWithBase(base)
+      expect(probedUrls.length).toBeGreaterThan(0)
+      for (const url of probedUrls) {
+        expect(new URL(url).hostname).toBe('api.openai.com')
+      }
+      expect(result.source).toBe('gateway')
+    })
+  })
 })

@@ -40,6 +40,8 @@ gitleaks detect --source . --report-format json --report-path /tmp/gitleaks.json
 
 `@percena/weft` (browser) is **pure** — no `node:*` imports may leak into
 `publish/browser/dist` (enforced by `assert-exports.mjs` + the `browser-canary`
-build). `publishConfig.provenance` is enabled for npm [provenance](https://docs.npmjs.com/generating-provenance-statements)
-(SLSA) on publish. Markdown rendered by the SDK is sanitized with
+build). npm [provenance](https://docs.npmjs.com/generating-provenance-statements)
+(SLSA) attestations are minted only when a release goes through the OIDC CI
+release workflow; releases published through the local break-glass path carry
+no attestations. Markdown rendered by the SDK is sanitized with
 `rehype-sanitize` (dangerous HTML/CSS tokens stripped before render).

@@ -133,6 +133,106 @@ describe('WeftHttpClient', () => {
     expect(weftError.message).toBe('Weft HTTP 401: credential_refresh_required')
   })
 
+  test('rejects a timed-out request with a stably named WeftTimeoutError', async () => {
+    const server = createServer(() => {
+      // Never respond; the client must time out. The aborted client
+      // connection is torn down by closeServer's closeAllConnections.
+    })
+    servers.push(server)
+    const baseUrl = await listen(server)
+    const client = new WeftHttpClient({ baseUrl, timeout: 25 })
+
+    const error = await client.health().catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(Error)
+    const namedError = error as Error
+    // Stable branchable name — still a plain Error (not a new class), so
+    // pre-existing catch logic keeps working.
+    expect(namedError.name).toBe('WeftTimeoutError')
+    expect(namedError).not.toBeInstanceOf(WeftHttpError)
+    expect(namedError.message).toContain('timed out after 25ms')
+    expect(namedError.message).toContain('GET /health')
+  })
+
+  test('a timeout during a STALLED BODY read is still WeftTimeoutError, not WeftParseError', async () => {
+    const server = createServer((_req, res) => {
+      // Send headers + a partial JSON body, then stall forever: the timeout
+      // aborts mid-body-read, which surfaces as a body/parse failure — the
+      // client must rethrow the timeout error, not wrap it as a parse error.
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.write('{"status":')
+    })
+    servers.push(server)
+    const baseUrl = await listen(server)
+    const client = new WeftHttpClient({ baseUrl, timeout: 25 })
+
+    const error = await client.health().catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(Error)
+    const namedError = error as Error
+    expect(namedError.name).toBe('WeftTimeoutError')
+    expect(namedError.message).toContain('timed out after 25ms')
+  })
+
+  test('wraps a 2xx unparseable body in a stably named WeftParseError with the cause preserved', async () => {
+    const server = createServer((_req, res) => {
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end('{not json')
+    })
+    servers.push(server)
+    const baseUrl = await listen(server)
+    const client = new WeftHttpClient({ baseUrl })
+
+    const error = await client.health().catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(Error)
+    const namedError = error as Error
+    expect(namedError.name).toBe('WeftParseError')
+    expect(namedError).not.toBeInstanceOf(WeftHttpError)
+    expect(namedError.message).toContain('GET /health')
+    // The original JSON parse failure rides on `cause` for diagnostics.
+    expect(namedError.cause).toBeInstanceOf(Error)
+  })
+
+  test('surfaces the 402 quota_exceeded code (terminal for the window — no retry)', async () => {
+    const server = createServer((_req, res) => {
+      writeJson(res, 402, {
+        error: {
+          type: 'error',
+          code: 'quota_exceeded',
+          message: 'monthly quota exhausted for plan free',
+        },
+      })
+    })
+    servers.push(server)
+    const baseUrl = await listen(server)
+    const client = new WeftHttpClient({ baseUrl })
+
+    const error = await client.createRun('session-1', 'hi').catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(WeftHttpError)
+    const weftError = error as WeftHttpError
+    expect(weftError.status).toBe(402)
+    expect(weftError.code).toBe('quota_exceeded')
+  })
+
+  test('surfaces the 403 identity_binding_required code (free-tier re-auth path)', async () => {
+    const server = createServer((_req, res) => {
+      writeJson(res, 403, {
+        error: {
+          type: 'error',
+          code: 'identity_binding_required',
+          message: 'free-tier tenant requires a verified identity binding',
+        },
+      })
+    })
+    servers.push(server)
+    const baseUrl = await listen(server)
+    const client = new WeftHttpClient({ baseUrl })
+
+    const error = await client.createRun('session-1', 'hi').catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(WeftHttpError)
+    const weftError = error as WeftHttpError
+    expect(weftError.status).toBe(403)
+    expect(weftError.code).toBe('identity_binding_required')
+  })
+
   test('falls back to a status-only WeftHttpError on a non-JSON error body', async () => {
     const server = createServer((_req, res) => {
       res.writeHead(502, { 'Content-Type': 'text/plain' })
@@ -160,6 +260,9 @@ async function listen(server: ReturnType<typeof createServer>): Promise<string> 
 }
 
 async function closeServer(server: ReturnType<typeof createServer>): Promise<void> {
+  // Tear down any connection left open by a timed-out (client-aborted)
+  // request so close() cannot hang the suite.
+  server.closeAllConnections()
   await new Promise<void>((resolve, reject) => {
     server.close(error => error ? reject(error) : resolve())
   })

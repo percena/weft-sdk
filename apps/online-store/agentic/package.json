@@ -11,7 +11,7 @@
     "test": "node --test server/state.test.mjs server/shop-server.test.mjs"
   },
   "dependencies": {
-    "@percena/weft": "latest",
+    "@percena/weft": "^1.0.3",
     "i18next": "^23.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

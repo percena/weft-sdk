@@ -3,7 +3,8 @@ name: publish-npm
 description: >
   Local npm publish for @percena/weft and/or @percena/weft-node: channels
   next|latest, version modes auto (default 顺延)|exact|bump, dual-package
-  filter, provenance toggle, rebuild gates, dry-run, confirm-before-publish,
+  filter, no-provenance break-glass path, rebuild + CHANGELOG gates, dry-run,
+  confirm-before-publish,
   post-publish version commit + apps align without auto-push. Use for
   /publish-npm, "publish next", "release latest", "bump npm", or shipping a
   test/stable facade version. Does NOT enable CI release.yml or publish
@@ -20,9 +21,13 @@ Local release path for the two **published** facades in this monorepo:
 | `@percena/weft` | `publish/browser` | Browser-safe SDK (`latest` / `next`) |
 | `@percena/weft-node` | `publish/desktop` | Node/desktop SDK (`latest` / `next`) |
 
-CI `.github/workflows/release.yml` is **workflow_dispatch-only**. Day-to-day
-releases are **local** `pnpm publish --filter …` with a provenance workaround.
-This skill encodes that path so operators do not re-derive gotchas from memory.
+**Release-path policy:** the OIDC CI workflow `.github/workflows/release.yml`
+(workflow_dispatch) is the **canonical, provenance-bearing release path** —
+only it can mint npm provenance attestations. This skill is the **break-glass
+local path**: it publishes **without attestations**, and the publish manifests
+therefore carry **no `publishConfig.provenance`** (metadata must match what
+the tarballs actually ship — do not re-add the key). This skill encodes the
+local path so operators do not re-derive gotchas from memory.
 
 ## When to use / When NOT
 
@@ -106,16 +111,24 @@ matching exact version each time.
    ```bash
    pnpm run check && pnpm run validate && pnpm run test
    ```
-8. **Provenance toggle** (local npm 11 cannot mint OIDC provenance):
-   - For each package path: set `publishConfig.provenance` `true` → `false`
-   - Use a shell `trap` to **restore `true`** on EXIT (success or fail)
-   - Source stays aspirationally `true` for future CI trusted publishing
-9. **Dry-run pack** per package:
-   ```bash
-   pnpm publish --filter <name> --dry-run --no-git-checks [--tag next]
-   ```
-10. **Confirm** via `AskUserQuestion`: packages, from→to, tag, dry-run result OK?
-11. **Real publish** (only after confirm **and** `DRY_RUN=0`; `--dry-run` always exits before this step even if confirm was also passed):
+8. **Provenance hygiene** (local npm 11 cannot mint OIDC provenance):
+   - The manifests carry **no** `publishConfig.provenance` key — that is the
+     correct at-rest state (local tarballs have no attestations; the OIDC
+     `release.yml` path enables provenance via publish flags, not manifests).
+   - The script defensively `clear`s the key before publish and on EXIT in
+     case anything re-introduced it. Never restore it to `true`.
+9. **CHANGELOG gate** (stable only): a `latest` publish is **refused** unless
+   the package's `CHANGELOG.md` already has a `## <version>` entry for the
+   version being published (`next` prereleases warn only). The refusal also
+   applies to `--dry-run` on the latest channel — only `--plan` downgrades it
+   to a warning — so write the entry BEFORE the dry-run, not just before the
+   real publish. 1.0.3 shipping with no entry is the regression this prevents.
+10. **Dry-run pack** per package:
+    ```bash
+    pnpm publish --filter <name> --dry-run --no-git-checks [--tag next]
+    ```
+11. **Confirm** via `AskUserQuestion`: packages, from→to, tag, dry-run result OK?
+12. **Real publish** (only after confirm **and** `DRY_RUN=0`; `--dry-run` always exits before this step even if confirm was also passed):
     ```bash
     # next:
     pnpm publish --filter <name> --tag next --no-git-checks
@@ -124,8 +137,8 @@ matching exact version each time.
     ```
     **Never** `pnpm run release` / `changeset publish` as the default — those
     can publish both facades without the interactive matrix.
-12. **Restore provenance** (trap + explicit verify).
-13. **Verify registry:**
+13. **Provenance-absent verify** (the key must still be absent from both manifests).
+14. **Verify registry:**
     ```bash
     npm view <name> dist-tags --json
     npm view <name>@<to> version
@@ -140,7 +153,8 @@ For dry-run **and** real pack, temporarily write planned `version` into
 2. Write planned version via `scripts/set-version.mjs`.
 3. On **any** exit that is not a successful real publish (including pure
    `--dry-run`, missing confirm, or publish failure): **restore** prior
-   versions (EXIT trap). Provenance also restores to `true`.
+   versions (EXIT trap). The `publishConfig.provenance` key stays absent
+   throughout (never restored to `true`).
 4. On successful real publish: **keep** bumped versions for the post-publish
    commit; optionally prepend CHANGELOG.
 5. Do **not** commit until registry write succeeded.
@@ -173,8 +187,8 @@ On **successful** registry write:
 
 - Resolve versions, print plan table; dry-run may rebuild + pack dry-run
 - Temporary version write for accurate dry-run metadata is **restored** on exit
-- **Must not** leave `provenance: false` on disk (only real publish toggles it;
-  EXIT trap restores `true`)
+- **Must not** leave any `publishConfig.provenance` key on disk (the correct
+  at-rest state is "key absent" — local publishes carry no attestations)
 - **Must not** `npm publish` for real — `--dry-run` **overrides**
   `--i-confirm-publish` if both are passed
 - **Must not** commit/push
@@ -189,9 +203,9 @@ On **successful** registry write:
 5. Rebuild L0→publish; check/validate/test
 6. Temp set-version (trap restores unless real publish succeeds)
 7. If DRY_RUN or no confirm: dry-run publish; stop (versions restored)
-8. Provenance false (trap restore)
+8. Provenance key cleared if present (stays absent; never set true)
 9. pnpm publish --filter … [--tag next] --no-git-checks
-10. Restore provenance; keep versions; npm view verify
+10. Verify provenance key still absent; keep versions; npm view verify
 11. Apps align (latest); git commit; ask push
 ```
 
@@ -219,7 +233,7 @@ changeset publish footgun.
 
 | Symptom | Action |
 | --- | --- |
-| `EUSAGE` provenance / provider null | Provenance still true — re-toggle false; ensure trap restore after |
+| `EUSAGE` provenance / provider null | A `publishConfig.provenance: true` key crept back into a manifest — remove it (`provenance-toggle.mjs <pkg> clear`); the key must stay absent |
 | `E400` cannot publish over + view 404 | Tombstone — choose new version, do not wait |
 | `E403` / need auth | `npm login` / check `npm whoami` |
 | Tests red | Fix or `SKIP_TESTS=1` with written reason (operator-only) |

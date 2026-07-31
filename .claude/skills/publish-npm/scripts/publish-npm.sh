@@ -166,6 +166,19 @@ for key in "${pkg_keys[@]}"; do
     echo "publish-npm: $name@$to already on registry — refuse (pick exact or wait for auto next)" >&2
     exit 3
   fi
+  # CHANGELOG gate (stable channel): every version published to `latest` must
+  # have a `## <version>` entry in the package's CHANGELOG.md BEFORE publish —
+  # 1.0.3 shipped as `latest` with no entry; this makes that unrepeatable.
+  # `next` prereleases are iteration builds and are exempt (warn only).
+  changelog="$dir/CHANGELOG.md"
+  if ! grep -Eq "^##[[:space:]]+${to//./\\.}([[:space:]]|$)" "$changelog" 2>/dev/null; then
+    if [[ "$CHANNEL" == "latest" && "$PLAN" -ne 1 ]]; then
+      echo "publish-npm: $name@$to has no '## $to' entry in $changelog — write the CHANGELOG entry first (refuse to publish latest without one)" >&2
+      exit 4
+    else
+      echo "publish-npm: WARN $name@$to has no CHANGELOG entry ($changelog) — required before a real latest publish"
+    fi
+  fi
 done
 
 if [[ "$PLAN" -eq 1 ]]; then
@@ -196,9 +209,11 @@ else
   echo "== skip tests (operator) =="
 fi
 
-# Version + provenance restore. Versions are restored on any path that does
-# NOT successfully complete a real publish (dry-run, plan-adjacent exits,
-# publish failure). Provenance always restores to true.
+# Version restore + provenance hygiene. Versions are restored on any path that
+# does NOT successfully complete a real publish (dry-run, plan-adjacent exits,
+# publish failure). The publishConfig.provenance key is always CLEARED (never
+# set to true) — "key absent" is the correct at-rest state; see
+# restore_provenance below.
 VERSIONS_MUTATED=0
 PUBLISH_SUCCEEDED=0
 PROVENANCE_RESTORED=0
@@ -223,15 +238,18 @@ restore_versions() {
 }
 
 restore_provenance() {
+  # The publish manifests intentionally carry NO publishConfig.provenance
+  # (local publishes have no attestations; only CI release.yml can mint them,
+  # via publish flags). The correct at-rest state is "key absent" — ensure it.
   if [[ "$PROVENANCE_RESTORED" -eq 1 ]]; then
     return 0
   fi
   PROVENANCE_RESTORED=1
   for key in "${pkg_keys[@]}"; do
     dir=$(pkg_dir "$key")
-    node "$SCRIPT_DIR/provenance-toggle.mjs" "$dir/package.json" true >/dev/null || true
+    node "$SCRIPT_DIR/provenance-toggle.mjs" "$dir/package.json" clear >/dev/null || true
   done
-  echo "publish-npm: provenance restored to true"
+  echo "publish-npm: provenance key cleared (manifests must not advertise attestations local publishes don't carry)"
 }
 
 cleanup_on_exit() {
@@ -270,9 +288,12 @@ fi
 
 # Real publish path (CONFIRM_PUBLISH=1 and DRY_RUN=0)
 echo "== real publish (confirmed) =="
+# Defensive: local npm cannot mint OIDC provenance, and the manifest must not
+# promise attestations the tarball won't carry — clear the key if anything
+# re-introduced it (the at-rest state is also "absent").
 for key in "${pkg_keys[@]}"; do
   dir=$(pkg_dir "$key")
-  node "$SCRIPT_DIR/provenance-toggle.mjs" "$dir/package.json" false
+  node "$SCRIPT_DIR/provenance-toggle.mjs" "$dir/package.json" clear
 done
 
 for json in "${RESOLVED_JSON[@]}"; do

@@ -326,9 +326,9 @@ export function fetchTimeline(
 
   // session contract: hasGap detects BOTH a leading gap (first returned seq > afterSeq+1)
   // AND any interior gap (a seq != expected where expected walks afterSeq+1,
-  // prev+1, …). Mirrors flitro's fetch handler
-  // (handlers_session_extras.go:242-252) so the SDK + server agree on what a
-  // gap is. The previous leading-edge-only check missed interior gaps, so a
+  // prev+1, …). Matches the server's canonical contiguity contract so the SDK
+  // + server agree on what a gap is. The previous leading-edge-only check
+  // missed interior gaps, so a
   // catchup batch with a hole in the middle reported hasGap=false and the SDK
   // never backfilled the missing seqs.
   let hasGap = false

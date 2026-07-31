@@ -9,7 +9,7 @@
 
 import { createHash } from 'node:crypto'
 
-// --- Graph types (mirror flitro/weftd internal/graph model.go byte-for-byte) ---
+// --- Graph types (match the server's graph-envelope wire schema exactly) ---
 
 export interface Field {
   field: string

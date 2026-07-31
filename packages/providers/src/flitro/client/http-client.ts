@@ -144,6 +144,21 @@ export interface WeftTimelineFetchResult {
  *   run will keep failing).
  * - `credential_refresh_required` (HTTP 401) — the session credential
  *   expired; normally consumed by the built-in onTokenExpired retry.
+ * - `quota_exceeded` (HTTP 402) — the tenant's usage quota for the current
+ *   billing window is exhausted. Terminal for the window: do NOT retry —
+ *   every retry will 402 until the window resets or the plan is upgraded.
+ *   Surface an upgrade/limits UI to the user instead of an error toast.
+ * - `identity_binding_required` (HTTP 403) — a free-tier session is missing
+ *   its verified identity binding. Not retryable as-is: route the user
+ *   through the host's (re-)authentication path so a bound session can be
+ *   minted, then resume.
+ *
+ * Transport errors (thrown by this client, NOT WeftHttpError — no HTTP
+ * status exists): a request that exceeds the configured timeout rejects with
+ * an Error whose `name` is `'WeftTimeoutError'`; a 2xx response whose body
+ * fails JSON parsing rejects with an Error whose `name` is
+ * `'WeftParseError'` (original parse error on `cause`). Branch on
+ * `error.name` — the classes are plain Errors for compatibility.
  *
  * Propagation: an immediately-drained `createFlitroEmbedRuntime` /
  * deferred `sendMessage` rethrows the original `WeftHttpError` from the public
@@ -322,16 +337,15 @@ export class WeftHttpClient {
     allowed: boolean,
     options?: { remember?: boolean; comment?: string; detail?: PermissionResponseDetail },
   ): Promise<{ ok: boolean; type: string; requestId: string }> {
-    // Wire gap: the weftd /permission-response handler
-    // (internal/api/handlers_session.go) currently decodes only
-    // {requestId, allowed, remember, comment} — it does NOT yet read the
-    // structured `detail` object (updatedInput / updatedPermissions /
-    // interrupt). Go's json.Decode silently ignores unknown fields, so
-    // forwarding `detail` here is additive and non-breaking: when weftd/Flitro
-    // gain support for input-rewrite/interrupt, they can read this field
-    // without an SDK rev. Until then `detail` is carried on the wire but not
-    // acted upon server-side — `comment` remains the only "extra" the server
-    // consumes. Closing the loop requires a weftd change (out of scope here).
+    // Wire gap: the server's /permission-response endpoint currently consumes
+    // only {requestId, allowed, remember, comment} — it does NOT yet act on
+    // the structured `detail` object (updatedInput / updatedPermissions /
+    // interrupt). The server ignores unknown fields, so forwarding `detail`
+    // here is additive and non-breaking: when the server gains support for
+    // input-rewrite/interrupt it can start reading this field without an SDK
+    // rev. Until then `detail` is carried on the wire but not acted upon
+    // server-side — `comment` remains the only "extra" the server consumes.
+    // Closing the loop requires a server-side change (out of scope here).
     return this.post(
       `/v1/sessions/${encodeURIComponent(sessionId)}/permission-response`,
       {
@@ -396,7 +410,14 @@ export class WeftHttpClient {
   private async request<T>(method: string, path: string, body: unknown, isRetry = false): Promise<T> {
     const url = `${this.baseUrl}${path}`
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(new Error(`Weft request timed out after ${this.timeout}ms: ${method} ${path}`)), this.timeout)
+    const timer = setTimeout(() => {
+      // Stable name so hosts can branch on timeouts without message-parsing.
+      // Kept a plain Error (not a subclass) so existing catch logic is
+      // unaffected; fetch rejects with this abort reason as-is.
+      const timeoutError = new Error(`Weft request timed out after ${this.timeout}ms: ${method} ${path}`)
+      timeoutError.name = 'WeftTimeoutError'
+      controller.abort(timeoutError)
+    }, this.timeout)
 
     try {
       const response = await fetch(url, {
@@ -445,7 +466,25 @@ export class WeftHttpClient {
         throw new WeftHttpError(response.status, errorMsg, { code, detail })
       }
 
-      return response.json() as Promise<T>
+      try {
+        return await response.json() as T
+      } catch (cause) {
+        // A timeout can fire while the BODY is still streaming (headers
+        // arrived, body stalled): the abort surfaces here as a body-read
+        // failure. Rethrow the timeout error so hosts branching on
+        // `name === 'WeftTimeoutError'` still see it — only genuine parse
+        // failures may become WeftParseError.
+        if (controller.signal.aborted) throw controller.signal.reason
+        // A 2xx with an unparseable body previously escaped as a bare
+        // SyntaxError. Wrap it with a stable name (original error on `cause`)
+        // so hosts can branch on it; stays a plain Error subclass-wise.
+        const parseError = new Error(
+          `Weft response JSON parse failed: ${method} ${path}`,
+          { cause },
+        )
+        parseError.name = 'WeftParseError'
+        throw parseError
+      }
     } finally {
       clearTimeout(timer)
     }

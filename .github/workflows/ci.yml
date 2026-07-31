@@ -1,10 +1,12 @@
 name: CI
 
+# `dev` is the working default branch (PRs merge to dev; main is the release
+# branch) — CI must run on both, or the entire PR chain merges unchecked.
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
 
 # Least privilege: CI only reads the repo (gitleaks downloads its binary from a
 # public release; upload-artifact needs no repo write). Overrides any wider

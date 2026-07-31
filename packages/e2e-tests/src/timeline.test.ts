@@ -140,8 +140,8 @@ describe('Timeline — canonical envelope and replay contract', () => {
     // INTERIOR gaps (not just a leading gap), so even though the first item is
     // exactly afterSeq+1 (=1, no leading gap), the missing seq 2 between items
     // 1 and 3 is reported as a gap. The pre-session contract leading-edge-only check
-    // missed this and returned false (mirrors flitro's contiguity walk at
-    // handlers_session_extras.go:242-252).
+    // missed this and returned false (matches the server's canonical
+    // contiguity-walk contract).
     const resultStart = fetchTimeline(timeline, {
       cursor: createTimelineCursor({ epoch: 'epoch-a', afterSeq: 0 }),
     })

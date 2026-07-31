@@ -190,6 +190,28 @@ if (fs.existsSync(path.join(DIST, 'providers-flitro.js'))) {
   }
 }
 
+// ── 3b. typed-error contract exports (documented public error surface) ──────
+// WeftHttpError (branch on `code` for llm_connection_unusable / quota_exceeded
+// / identity_binding_required / …) and readTurnFailedError (the supported way
+// to consume `turn_failed.error`) are the documented error-handling surface of
+// the SDK — the integrate-weft-kit skill and the CHANGELOG both point
+// integrators at them. Assert they exist at RUNTIME on the published entries
+// (not just in d.ts) so a bundling change can never silently drop them.
+if (fs.existsSync(path.join(DIST, 'providers-flitro.js'))) {
+  const flitroMod = await import(pathToFileURL(path.join(DIST, 'providers-flitro.js')).href)
+  for (const name of ['WeftHttpError', 'readTurnFailedError']) {
+    if (typeof flitroMod[name] !== 'function') {
+      failures.push(`providers-flitro: typed-error export ${name} is missing at runtime`)
+    }
+  }
+}
+if (fs.existsSync(path.join(DIST, 'index.js'))) {
+  const rootMod = await import(pathToFileURL(path.join(DIST, 'index.js')).href)
+  if (typeof rootMod.readTurnFailedError !== 'function') {
+    failures.push('index: typed-error export readTurnFailedError is missing at runtime')
+  }
+}
+
 // ── 4. public source files must not import private/server code ──────────────
 
 function scanSourceFile(relativePath) {

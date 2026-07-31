@@ -3,19 +3,22 @@
 Battle-tested failure modes for local release of `@percena/weft` /
 `@percena/weft-node`. The skill **must** encode these — do not re-discover.
 
-## 1. Provenance is sticky on npm 11
+## 1. Provenance is sticky on npm 11 — the key must stay ABSENT
 
-- Both facades ship `publishConfig.provenance: true` (aspirational for CI OIDC).
-- Local `npm publish` hits:
+- Neither facade manifest carries `publishConfig.provenance` anymore, **on
+  purpose**: this local skill is the break-glass path and publishes **without
+  attestations** — metadata must not promise provenance the tarballs don't
+  carry. The canonical provenance-bearing path is the OIDC CI workflow
+  (`.github/workflows/release.yml`), which enables provenance via publish
+  flags, not the manifest.
+- If `provenance: true` ever creeps back in, local `npm publish` hits:
   `EUSAGE / Automatic provenance generation not supported for provider: null`
-- **`--no-provenance` does not override** `publishConfig.provenance: true`.
-- A `--dry-run` will **not** surface this — provenance is only attempted on
-  real publish.
-- **Workaround:** temporarily set `publishConfig.provenance` to `false`,
-  publish, restore `true`. Use a shell `trap` so mid-failure does not leave
-  `false` committed.
-- The published tarball **retains** `publishConfig: { access, provenance: false }`.
-  That is harmless (`false` = do not generate). Keep **source** at `true`.
+- **`--no-provenance` does not override** `publishConfig.provenance: true`,
+  and a `--dry-run` will **not** surface this — provenance is only attempted
+  on real publish.
+- **Fix:** remove the key (`provenance-toggle.mjs <pkg>/package.json clear`).
+  Do **not** "restore" it to `true` afterward — "key absent" is the correct
+  at-rest state.
 
 ## 2. Next channel iterates the prerelease suffix — never burns a patch
 

@@ -68,7 +68,8 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "THIRD_PARTY_LICENSES.md"
   ],
   "scripts": {
     "build": "tsup && node scripts/build-css.mjs && node scripts/bundle-dts.mjs",
@@ -150,8 +151,7 @@
     "url": "https://github.com/percena/weft-sdk/issues"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "repository": {
     "type": "git",

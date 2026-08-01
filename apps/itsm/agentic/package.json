@@ -13,7 +13,7 @@
     "openapi": "uv run python -c \"import json; from app.main import app; print(json.dumps(app.openapi(), indent=2))\" > openapi.json"
   },
   "dependencies": {
-    "@percena/weft": "^1.0.3",
+    "@percena/weft": "^1.0.4",
     "i18next": "^23.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

@@ -253,16 +253,27 @@ export interface ProviderSendMessageOptions {
    * maxBudgetUsd, …). Forwarded opaquely by the claude driver. */
   claude?: Record<string, unknown>
   /** Codex `turn/start` per-turn params (serviceTier, summary, personality,
-   * multiAgentMode, collaborationMode, environments, …). Forwarded opaquely by
-   * the codex driver. */
+   * multiAgentMode, collaborationMode, environments, …). Forwarded opaquely
+   * by the codex driver. */
   codex?: Record<string, unknown>
+}
+
+/**
+ * RunBudget — limits a provider run may enforce (steps, tokens, wall-time).
+ * Honored by the Flitro driver (serialized to `max_steps`/`max_tokens`/
+ * `max_wall_time_sec` on the wire). Other providers may ignore it.
+ */
+export interface RunBudget {
+  maxSteps?: number
+  maxTokens?: number
+  maxWallTimeSec?: number
 }
 
 /**
  * SendMessageOptions — the provider-neutral per-turn options contract.
  *
  * The neutral fields (`turnId`, `model`, `reasoningEffort`, `permissionMode`,
- * `commandOrigin`, `outputSchema`) are honored by every provider.
+ * `commandOrigin`, `outputSchema`, `budget`) are honored by every provider.
  *
  * Provider-specific per-turn options belong in {@link providerOptions}
  * (`providerOptions.claude` / `providerOptions.codex`). The remaining flat
@@ -278,6 +289,9 @@ export interface SendMessageOptions {
   reasoningEffort?: ModelReasoningEffort
   permissionMode?: PermissionMode
   commandOrigin?: CommandOrigin
+  /** Run budget (steps/tokens/wall-time). Honored by the Flitro driver;
+   *  other providers may ignore it. Per-message wins over session default. */
+  budget?: RunBudget
   /**
    * Optional JSON Schema constraining the turn's final assistant message.
    * Neutral: consumed by BOTH the codex driver (`turn/start.outputSchema`,

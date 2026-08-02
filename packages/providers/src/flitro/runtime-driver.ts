@@ -8,7 +8,7 @@
  * bridge — it is not part of the shared contract.
  */
 
-import type { PermissionMode, } from '@weft/runtime-core'
+import type { PermissionMode, RunBudget, } from '@weft/runtime-core'
 import type { TimelineSequencer } from '@weft/timeline'
 import type { ProviderRuntimeDriver, ProviderRuntimeDriverInput } from '../shared/runtime-scaffold.ts'
 import type { WeftHttpClient } from './client/index.ts'
@@ -42,6 +42,9 @@ export interface CreateFlitroDriverOptions {
   mcpServerNames?: string[]
   /** Default permission_mode ('explore' | 'ask' | 'auto') used when a per-message mode is unset. */
   permissionMode?: PermissionMode
+  /** Session-level default run budget (steps/tokens/wall-time). Per-message
+   *  `input.options.budget` wins over this session default. */
+  budget?: RunBudget
 }
 
 /**
@@ -69,6 +72,9 @@ export function createFlitroDriver(
           // forwarded as-is; the Flitro agentd maps it to approval_policy /
           // permission_envelope.
           permissionMode: input.options?.permissionMode ?? options.permissionMode,
+          // Per-message budget wins over the session-level default. The
+          // http-client serializes it to max_steps/max_tokens/max_wall_time_sec.
+          budget: input.options?.budget ?? options.budget,
         },
       )
       activeRunId = run.run_id

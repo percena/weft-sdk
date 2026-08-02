@@ -31,6 +31,9 @@ export function ChatPane({ boot }: { boot: ChatSessionBootstrap }) {
         // tool call: handleToolSuspension surfaces "no handler registered" and
         // returns without submitting a tool-output, so the run never resumes.
         clientHttpAllowlist: [{ pathPrefix: '/api/' }],
+        // Sized for multi-step Ask flows (approvals + LLM thinking); a faster
+        // model or Auto mode can omit this.
+        budget: { maxWallTimeSec: 600, maxSteps: 32 },
       }),
   })
 

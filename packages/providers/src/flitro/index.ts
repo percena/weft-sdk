@@ -22,6 +22,7 @@ import {
   type AgentRuntime,
   type PermissionMode,
   type ProviderSourceToolDescriptor,
+  type RunBudget,
   type RuntimeAuthDetection,
   type RuntimeCandidate,
   type RuntimeCapabilityReport,
@@ -228,6 +229,9 @@ export interface CreateFlitroProviderRuntimeOptions
   sourceTools?: ProviderSourceToolDescriptor[]
   /** Canonical permission_mode default ('explore' | 'ask' | 'auto') for runs without a per-message mode. */
   permissionMode?: PermissionMode
+  /** Session-level run budget (steps/tokens/wall-time). Per-message
+   *  `SendMessageOptions.budget` wins over this session default. */
+  budget?: RunBudget
   /** Injected runtime extensions (policy, sources, etc.) */
   extensions?: RuntimeExtensionContext
   /** Pre-built driver (for testing) */
@@ -427,6 +431,7 @@ function shouldAutoExecuteClientHttp(name: string, args: Record<string, unknown>
       skillNames: options.skillNames,
       mcpServerNames: resolvedMcpServerNames,
       permissionMode: options.permissionMode,
+      budget: options.budget,
     })
     return runtimeDriver
   }
@@ -576,6 +581,9 @@ export interface CreateFlitroEmbedRuntimeOptions {
    * per-message and relies on weftd's session-sealed default (`ask`).
    */
   permissionMode?: PermissionMode
+  /** Session-level run budget (steps/tokens/wall-time). Per-message
+   *  `SendMessageOptions.budget` wins over this session default. */
+  budget?: RunBudget
   /** Skills to activate per turn (subset of the session's sealed skills). */
   skillNames?: string[]
   /** MCP servers to attach per turn (subset of the session's sealed set). */
@@ -619,6 +627,7 @@ export function createFlitroEmbedRuntime(
     now: options.now,
     extensions: options.extensions,
     permissionMode: options.permissionMode,
+    budget: options.budget,
     skillNames: options.skillNames,
     mcpServerNames: options.mcpServerNames,
     toolHandlers: options.tools,

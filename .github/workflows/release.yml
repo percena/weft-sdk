@@ -5,13 +5,18 @@ name: Release
 # below grant contents:write, pull-requests:write, id-token:write). Releases
 # stay manual so a human gates every `npm publish` of @percena/weft (provenance
 # is on — provenance:true in publishConfig — and a bad publish can't be
-# undone). Version-bump PRs are automated separately by
-# .github/workflows/changeset-version.yml (opens/updates a "chore: version
-# packages" PR on schedule + dispatch); this workflow publishes once that PR
-# lands. To switch to automatic releases on push to main:
+# undone). This is now the ONLY changesets workflow: on workflow_dispatch it
+# runs changesets/action, which opens/updates a "chore: version packages" PR
+# when there are pending changesets, and publishes when there are none — so a
+# release is a two-step manual flow (dispatch → merge PR → dispatch again).
+# The former scheduled .github/workflows/changeset-version.yml was removed:
+# daily auto version-PRs were unwanted; release stays fully manual.
+# Prerequisite for opening the version PR with GITHUB_TOKEN: enable "Allow
+# GitHub Actions to create and approve pull requests" in repo Settings →
+# Actions → General → Workflow permissions. To switch to automatic releases
+# on push to main:
 #   1. Confirm NPM_TOKEN (or NPM_TRUSTED_PUBLISHING=true) is set.
-#   2. Enable "Allow GitHub Actions to create and approve pull requests" in
-#      repo Settings → Actions → General → Workflow permissions.
+#   2. Keep that repo setting enabled (see above).
 #   3. Change `on:` to:  on: { push: { branches: [main] } }
 on:
   workflow_dispatch:

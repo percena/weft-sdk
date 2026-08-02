@@ -5,7 +5,7 @@
  * All methods map 1-to-1 with the server's HTTP endpoints.
  */
 
-import type { PermissionResponseDetail, ProviderModelDiscovery, ProviderModelSource } from '@weft/runtime-core'
+import type { PermissionResponseDetail, ProviderModelDiscovery, ProviderModelSource, RunBudget } from '@weft/runtime-core'
 
 export interface WeftHttpClientOptions {
   /** Base URL of the Weft server, e.g. http://localhost:8080 */
@@ -281,7 +281,7 @@ export class WeftHttpClient {
       mcpServerNames?: string[]
       /** Canonical permission_mode wire value: 'explore' | 'ask' | 'auto' */
       permissionMode?: string
-      budget?: { maxSteps?: number; maxTokens?: number; maxWallTimeSec?: number }
+      budget?: RunBudget
     },
   ): Promise<WeftRun> {
     const budget = options?.budget

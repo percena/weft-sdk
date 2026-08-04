@@ -1,6 +1,6 @@
 {
   "name": "@percena/weft-node",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "MIT",
   "author": "Percena <info@percena.co>",
   "description": "Weft — agent chat runtime SDK for Node.js/desktop. The browser package plus Claude Agent SDK + Codex app-server providers, skills, sources, automations, and policy.",

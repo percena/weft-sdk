@@ -3,11 +3,11 @@ id: tkt-16
 slug: budget-contract-doc-typecheck
 title: budget contract honesty — fix contract.ts provider claim, re-export RunBudget, typecheck demo apps in CI
 kind: bug
-status: open
+status: in_progress
 priority: P2
 covers: [F7, L2, L-typecheck]
-spec: none
-adopted: false
+spec: spc-10
+adopted: true
 blocked_by: []
 parallel_group: null
 github: percena/weft-sdk#25

@@ -3,11 +3,11 @@ id: tkt-15
 slug: release-flow-repair
 title: release-flow repair — reconcile stale changesets, cut an honest 1.0.5, then re-bump demo budgets
 kind: bug
-status: open
+status: in_progress
 priority: P1
 covers: [F2, F3]
-spec: none
-adopted: false
+spec: spc-10
+adopted: true
 blocked_by: []
 parallel_group: null
 github: percena/weft-sdk#24

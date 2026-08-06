@@ -23,6 +23,7 @@
     "build:L4": "pnpm run --filter '@weft/providers' build",
     "build:publish": "pnpm run --filter '@percena/weft' --filter '@percena/weft-node' build",
     "check": "tsc --noEmit",
+    "check:demos": "tsc --noEmit -p apps/itsm/agentic && tsc --noEmit -p apps/online-store/agentic",
     "validate": "tsx tools/validate-build.ts",
     "test": "vitest run",
     "lint": "biome lint .",

@@ -11,6 +11,7 @@ export type {
   AgentRuntimeStatus,
   AgentRuntimeKind,
   SendMessageOptions,
+  RunBudget,
 } from '@weft/runtime-core'
 
 export type { PermissionMode } from '@weft/core'

@@ -273,7 +273,9 @@ export interface RunBudget {
  * SendMessageOptions — the provider-neutral per-turn options contract.
  *
  * The neutral fields (`turnId`, `model`, `reasoningEffort`, `permissionMode`,
- * `commandOrigin`, `outputSchema`, `budget`) are honored by every provider.
+ * `commandOrigin`, `outputSchema`, `budget`) are honored where supported —
+ * `budget` is honored by the Flitro driver ONLY; the claude/codex drivers
+ * have no budget handling and silently ignore it (see {@link RunBudget}).
  *
  * Provider-specific per-turn options belong in {@link providerOptions}
  * (`providerOptions.claude` / `providerOptions.codex`). The remaining flat

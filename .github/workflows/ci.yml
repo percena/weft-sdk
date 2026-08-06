@@ -31,6 +31,16 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
       - run: pnpm run check
+      # Demo-app typecheck (tkt-16/#25): the agentic demos consume
+      # @percena/weft from the npm registry, and their vite builds are
+      # transpile-only — a type error in a demo ships silently unless it is
+      # checked here. Non-blocking (continue-on-error) for now: the demos pin
+      # ^1.0.4, whose published types predate the `budget` option, so this
+      # step currently fails with a known TS2353 in each ChatPane. Flip it to
+      # blocking (delete continue-on-error) when tkt-15's release + demo bump
+      # lands and the pinned version includes `budget`.
+      - run: pnpm run check:demos
+        continue-on-error: true
       - run: pnpm run validate
 
   test:

@@ -1,11 +1,15 @@
 name: Release
 
-# Manual trigger only. The publish path itself IS configured (NPM_TOKEN secret
-# OR NPM_TRUSTED_PUBLISHING repo var for OIDC trusted publishing; permissions
-# below grant contents:write, pull-requests:write, id-token:write). Releases
-# stay manual so a human gates every `npm publish` of @percena/weft (provenance
-# is on — provenance:true in publishConfig — and a bad publish can't be
-# undone). This is now the ONLY changesets workflow: on workflow_dispatch it
+# Manual trigger only. The publish step supports two auth paths (NPM_TOKEN
+# secret, or NPM_TRUSTED_PUBLISHING repo var for OIDC trusted publishing;
+# permissions below grant contents:write, pull-requests:write, id-token:write)
+# — note that as of 2026-08-06 NEITHER is configured (no repo/org secret, no
+# npm-side trusted-publisher link), so a dispatch cannot publish until a
+# maintainer sets one up. Releases stay manual so a human gates every
+# `npm publish` of @percena/weft (attestation comes from the registry-side
+# publish flow; publishConfig no longer carries a provenance key — a bad
+# publish can't be undone). This is now the ONLY changesets workflow: on
+# workflow_dispatch it
 # runs changesets/action, which opens/updates a "chore: version packages" PR
 # when there are pending changesets, and publishes when there are none — so a
 # release is a two-step manual flow (dispatch → merge PR → dispatch again).
@@ -51,7 +55,14 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
-      - name: Ensure npm supports trusted publishing
+      # Only the OIDC trusted-publishing path needs a current npm CLI. On the
+      # NPM_TOKEN path this upgrade is actively harmful: with the OIDC env
+      # present, `changeset publish` → pnpm delegates to the npm CLI, and
+      # current npm hard-errors on pnpm's `--no-git-checks` flag
+      # (EUNKNOWNCONFIG — runs 31103868585/31104561618). With the token
+      # present and no upgrade, pnpm publishes natively via NODE_AUTH_TOKEN.
+      - name: Ensure npm supports trusted publishing (OIDC path only)
+        if: vars.NPM_TRUSTED_PUBLISHING == 'true'
         run: npm install -g npm@latest
 
       - run: pnpm install --frozen-lockfile

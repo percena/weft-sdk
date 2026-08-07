@@ -160,7 +160,7 @@ export interface WeftTimelineFetchResult {
  * `'WeftParseError'` (original parse error on `cause`). Branch on
  * `error.name` — the classes are plain Errors for compatibility.
  *
- * Runtime requirement (rev-20260731 F12): the stable `WeftTimeoutError` name
+ * Runtime requirement: the stable `WeftTimeoutError` name
  * depends on the runtime surfacing `controller.signal.reason` (not a bare
  * `AbortError` DOMException) when `fetch` / `response.json()` is aborted by the
  * timeout. This holds on Node >= 18.17 and modern browsers (Chrome 103+ /
